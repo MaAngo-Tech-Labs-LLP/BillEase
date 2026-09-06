@@ -1,5 +1,8 @@
+import { Link } from 'react-router-dom'
 import { ArrowRight, Receipt, FileText, Clock, ChevronRight } from 'lucide-react'
 import Navbar from '../components/Navbar'
+import { useDocuments, formatAmount, formatDisplayDate } from '../hooks/useDocuments'
+import type { DocStatus } from '../types/document'
 
 // ---------- Types ----------
 interface DocCard {
@@ -9,16 +12,17 @@ interface DocCard {
   badge: string
   description: string
   icon: React.ReactNode
+  route: string
 }
 
-interface RecentDoc {
+interface RecentDocItem {
   id: string
   type: 'bill' | 'invoice'
   name: string
   customer: string
   date: string
   amount: string
-  status: 'draft' | 'paid' | 'pending'
+  status: DocStatus
 }
 
 // ---------- Data ----------
@@ -30,6 +34,7 @@ const docCards: DocCard[] = [
     badge: 'Quick & Simple',
     description: 'Create a simple bill for your customer in just a few clicks.',
     icon: <Receipt size={22} strokeWidth={2} />,
+    route: '/create-bill',
   },
   {
     id: 'create-invoice',
@@ -38,50 +43,22 @@ const docCards: DocCard[] = [
     badge: 'Professional',
     description: 'Create a detailed invoice with items, tax, and payment details.',
     icon: <FileText size={22} strokeWidth={2} />,
+    route: '/create-invoice',
   },
 ]
 
-const recentDocs: RecentDoc[] = [
-  {
-    id: 'rec-1',
-    type: 'invoice',
-    name: 'Invoice #INV-0042',
-    customer: 'Arjun Mehta Design Studio',
-    date: '2 Sep 2026',
-    amount: '₹12,500',
-    status: 'paid',
-  },
-  {
-    id: 'rec-2',
-    type: 'bill',
-    name: 'Bill #BIL-0019',
-    customer: 'Priya Retail Co.',
-    date: '1 Sep 2026',
-    amount: '₹4,800',
-    status: 'pending',
-  },
-  {
-    id: 'rec-3',
-    type: 'invoice',
-    name: 'Invoice #INV-0041',
-    customer: 'Nexus Tech Solutions',
-    date: '29 Aug 2026',
-    amount: '₹28,000',
-    status: 'draft',
-  },
-]
+
 
 // ---------- Sub-components ----------
 
-/** Single create-document card (Bill / Invoice) */
-const DocCard = ({ card }: { card: DocCard }) => (
-  <div
+/** Single create-document card (Bill / Invoice) wired to React Router */
+const DocCardComponent = ({ card }: { card: DocCard }) => (
+  <Link
+    to={card.route}
     className={`doc-card ${card.type}`}
     id={card.id}
-    role="button"
-    tabIndex={0}
     aria-label={`${card.title} – ${card.badge}`}
-    onKeyDown={(e) => e.key === 'Enter' && console.log(`Navigate to ${card.title}`)}
+    style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
   >
     {/* Top row: icon + arrow */}
     <div className="doc-card-header">
@@ -99,17 +76,17 @@ const DocCard = ({ card }: { card: DocCard }) => (
     {/* Title + description */}
     <h2 className="doc-card-title">{card.title}</h2>
     <p className="doc-card-desc">{card.description}</p>
-  </div>
+  </Link>
 )
 
 /** A single row in the "Recently Created" list */
-const RecentItem = ({ doc }: { doc: RecentDoc }) => (
-  <div
+const RecentItemComponent = ({ doc }: { doc: RecentDocItem }) => (
+  <Link
+    to={`/preview?id=${doc.id}`}
     className="recent-item"
     id={`recent-${doc.id}`}
-    role="button"
-    tabIndex={0}
     aria-label={`Open ${doc.name}`}
+    style={{ textDecoration: 'none', color: 'inherit' }}
   >
     {/* Type icon */}
     <div className={`recent-icon ${doc.type}`} aria-hidden="true">
@@ -134,11 +111,24 @@ const RecentItem = ({ doc }: { doc: RecentDoc }) => (
 
     {/* Chevron */}
     <ChevronRight size={15} strokeWidth={2} color="var(--charcoal-soft)" aria-hidden="true" />
-  </div>
+  </Link>
 )
 
 // ---------- Page ----------
 const HomePage = () => {
+  const { documents } = useDocuments()
+
+  // Display only real saved documents created by the user
+  const displayDocs: RecentDocItem[] = documents.slice(0, 5).map(d => ({
+    id: d.id,
+    type: d.type,
+    name: `${d.type === 'bill' ? 'Bill' : 'Invoice'} #${d.invoiceNumber || d.id}`,
+    customer: d.billTo?.name || 'Walk-in Customer',
+    date: d.date || formatDisplayDate(d.createdAt),
+    amount: formatAmount(d.total),
+    status: d.status,
+  }))
+
   return (
     <>
       <Navbar />
@@ -158,22 +148,57 @@ const HomePage = () => {
         <section aria-label="Document types">
           <div className="doc-cards">
             {docCards.map((card) => (
-              <DocCard key={card.id} card={card} />
+              <DocCardComponent key={card.id} card={card} />
             ))}
           </div>
         </section>
 
         {/* Recently Created */}
         <section aria-labelledby="recent-label">
-          <p className="section-label" id="recent-label">
-            <Clock size={11} style={{ verticalAlign: 'middle', marginRight: 5 }} aria-hidden="true" />
-            Recently Created
-          </p>
-          <div className="recent-list">
-            {recentDocs.map((doc) => (
-              <RecentItem key={doc.id} doc={doc} />
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <p className="section-label" id="recent-label" style={{ margin: 0 }}>
+              <Clock size={11} style={{ verticalAlign: 'middle', marginRight: 5 }} aria-hidden="true" />
+              Recently Created
+            </p>
+            {documents.length > 0 && (
+              <Link
+                to="/documents"
+                style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--charcoal-soft)', textDecoration: 'none' }}
+              >
+                View all ({documents.length}) &rarr;
+              </Link>
+            )}
           </div>
+
+          {documents.length === 0 ? (
+            <div style={{
+              padding: '2.5rem 1.5rem', textAlign: 'center',
+              background: 'rgba(255,255,255,0.45)', borderRadius: '16px',
+              border: '1.5px dashed rgba(0,0,0,0.1)', backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+            }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '12px',
+                background: 'rgba(91,158,134,0.15)', color: '#5B9E86',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 0.75rem',
+              }}>
+                <FileText size={20} />
+              </div>
+              <p style={{ margin: '0 0 0.35rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--charcoal)' }}>
+                No documents created yet
+              </p>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--charcoal-soft)' }}>
+                Your recent bills and invoices will appear here once created.
+              </p>
+            </div>
+          ) : (
+            <div className="recent-list">
+              {displayDocs.map((doc) => (
+                <RecentItemComponent key={doc.id} doc={doc} />
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </>
@@ -181,3 +206,4 @@ const HomePage = () => {
 }
 
 export default HomePage
+
