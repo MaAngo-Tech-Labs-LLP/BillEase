@@ -108,6 +108,7 @@ export default function DocumentRenderer({
   const senderEmail = document.senderEmail || 'billing@apexcorp.com';
   const senderPhone = document.senderPhone || '+91 98765 43210';
   const senderAddress = document.senderAddress || '101 Cyber Towers, BKC, Mumbai 400051';
+  const senderLogo = document.senderLogo || (document as any).logo || '';
 
   // Client fallback details
   const clientName = document.clientName || tplStyle?.sampleClient || 'Stellar Innovations Pvt. Ltd.';
@@ -148,6 +149,28 @@ export default function DocumentRenderer({
     const match = d.match(/^(\d{2})[-/.](\d{2})[-/.](\d{4})$/);
     if (match) {
       return `${match[3]}-${match[2]}-${match[1]}`;
+    }
+    return d;
+  };
+
+  const formatDisplayDate = (d?: string) => {
+    if (!d) return '8 Sept 2026';
+    const trimmed = d.trim();
+    const dmy = trimmed.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+    if (dmy) {
+      const day = parseInt(dmy[1], 10);
+      const mIdx = parseInt(dmy[2], 10) - 1;
+      const yr = dmy[3];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+      return `${day} ${months[mIdx] || ''} ${yr}`;
+    }
+    const ymd = trimmed.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+    if (ymd) {
+      const yr = ymd[1];
+      const mIdx = parseInt(ymd[2], 10) - 1;
+      const day = parseInt(ymd[3], 10);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+      return `${day} ${months[mIdx] || ''} ${yr}`;
     }
     return d;
   };
@@ -832,7 +855,7 @@ export default function DocumentRenderer({
               {senderName}
             </h2>
             <div style={{ fontSize: '0.78rem', opacity: 0.9, marginTop: 2 }}>
-              GSTIN: 27AABCU9603R1ZM | State: 27 (Maharashtra)
+              GSTIN: {document.senderTaxNumber || '22AAAAA0000A1Z5'} | State: 27 (Maharashtra)
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -840,7 +863,7 @@ export default function DocumentRenderer({
               TAX INVOICE (GST)
             </div>
             <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>
-              Invoice #{document.billNumber || 'GST-2026-089'}
+              Invoice #{document.billNumber || 'INV-2026-1817'}
             </div>
             <div style={{ fontSize: '0.74rem', opacity: 0.85 }}>
               Date: {formatHeaderDate(document.issueDate)}
@@ -854,13 +877,13 @@ export default function DocumentRenderer({
             <div style={{ fontWeight: 700, color: '#880e4f', marginBottom: 2 }}>DETAILS OF SUPPLIER:</div>
             <div style={{ fontWeight: 600 }}>{senderName}</div>
             <div style={{ color: '#475569', fontSize: '0.76rem' }}>{senderAddress}</div>
-            <div style={{ marginTop: 4, fontSize: '0.76rem' }}>GSTIN: <strong>27AABCU9603R1ZM</strong></div>
+            <div style={{ marginTop: 4, fontSize: '0.76rem' }}>GSTIN: <strong>{document.senderTaxNumber || '22AAAAA0000A1Z5'}</strong></div>
           </div>
           <div className="gst-party-card">
             <div style={{ fontWeight: 700, color: '#880e4f', marginBottom: 2 }}>DETAILS OF RECIPIENT (BILLED TO):</div>
             <div style={{ fontWeight: 600 }}>{clientName}</div>
             <div style={{ color: '#475569', fontSize: '0.76rem' }}>{clientAddress}</div>
-            <div style={{ marginTop: 4, fontSize: '0.76rem' }}>GSTIN: <strong>29AABCU9603R1ZN</strong></div>
+            <div style={{ marginTop: 4, fontSize: '0.76rem' }}>GSTIN: <strong>{document.clientTaxNumber || '29AAAAA0000A1Z5'}</strong></div>
           </div>
         </div>
 
@@ -948,243 +971,175 @@ export default function DocumentRenderer({
           background: '#ffffff',
           display: 'flex',
           flexDirection: 'column',
-          gap: 16,
-          padding: '30px 38px 24px 38px',
           minHeight: 1080,
           maxWidth: 800,
           margin: '0 auto',
           boxSizing: 'border-box',
-          border: '1.5px solid #E2E8F0',
-          borderRadius: 12,
+          padding: '3.5rem 3rem',
+          color: '#111827',
+          boxShadow: '0 4px 30px rgba(0,0,0,0.06)',
+          borderRadius: '8px',
         } as React.CSSProperties}
       >
-        {/* Scandinavian Tech Modern Header */}
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {senderLogo ? (
+              <div
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                  border: '1.5px solid #e5e7eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: '#ffffff',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                  flexShrink: 0,
+                }}
+              >
+                <img
+                  src={senderLogo}
+                  alt="Business Logo"
+                  style={{ maxWidth: 52, maxHeight: 52, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
+                />
+              </div>
+            ) : null}
+            <div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, letterSpacing: '-0.8px', color: '#111827' }}>
+                {senderName}
+              </div>
+              <div style={{ fontSize: '0.76rem', color: '#6B7280', marginTop: '4px' }}>
+                {[senderEmail, senderPhone].filter(Boolean).join(' · ')}
+              </div>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '2.2rem', fontWeight: 900, letterSpacing: '-1.5px', lineHeight: 1, color: '#111827' }}>
+              {tplStyle?.docLabel || 'INVOICE'}
+            </div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6B7280', marginTop: '4px' }}>
+              #{document.billNumber || 'INV-2026-1817'}
+            </div>
+          </div>
+        </div>
+
+        {/* Parties */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', marginBottom: '2.5rem', paddingBottom: '1.75rem', borderBottom: '1px solid #E5E7EB' }}>
+          <div>
+            <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', color: '#9CA3AF', marginBottom: '6px' }}>
+              BILLED TO
+            </div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#111827' }}>
+              {clientName}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: '4px', whiteSpace: 'pre-line', lineHeight: 1.4 }}>
+              {clientAddress}
+            </div>
+            {clientEmail && (
+              <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: '2px' }}>
+                {clientEmail}
+              </div>
+            )}
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', color: '#9CA3AF', marginBottom: '6px' }}>
+              TIMELINES
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#6B7280', marginBottom: '4px' }}>
+              Issued on: <strong style={{ color: '#111827' }}>{formatDisplayDate(document.issueDate)}</strong>
+            </div>
+            {document.dueDate && (
+              <div style={{ fontSize: '0.78rem', color: '#6B7280' }}>
+                Payment Due: <strong style={{ color: '#111827' }}>{formatDisplayDate(document.dueDate)}</strong>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Table */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2.5rem' }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid #111827', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <th style={{ textAlign: 'left', padding: '10px 0' }}>ITEM DESCRIPTION</th>
+              <th style={{ textAlign: 'center', padding: '10px 0', width: '60px' }}>QTY</th>
+              <th style={{ textAlign: 'right', padding: '10px 0', width: '100px' }}>RATE</th>
+              <th style={{ textAlign: 'right', padding: '10px 0', width: '120px' }}>AMOUNT</th>
+            </tr>
+          </thead>
+          <tbody>
+            {document.items.map((it, idx) => {
+              const amt = (Number(it.qty) || 0) * (Number(it.rate) || 0);
+              return (
+                <tr key={it.id || idx} style={{ borderBottom: '1px solid #F3F4F6', fontSize: '0.82rem' }}>
+                  <td style={{ padding: '12px 0', fontWeight: 600, color: '#111827' }}>{it.description}</td>
+                  <td style={{ padding: '12px 0', textAlign: 'center', color: '#6B7280' }}>{it.qty}</td>
+                  <td style={{ padding: '12px 0', textAlign: 'right', color: '#6B7280' }}>{currencySymbol}{formatAmount(it.rate)}</td>
+                  <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 700, color: '#111827' }}>{currencySymbol}{formatAmount(amt)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* Totals Pill */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginBottom: '3rem' }}>
+          <div style={{ width: '240px', fontSize: '0.8rem', color: '#6B7280', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <span>Subtotal</span>
+              <span style={{ fontWeight: 600, color: '#111827' }}>{currencySymbol}{formatAmount(subtotal)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Tax ({document.taxRate || 0}%)</span>
+              <span style={{ fontWeight: 600, color: '#111827' }}>{currencySymbol}{formatAmount(taxAmount)}</span>
+            </div>
+          </div>
+          <div
+            style={{
+              background: '#111827',
+              color: '#ffffff',
+              padding: '10px 24px',
+              borderRadius: '100px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              fontSize: '0.9rem',
+              fontWeight: 800,
+              boxShadow: '0 4px 14px rgba(17,24,39,0.2)',
+            }}
+          >
+            <span style={{ fontSize: '0.68rem', letterSpacing: '1px', textTransform: 'uppercase', opacity: 0.7 }}>
+              TOTAL DUE
+            </span>
+            <span style={{ fontSize: '1.25rem' }}>
+              {currencySymbol}{formatAmount(totalAmount)}
+            </span>
+          </div>
+        </div>
+
+        {/* Footer */}
         <div
-          className="a4-tpl-minimal-header"
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            borderBottom: '2px solid #0F172A',
-            paddingBottom: 14,
-            gap: 16,
+            marginTop: 'auto',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '2rem',
+            fontSize: '0.72rem',
+            color: '#9CA3AF',
+            paddingTop: '1.5rem',
+            borderTop: '1px solid #F3F4F6',
           }}
         >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-              <span
-                style={{
-                  background: '#F1F5F9',
-                  color: '#0F172A',
-                  fontSize: '0.64rem',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: 4,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                ● VERIFIED DIGITAL INVOICE
-              </span>
-            </div>
-            <h1
-              style={{
-                fontSize: '1.50rem',
-                fontWeight: 900,
-                color: '#0F172A',
-                margin: 0,
-                letterSpacing: '-0.02em',
-                lineHeight: 1.15,
-              }}
-            >
-              {senderName || 'Kronos Cloud Systems'}
-            </h1>
-            <div style={{ fontSize: '0.74rem', color: '#64748B', marginTop: 3, fontWeight: 500 }}>
-              {senderTagline || 'Enterprise Cloud & Infrastructure Architecture'}
-            </div>
-            <div style={{ fontSize: '0.68rem', color: '#64748B', marginTop: 4, lineHeight: 1.4 }}>
-              {[senderAddress, senderPhone && `Ph: ${senderPhone}`, senderEmail].filter(Boolean).join('  •  ')}
-            </div>
+            {document.notes || 'Thank you for your business! Please settle payments within the specified due date.'}
           </div>
-
-          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div
-              style={{
-                background: '#0F172A',
-                color: '#FFFFFF',
-                padding: '4px 14px',
-                borderRadius: 9999,
-                fontSize: '0.78rem',
-                fontWeight: 900,
-                display: 'inline-block',
-                letterSpacing: '0.03em',
-                boxShadow: '0 2px 6px rgba(15,23,42,0.15)',
-              }}
-            >
-              INVOICE #{document.billNumber || 'INV-2026-001'}
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 5 }}>
-              Issue Date: <strong>{formatHeaderDate(document.issueDate) || '2026-09-06'}</strong>
-            </div>
-            {document.dueDate && (
-              <div style={{ fontSize: '0.70rem', color: '#64748B', marginTop: 1 }}>
-                Payment Due: <strong>{formatHeaderDate(document.dueDate)}</strong>
-              </div>
-            )}
-            {document.poNumber && (
-              <div style={{ fontSize: '0.70rem', color: '#0F172A', fontWeight: 700, marginTop: 2 }}>
-                Ref / PO: <strong>{document.poNumber}</strong>
-              </div>
+          <div style={{ textAlign: 'right' }}>
+            {document.paymentNotes && (
+              <span>Bank / UPI: {document.paymentNotes.replace(/\n/g, ' · ')}</span>
             )}
           </div>
-        </div>
-
-        {/* Symmetrical Dual Party Information Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'stretch' }}>
-          <div
-            style={{
-              background: '#F8FAFC',
-              border: '1.5px solid #E2E8F0',
-              borderRadius: 8,
-              padding: '14px 18px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              boxSizing: 'border-box',
-            }}
-          >
-            <div>
-              <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748B', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                01. ISSUED FROM
-              </div>
-              <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.94rem', marginTop: 4 }}>
-                {senderName || 'Kronos Cloud Systems'}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 2 }}>
-                {senderAddress || '101 Cyber Towers, Tech Corridor, Bangalore 560100'}
-              </div>
-            </div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A', marginTop: 10, paddingTop: 4, borderTop: '1px solid #E2E8F0' }}>
-              TAX / GSTIN: 27AABCA1234F1Z9
-            </div>
-          </div>
-
-          <div
-            style={{
-              background: '#F8FAFC',
-              border: '1.5px solid #E2E8F0',
-              borderRadius: 8,
-              padding: '14px 18px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              boxSizing: 'border-box',
-            }}
-          >
-            <div>
-              <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748B', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                02. INVOICED TO
-              </div>
-              <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.94rem', marginTop: 4 }}>
-                {clientName || 'Linear Labs Global Inc.'}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 2 }}>
-                {clientAddress || '45 Innovation Way, Tech Park, Bangalore 560100'}
-              </div>
-            </div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A', marginTop: 10, paddingTop: 4, borderTop: '1px solid #E2E8F0' }}>
-              CLIENT REF: {document.poNumber || 'PO-12345'}
-            </div>
-          </div>
-        </div>
-
-        {/* Floating Minimalist Table */}
-        <div style={{ border: '1.5px solid #0F172A', borderRadius: 8, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#0F172A', color: '#FFFFFF' }}>
-                <th style={{ width: '50%', textAlign: 'left', padding: '11px 14px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
-                  DESCRIPTION
-                </th>
-                <th style={{ width: '14%', textAlign: 'center', padding: '11px 8px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
-                  QTY
-                </th>
-                <th style={{ width: '16%', textAlign: 'right', padding: '11px 10px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
-                  RATE
-                </th>
-                <th style={{ width: '20%', textAlign: 'right', padding: '11px 14px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
-                  AMOUNT
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {document.items.map((item, idx) => (
-                <tr key={item.id} style={{ borderBottom: '1px solid #E2E8F0', background: idx % 2 === 1 ? '#F8FAFC' : '#FFFFFF' }}>
-                  <td style={{ textAlign: 'left', padding: '11px 14px', fontWeight: 700, color: '#0F172A', fontSize: '0.82rem' }}>
-                    {item.description}
-                  </td>
-                  <td style={{ textAlign: 'center', padding: '11px 8px', fontWeight: 600, fontSize: '0.80rem', color: '#334155' }}>
-                    {item.qty}
-                  </td>
-                  <td style={{ textAlign: 'right', padding: '11px 10px', fontVariantNumeric: 'tabular-nums', fontSize: '0.80rem', color: '#334155' }}>
-                    {currencySymbol}{formatAmount(item.rate)}
-                  </td>
-                  <td style={{ textAlign: 'right', padding: '11px 14px', fontWeight: 800, color: '#0F172A', fontVariantNumeric: 'tabular-nums', fontSize: '0.84rem' }}>
-                    {currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Minimal Bottom Section */}
-        <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: 14 }}>
-          <div style={{ fontSize: '0.74rem', color: '#64748B', maxWidth: 360 }}>
-            <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>
-              PAYMENT TERMS &amp; INSTRUCTIONS:
-            </div>
-            <div>{document.paymentNotes || 'Wire transfer to primary bank account as per agreed terms.'}</div>
-          </div>
-          <div
-            style={{
-              background: '#0F172A',
-              color: '#FFFFFF',
-              padding: '12px 20px',
-              borderRadius: 8,
-              minWidth: 230,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              boxShadow: '0 4px 12px rgba(15,23,42,0.18)',
-            }}
-          >
-            <div>
-              <div style={{ fontSize: '0.64rem', color: '#94A3B8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                TOTAL DUE
-              </div>
-              <div style={{ fontSize: '0.80rem', fontWeight: 700 }}>Settlement Amount</div>
-            </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#FDE047', fontVariantNumeric: 'tabular-nums' }}>
-              {currencySymbol}{formatAmount(totalAmount)}
-            </div>
-          </div>
-        </div>
-
-        {/* Footnote Motto */}
-        <div
-          style={{
-            paddingTop: 6,
-            textAlign: 'center',
-            borderTop: '1px dashed #CBD5E1',
-            fontSize: '0.64rem',
-            color: '#64748B',
-            fontWeight: 700,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-          }}
-        >
-          ORIGINAL FOR RECIPIENT &nbsp;•&nbsp; DIGITALLY GENERATED &amp; AUTHENTICATED
         </div>
       </div>
     );
@@ -1205,20 +1160,45 @@ export default function DocumentRenderer({
     >
       {/* Classic Corporate Header */}
       <div className="a4-tpl-classic-header">
-        <div className="a4-classic-left">
-          <h2 className="a4-classic-company">{senderName}</h2>
-          {senderTagline && <p className="a4-classic-tagline">{senderTagline}</p>}
-          <div className="a4-classic-contact">
-            <span className="contact-item">
-              <Mail size={12} />
-              <span>{senderEmail}</span>
-            </span>
-            {senderPhone && (
+        <div className="a4-classic-left" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          {senderLogo ? (
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 10,
+                overflow: 'hidden',
+                border: '1.5px solid #dbeafe',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#ffffff',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                flexShrink: 0,
+              }}
+            >
+              <img
+                src={senderLogo}
+                alt="Business Logo"
+                style={{ maxWidth: 52, maxHeight: 52, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
+              />
+            </div>
+          ) : null}
+          <div>
+            <h2 className="a4-classic-company">{senderName}</h2>
+            {senderTagline && <p className="a4-classic-tagline">{senderTagline}</p>}
+            <div className="a4-classic-contact">
               <span className="contact-item">
-                <Phone size={12} />
-                <span>{senderPhone}</span>
+                <Mail size={12} />
+                <span>{senderEmail}</span>
               </span>
-            )}
+              {senderPhone && (
+                <span className="contact-item">
+                  <Phone size={12} />
+                  <span>{senderPhone}</span>
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="a4-classic-right">

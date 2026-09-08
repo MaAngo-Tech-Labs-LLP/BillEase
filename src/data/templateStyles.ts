@@ -212,13 +212,13 @@ export const TEMPLATES: TemplateStyle[] = [
     tableHeaderText: '#1A237E',
     totalColor: '#1A237E',
     borderColor: '#C5CAE9',
-    logoText: 'Apex Corporate',
+    logoText: 'Studio Pulse',
     docLabel: 'INVOICE',
-    sampleClient: 'Stellar Innovations Pvt. Ltd.',
+    sampleClient: 'NovaTech AI Solutions Inc.',
     sampleItems: [
-      { desc: 'Enterprise Architecture Consulting', qty: 20, rate: 2500 },
-      { desc: 'Cloud Infrastructure Audit & Hardening', qty: 10, rate: 3500 },
-      { desc: 'Executive Stakeholder Presentation', qty: 3, rate: 1500 },
+      { desc: 'SaaS Platform Enterprise License (Annual)', qty: 1, rate: 48000 },
+      { desc: 'Custom API Gateway Integration & Setup', qty: 5, rate: 2000 },
+      { desc: '24/7 Dedicated Priority Support SLA', qty: 1, rate: 12000 },
     ],
   },
   {
@@ -264,13 +264,13 @@ export const TEMPLATES: TemplateStyle[] = [
     tableHeaderText: '#BF360C',
     totalColor: '#E65100',
     borderColor: '#FFCC80',
-    logoText: 'Aura Visual Works',
+    logoText: 'Studio Pulse',
     docLabel: 'PROJECT INVOICE',
-    sampleClient: 'Arjun Signature Wedding Films',
+    sampleClient: 'NovaTech AI Solutions Inc.',
     sampleItems: [
-      { desc: 'Full Day Cinematic Video Production (4K)', qty: 1, rate: 35000 },
-      { desc: 'Handcrafted Premium Photo Album & Print', qty: 1, rate: 12000 },
-      { desc: 'Drone Aerial Cinematography Add-on', qty: 1, rate: 8000 },
+      { desc: 'SaaS Platform Enterprise License (Annual)', qty: 1, rate: 48000 },
+      { desc: 'Custom API Gateway Integration & Setup', qty: 5, rate: 2000 },
+      { desc: '24/7 Dedicated Priority Support SLA', qty: 1, rate: 12000 },
     ],
   },
   {
@@ -280,8 +280,8 @@ export const TEMPLATES: TemplateStyle[] = [
     categoryTag: 'Corporate',
     docType: 'invoice',
     badge: 'Executive',
-    description: 'High-end law and consulting firm format with classic serif typography, client matter reference block, hourly breakdown, and retainer deduction.',
-    tags: ['Legal', 'Finance', 'Law Firm', 'Advisory'],
+    description: 'High-end corporate advisory format with classic serif typography, client matter reference block, hourly breakdown, and retainer deduction.',
+    tags: ['Legal', 'Finance', 'Advisory', 'Consulting'],
     layoutType: 'editorial',
     accentColor: '#0D2137',
     headerBg: '#0D2137',
@@ -290,13 +290,13 @@ export const TEMPLATES: TemplateStyle[] = [
     tableHeaderText: '#0D2137',
     totalColor: '#0D2137',
     borderColor: '#B0BEC5',
-    logoText: 'Sterling & Croft LLP',
+    logoText: 'Studio Pulse',
     docLabel: 'FEE STATEMENT & INVOICE',
-    sampleClient: 'MegaCorp Industries Global Ltd.',
+    sampleClient: 'NovaTech AI Solutions Inc.',
     sampleItems: [
-      { desc: 'Corporate Retainer Fee & Board Advisory (Monthly)', qty: 1, rate: 75000 },
-      { desc: 'M&A Contract Drafting, Due Diligence & Review', qty: 4, rate: 8500 },
-      { desc: 'Statutory Regulatory Compliance Audit (Hours)', qty: 10, rate: 5000 },
+      { desc: 'SaaS Platform Enterprise License (Annual)', qty: 1, rate: 48000 },
+      { desc: 'Custom API Gateway Integration & Setup', qty: 5, rate: 2000 },
+      { desc: '24/7 Dedicated Priority Support SLA', qty: 1, rate: 12000 },
     ],
   },
   {
@@ -316,13 +316,13 @@ export const TEMPLATES: TemplateStyle[] = [
     tableHeaderText: '#880E4F',
     totalColor: '#880E4F',
     borderColor: '#F48FB1',
-    logoText: 'TaxPro India Private Limited',
+    logoText: 'Studio Pulse',
     docLabel: 'TAX INVOICE (GST)',
-    sampleClient: 'Sharma Global Traders GSTIN: 07AAAAA0000A1Z5',
+    sampleClient: 'NovaTech AI Solutions Inc. GSTIN: 29AAAAA0000A1Z5',
     sampleItems: [
-      { desc: 'Custom Software Architecture & Dev (SAC: 998314)', qty: 40, rate: 1500 },
-      { desc: 'Cloud Server Hosting & Managed Cluster 1yr (SAC: 998315)', qty: 1, rate: 24000 },
-      { desc: 'Priority DevOps Technical Support (Monthly)', qty: 3, rate: 5000 },
+      { desc: 'SaaS Platform Enterprise License (Annual) (SAC: 998314)', qty: 1, rate: 48000 },
+      { desc: 'Custom API Gateway Integration & Setup (SAC: 998315)', qty: 5, rate: 2000 },
+      { desc: '24/7 Dedicated Priority Support SLA (SAC: 998316)', qty: 1, rate: 12000 },
     ],
   },
 ];
@@ -347,7 +347,7 @@ export function getTemplateById(id: string): TemplateStyle | undefined {
 
 export function normalizeTemplateId(id?: string, docType?: 'bill' | 'invoice'): string {
   if (!id) {
-    return docType === 'invoice' ? 'classic-pro' : 'apex-corporate-bill';
+    return docType === 'invoice' ? 'modern-minimal' : 'apex-corporate-bill';
   }
   // Check direct match
   if (TEMPLATES.some((t) => t.id === id)) {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BillDocument, DocumentType } from '../types';
-import { DEFAULT_BILL, SAMPLE_DOCUMENTS } from '../data/templates';
+import { DEFAULT_BILL, DEFAULT_INVOICE, SAMPLE_DOCUMENTS } from '../data/templates';
 
 const STORAGE_DOCS_KEY = 'billease_documents_list';
 const STORAGE_DRAFT_KEY = 'billease_active_draft';
@@ -105,13 +105,24 @@ export function useDocuments() {
 
   // Create a new blank draft of specified type
   const createNewDraft = useCallback((type: DocumentType = 'bill'): BillDocument => {
-    const num = Math.floor(100 + Math.random() * 900);
+    const num = Math.floor(1000 + Math.random() * 9000);
+    if (type === 'invoice') {
+      const newInvoice: BillDocument = {
+        ...DEFAULT_INVOICE,
+        id: `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        billNumber: `INV-2026-${num}`,
+        createdAt: new Date().toISOString(),
+      };
+      setDraft(newInvoice);
+      return newInvoice;
+    }
+
     const newDoc: BillDocument = {
       ...DEFAULT_BILL,
       id: `doc-${Date.now()}`,
-      type,
-      title: type === 'bill' ? `New Bill #${num}` : `New Invoice #${num}`,
-      billNumber: type === 'bill' ? `BIL-2024-${num}` : `INV-2024-${num}`,
+      type: 'bill',
+      title: `New Bill #${num}`,
+      billNumber: `BIL-2026-${num}`,
       items: [
         { id: 'item-1', description: 'Professional Consulting Services', qty: 1, rate: 1000 },
       ],
