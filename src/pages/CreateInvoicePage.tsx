@@ -51,6 +51,7 @@ export default function CreateInvoicePage({
       return {
         ...DEFAULT_INVOICE,
         ...initialDocument,
+        senderLogo: initialDocument.senderLogo || (initialDocument as any).logo || DEFAULT_INVOICE.senderLogo,
         type: 'invoice',
         template: normalizeTemplateId(initialDocument.template || 'modern-minimal', 'invoice'),
       };
@@ -59,10 +60,11 @@ export default function CreateInvoicePage({
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.id !== 'inv-acme-design' && parsed.clientName !== 'Acme Corporation Ltd.') {
+        if (parsed.id !== 'inv-acme-design' && parsed.clientName !== 'Acme Corporation Ltd.' && parsed.clientName !== 'Stellar Innovations Pvt. Ltd.') {
           return {
             ...DEFAULT_INVOICE,
             ...parsed,
+            senderLogo: parsed.senderLogo || parsed.logo || DEFAULT_INVOICE.senderLogo,
             type: 'invoice',
             template: normalizeTemplateId(parsed.template || 'modern-minimal', 'invoice'),
           };

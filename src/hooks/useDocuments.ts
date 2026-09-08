@@ -58,7 +58,7 @@ export function useDocuments() {
     const target = docToSave || draft;
     
     // Generate fresh unique ID if creating from a default template ID to prevent overwriting
-    const isTemplateDefaultId = target.id === 'doc-apex-billing' || target.id === 'inv-acme-design';
+    const isTemplateDefaultId = target.id === 'doc-apex-billing' || target.id === 'inv-acme-design' || target.id === 'inv-studio-pulse';
     const uniqueId = (!target.id || isTemplateDefaultId)
       ? `doc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
       : target.id;

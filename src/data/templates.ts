@@ -27,6 +27,8 @@ export const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {
   CAD: '$',
 };
 
+export const DEFAULT_INVOICE_LOGO = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%23111827"/><path d="M22 50 L38 50 L46 26 L56 74 L64 50 L78 50" fill="none" stroke="%238B5CF6" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="51" cy="50" r="4" fill="%23A78BFA"/></svg>`;
+
 export const DEFAULT_INVOICE: BillDocument = {
   id: 'inv-studio-pulse',
   type: 'invoice',
@@ -37,16 +39,17 @@ export const DEFAULT_INVOICE: BillDocument = {
   dueDate: '08-10-2026',
   currency: 'INR',
   paymentTerms: 'Net 30',
+  senderLogo: DEFAULT_INVOICE_LOGO,
   senderName: 'Studio Pulse',
   senderTagline: 'Technology & Enterprise AI Solutions',
-  senderEmail: 'billing@apexcorp.com',
+  senderEmail: 'billing@studiopulse.design',
   senderPhone: '+91 98765 43210',
-  senderAddress: '101 Cyber Towers, BKC, Mumbai 400051',
+  senderAddress: '74 Nordic Creative Park, Indiranagar 100ft Rd, Bengaluru 560038',
   senderTaxNumber: '22AAAAA0000A1Z5',
   clientName: 'NovaTech AI Solutions Inc.',
-  clientEmail: 'accounts@stellarinnovations.com',
+  clientEmail: 'finance@novatech-ai.com',
   clientPhone: '+91 98765 43210',
-  clientAddress: '45 Innovation Way, Tech Corridor, Bangalore 560100',
+  clientAddress: 'Tower 4, Level 11, TechPark SEZ, Outer Ring Road, Bengaluru 560103',
   items: [
     { id: '1', description: 'SaaS Platform Enterprise License (Annual)', qty: 1, rate: 48000 },
     { id: '2', description: 'Custom API Gateway Integration & Setup', qty: 5, rate: 2000 },

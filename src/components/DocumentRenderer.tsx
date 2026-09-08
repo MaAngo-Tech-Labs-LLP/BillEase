@@ -20,6 +20,7 @@ import { BillDocument } from '../types';
 import {
   CURRENCY_SYMBOLS,
   ACCENT_COLOR_MAP,
+  DEFAULT_INVOICE_LOGO,
   normalizeTemplateId,
   getTemplateById,
 } from '../data/templates';
@@ -103,27 +104,28 @@ export default function DocumentRenderer({
   const docHeading = isInvoice ? 'INVOICE' : 'BILL';
 
   // Sender fallback details
-  const senderName = document.senderName || tplStyle?.logoText || 'Apex Corporate';
-  const senderTagline = document.senderTagline || 'Corporate Billing Services';
-  const senderEmail = document.senderEmail || 'billing@apexcorp.com';
+  const senderName = document.senderName || tplStyle?.logoText || (isInvoice ? 'Studio Pulse' : 'Apex Corporate');
+  const senderTagline = document.senderTagline || (isInvoice ? 'Technology & Enterprise AI Solutions' : 'Corporate Billing Services');
+  const senderEmail = document.senderEmail || (isInvoice ? 'billing@studiopulse.design' : 'billing@apexcorp.com');
   const senderPhone = document.senderPhone || '+91 98765 43210';
-  const senderAddress = document.senderAddress || '101 Cyber Towers, BKC, Mumbai 400051';
-  const senderLogo = document.senderLogo || (document as any).logo || '';
+  const senderAddress = document.senderAddress || (isInvoice ? '74 Nordic Creative Park, Indiranagar 100ft Rd, Bengaluru 560038' : '101 Cyber Towers, BKC, Mumbai 400051');
+  const senderLogo = document.senderLogo || (document as any).logo || (isInvoice ? DEFAULT_INVOICE_LOGO : '');
 
   // Client fallback details
-  const clientName = document.clientName || tplStyle?.sampleClient || 'Stellar Innovations Pvt. Ltd.';
-  const clientAddress = document.clientAddress || '45 Innovation Way, Tech Corridor, Bangalore 560100';
-  const clientEmail = document.clientEmail || 'accounts@stellarinnovations.com';
-  const clientPhone = document.clientPhone || '+91 98111 22334';
+  const clientName = document.clientName || tplStyle?.sampleClient || (isInvoice ? 'NovaTech AI Solutions Inc.' : 'Stellar Innovations Pvt. Ltd.');
+  const clientAddress = document.clientAddress || (isInvoice ? 'Tower 4, Level 11, TechPark SEZ, Outer Ring Road, Bengaluru 560103' : '45 Innovation Way, Tech Corridor, Bangalore 560100');
+  const clientEmail = document.clientEmail || (isInvoice ? 'finance@novatech-ai.com' : 'accounts@stellarinnovations.com');
+  const clientPhone = document.clientPhone || '+91 98765 43210';
+  const paymentTerms = document.paymentTerms || 'Net 30';
 
   const bankRows = useMemo(() => {
     const raw = document.paymentNotes?.trim();
-    if (!raw || raw.includes('billing@upi') || raw.includes('50200012345678')) {
+    if (!raw) {
       return [
         { label: 'Bank Name', value: 'HDFC Bank Ltd.' },
-        { label: 'Account Number', value: '50200084920194' },
-        { label: 'IFSC Code', value: 'HDFC0001234' },
-        { label: 'Branch', value: 'BKC Premier Mumbai' },
+        { label: 'Account Number', value: isInvoice ? '50200012345678' : '50200084920194' },
+        { label: 'IFSC Code', value: isInvoice ? 'HDFC0000123' : 'HDFC0001234' },
+        { label: isInvoice ? 'UPI ID' : 'Branch', value: isInvoice ? 'billing@upi' : 'BKC Premier Mumbai' },
       ];
     }
     return raw
@@ -142,7 +144,126 @@ export default function DocumentRenderer({
         }
         return { label: '', value: line.trim() };
       });
-  }, [document.paymentNotes]);
+  }, [document.paymentNotes, isInvoice]);
+
+  // Dedicated 52 × 52px Business Logo Renderer for Invoice Headers (Left Position)
+  const renderBusinessLogo = (customLogo?: string, altText?: string, isDarkBg: boolean = false) => {
+    const logoUrl = customLogo || senderLogo || (isInvoice ? DEFAULT_INVOICE_LOGO : '');
+    if (logoUrl) {
+      return (
+        <div
+          style={{
+            width: 52,
+            height: 52,
+            minWidth: 52,
+            minHeight: 52,
+            borderRadius: 10,
+            overflow: 'hidden',
+            border: isDarkBg ? '1.5px solid rgba(255,255,255,0.28)' : '1.5px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: isDarkBg ? 'rgba(255,255,255,0.96)' : '#ffffff',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+            flexShrink: 0,
+          }}
+        >
+          <img
+            src={logoUrl}
+            alt={altText || senderName || 'Business Logo'}
+            style={{
+              maxWidth: 52,
+              maxHeight: 52,
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
+        </div>
+      );
+    }
+
+    const initials = (senderName || 'SP')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join('')
+      .toUpperCase() || 'SP';
+
+    return (
+      <div
+        style={{
+          width: 52,
+          height: 52,
+          minWidth: 52,
+          minHeight: 52,
+          borderRadius: 10,
+          background: isDarkBg ? 'rgba(255,255,255,0.18)' : '#ede9fe',
+          border: isDarkBg ? '1.5px solid rgba(255,255,255,0.32)' : '1.5px solid #ddd6fe',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: isDarkBg ? '#ffffff' : '#6E5CB6',
+          fontWeight: 800,
+          fontSize: '1.05rem',
+          letterSpacing: '0.04em',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+          flexShrink: 0,
+        }}
+        title="Business Logo"
+      >
+        {initials}
+      </div>
+    );
+  };
+
+  // Status Badge Pill Renderer
+  const renderStatusBadge = (statusStr?: string) => {
+    const st = (statusStr || document.status || 'unpaid').toLowerCase();
+    let bg = '#fef2f2';
+    let text = '#dc2626';
+    let border = '#fecaca';
+    let label = 'UNPAID';
+
+    if (st === 'paid') {
+      bg = '#ecfdf5';
+      text = '#059669';
+      border = '#a7f3d0';
+      label = 'PAID';
+    } else if (st === 'pending') {
+      bg = '#fffbeb';
+      text = '#d97706';
+      border = '#fde68a';
+      label = 'PENDING';
+    } else if (st === 'draft') {
+      bg = '#f1f5f9';
+      text = '#475569';
+      border = '#cbd5e1';
+      label = 'DRAFT';
+    }
+
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: '2px 8px',
+          borderRadius: '9999px',
+          fontSize: '0.64rem',
+          fontWeight: 800,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          background: bg,
+          color: text,
+          border: `1px solid ${border}`,
+        }}
+      >
+        {label}
+      </span>
+    );
+  };
 
   const formatHeaderDate = (d?: string) => {
     if (!d) return '2026-09-06';
@@ -189,27 +310,45 @@ export default function DocumentRenderer({
           '--builder-accent': accentHex,
         } as React.CSSProperties}
       >
-        {/* Centered Store Header */}
-        <div className="receipt-header-box" style={{ background: tplStyle?.headerBg || '#00695C' }}>
-          <div className="receipt-header-title">{senderName}</div>
-          <div className="receipt-header-sub">{senderTagline || 'Retail Store & POS Billing'}</div>
-          <div style={{ fontSize: '0.74rem', opacity: 0.85, marginTop: 4 }}>
-            {senderAddress} | Ph: {senderPhone}
+        {/* Left-aligned Store Header with 52x52 Logo on Left */}
+        <div className="receipt-header-box" style={{ background: tplStyle?.headerBg || '#00695C', display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', textAlign: 'left' }}>
+          {renderBusinessLogo(senderLogo, senderName, true)}
+          <div style={{ flex: 1 }}>
+            <div className="receipt-header-title" style={{ textAlign: 'left' }}>{senderName}</div>
+            <div className="receipt-header-sub" style={{ textAlign: 'left' }}>{senderTagline || 'Retail Store & POS Billing'}</div>
+            <div style={{ fontSize: '0.74rem', opacity: 0.88, marginTop: 4 }}>
+              {senderAddress} | Ph: {senderPhone}
+            </div>
+            {document.senderTaxNumber && (
+              <div style={{ fontSize: '0.72rem', opacity: 0.95, marginTop: 2, fontWeight: 700 }}>
+                GSTIN: {document.senderTaxNumber}
+              </div>
+            )}
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            {renderStatusBadge(document.status)}
           </div>
         </div>
 
         {/* POS Metadata Strip */}
-        <div className="receipt-meta-strip">
-          <span>POS COUNTER: #01</span>
-          <span>CASHIER: STAFF</span>
-          <span>RECEIPT: #{document.billNumber || 'POS-2026-001'}</span>
+        <div className="receipt-meta-strip" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+          <span>RECEIPT: #{document.billNumber || 'INV-2026-1817'}</span>
           <span>DATE: {formatHeaderDate(document.issueDate)}</span>
+          {document.dueDate && <span>DUE: {formatHeaderDate(document.dueDate)}</span>}
+          <span>TERMS: {paymentTerms}</span>
         </div>
 
         {/* Customer Strip */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', padding: '0 4px', color: '#1e293b' }}>
-          <span>CUSTOMER: <strong>{clientName}</strong></span>
-          {clientPhone && <span>PHONE: {clientPhone}</span>}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', padding: '0 4px', color: '#1e293b', borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px' }}>
+          <div>
+            <span>CUSTOMER: <strong>{clientName}</strong></span>
+            {clientAddress && <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: 2 }}>{clientAddress}</div>}
+          </div>
+          <div style={{ textAlign: 'right', fontSize: '0.76rem', color: '#475569' }}>
+            {clientPhone && <div>Ph: {clientPhone}</div>}
+            {clientEmail && <div>{clientEmail}</div>}
+            {document.clientTaxNumber && <div>GSTIN: {document.clientTaxNumber}</div>}
+          </div>
         </div>
 
         {/* Items Table with Dashed Borders */}
@@ -239,6 +378,13 @@ export default function DocumentRenderer({
           </table>
         </div>
 
+        {/* Totals Breakdown */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.78rem', color: '#64748b', gap: 16, margin: '6px 0' }}>
+          <span>Subtotal: <strong>{currencySymbol}{formatAmount(subtotal)}</strong></span>
+          {discountAmount > 0 && <span>Discount: <strong>-{currencySymbol}{formatAmount(discountAmount)}</strong></span>}
+          <span>Tax ({document.taxRate || 0}%): <strong>{currencySymbol}{formatAmount(taxAmount)}</strong></span>
+        </div>
+
         {/* Net Payable Box */}
         <div className="receipt-total-highlight" style={{ borderColor: tplStyle?.accentColor || '#00695C', color: tplStyle?.totalColor || '#00695C' }}>
           <span>NET PAYABLE AMOUNT:</span>
@@ -247,8 +393,13 @@ export default function DocumentRenderer({
 
         {/* Payment & Settlement Notes */}
         <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '1rem', background: '#f8fafc', padding: '10px 14px', borderRadius: 8, border: '1px dashed #cbd5e1' }}>
-          <div style={{ fontWeight: 700, marginBottom: 4, color: '#0f172a' }}>COUNTER PAYMENT NOTES:</div>
-          <div>{document.paymentNotes || 'Settled at billing counter via UPI / Card.'}</div>
+          <div style={{ fontWeight: 700, marginBottom: 4, color: '#0f172a' }}>PAYMENT &amp; SETTLEMENT NOTES:</div>
+          <div style={{ whiteSpace: 'pre-line' }}>{document.paymentNotes || 'Settled via Bank Transfer / UPI.'}</div>
+          {document.notes && (
+            <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px dashed #e2e8f0', fontSize: '0.74rem', color: '#64748b' }}>
+              <strong>Note: </strong>{document.notes}
+            </div>
+          )}
         </div>
 
         {/* Authentic Barcode Strip */}
@@ -259,9 +410,9 @@ export default function DocumentRenderer({
             ))}
           </div>
           <span style={{ fontSize: '0.72rem', letterSpacing: '0.18em', color: '#64748b', fontWeight: 600 }}>
-            *BIL-{(document.billNumber || '2026-9420').replace(/\s+/g, '')}*
+            *{(document.billNumber || 'INV-2026-1817').replace(/\s+/g, '')}*
           </span>
-          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Thank you for shopping with us!</span>
+          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Thank you for your business!</span>
         </div>
       </div>
     );
@@ -282,15 +433,23 @@ export default function DocumentRenderer({
         } as React.CSSProperties}
       >
         <div className="tpl-sidebar-grid">
-          {/* Left Vertical Brand Column */}
+          {/* Left Vertical Brand Column with 52x52 Logo at Top-Left */}
           <div className="tpl-sidebar-left" style={{ background: tplStyle?.headerBg ? `linear-gradient(180deg, ${tplStyle.headerBg} 0%, #bf360c 100%)` : undefined }}>
             <div className="tpl-sidebar-brand">
+              <div style={{ marginBottom: 14 }}>
+                {renderBusinessLogo(senderLogo, senderName, true)}
+              </div>
               <h3>{senderName}</h3>
               <p>{senderTagline || 'Creative Media & Production Studio'}</p>
-              <div style={{ fontSize: '0.76rem', opacity: 0.9, marginTop: 14, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ fontSize: '0.76rem', opacity: 0.92, marginTop: 14, display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <span>{senderEmail}</span>
                 <span>{senderPhone}</span>
-                <span style={{ marginTop: 4 }}>{senderAddress}</span>
+                <span style={{ marginTop: 2 }}>{senderAddress}</span>
+                {document.senderTaxNumber && (
+                  <span style={{ fontWeight: 700, marginTop: 4, background: 'rgba(255,255,255,0.15)', padding: '2px 6px', borderRadius: 4 }}>
+                    GSTIN: {document.senderTaxNumber}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -300,7 +459,7 @@ export default function DocumentRenderer({
                 Payment Transfer
               </div>
               <div style={{ fontSize: '0.72rem', display: 'flex', flexDirection: 'column', gap: 3, opacity: 0.95 }}>
-                {bankRows.slice(0, 3).map((r, i) => (
+                {bankRows.slice(0, 4).map((r, i) => (
                   <div key={i}>
                     {r.label ? <strong>{r.label}: </strong> : null}
                     {r.value}
@@ -321,24 +480,33 @@ export default function DocumentRenderer({
           <div className="tpl-sidebar-right">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #fed7aa', paddingBottom: 14 }}>
               <div>
-                <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: tplStyle?.accentColor || '#e65100', margin: 0 }}>
-                  {docHeading}
-                </h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: tplStyle?.accentColor || '#e65100', margin: 0 }}>
+                    {docHeading}
+                  </h2>
+                  {renderStatusBadge(document.status)}
+                </div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', marginTop: 2 }}>
-                  #{document.billNumber || 'INV-2026'}
+                  #{document.billNumber || 'INV-2026-1817'}
                 </div>
               </div>
               <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#64748b' }}>
                 <div>Date: <strong>{formatHeaderDate(document.issueDate)}</strong></div>
                 {document.dueDate && <div>Due: <strong>{formatHeaderDate(document.dueDate)}</strong></div>}
+                <div>Terms: <strong>{paymentTerms}</strong></div>
               </div>
             </div>
 
             {/* Client Card */}
-            <div style={{ background: '#fffaf5', border: '1px solid #fed7aa', borderRadius: 8, padding: '10px 14px', fontSize: '0.82rem' }}>
+            <div style={{ background: '#fffaf5', border: '1px solid #fed7aa', borderRadius: 8, padding: '12px 14px', fontSize: '0.82rem' }}>
               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#e65100', textTransform: 'uppercase' }}>Billed To:</span>
               <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a', marginTop: 2 }}>{clientName}</div>
               <div style={{ color: '#475569', whiteSpace: 'pre-line', marginTop: 2 }}>{clientAddress}</div>
+              <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                {clientEmail && <span>{clientEmail}</span>}
+                {clientPhone && <span>Ph: {clientPhone}</span>}
+                {document.clientTaxNumber && <span>GSTIN: {document.clientTaxNumber}</span>}
+              </div>
             </div>
 
             {/* Items Table */}
@@ -365,14 +533,21 @@ export default function DocumentRenderer({
               </table>
             </div>
 
-            {/* Totals */}
-            <div style={{ marginTop: 'auto', borderTop: '2px solid #fed7aa', paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                Total Items: {document.items.length}
+            {/* Totals & Notes */}
+            <div style={{ marginTop: 'auto', borderTop: '2px solid #fed7aa', paddingTop: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  Subtotal: {currencySymbol}{formatAmount(subtotal)} · Tax ({document.taxRate || 0}%): {currencySymbol}{formatAmount(taxAmount)}
+                </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: tplStyle?.totalColor || '#e65100' }}>
+                  Total: {currencySymbol}{formatAmount(totalAmount)}
+                </div>
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: tplStyle?.totalColor || '#e65100' }}>
-                Total: {currencySymbol}{formatAmount(totalAmount)}
-              </div>
+              {document.notes && (
+                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: 8, fontStyle: 'italic', borderTop: '1px dashed #fed7aa', paddingTop: 6 }}>
+                  <strong>Notes: </strong>{document.notes}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -394,9 +569,10 @@ export default function DocumentRenderer({
           '--builder-accent': accentHex,
         } as React.CSSProperties}
       >
-        {/* Healthcare Header with Rx Symbol */}
+        {/* Healthcare Header with 52x52 Logo on Left */}
         <div className="clinical-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {renderBusinessLogo(senderLogo, senderName)}
             <span className="clinical-rx-badge">℞</span>
             <div>
               <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#00838f', margin: 0 }}>
@@ -408,38 +584,55 @@ export default function DocumentRenderer({
               <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: 2 }}>
                 {senderAddress} | Ph: {senderPhone}
               </div>
+              {document.senderTaxNumber && (
+                <div style={{ fontSize: '0.70rem', color: '#00838f', fontWeight: 700, marginTop: 2 }}>
+                  CLINIC REG / GSTIN: {document.senderTaxNumber}
+                </div>
+              )}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#00838f', background: '#e0f7fa', padding: '4px 10px', borderRadius: 6, display: 'inline-block' }}>
-              CLINIC REG #MED-4029
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 4 }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#00838f', background: '#e0f7fa', padding: '4px 10px', borderRadius: 6, display: 'inline-block' }}>
+                OFFICIAL RECORD
+              </div>
+              {renderStatusBadge(document.status)}
             </div>
-            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', marginTop: 4 }}>
-              Bill #{document.billNumber || 'MED-2026'}
+            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>
+              Bill #{document.billNumber || 'INV-2026-1817'}
             </div>
             <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
               Date: {formatHeaderDate(document.issueDate)}
             </div>
+            {document.dueDate && (
+              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                Due: {formatHeaderDate(document.dueDate)}
+              </div>
+            )}
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Terms: <strong>{paymentTerms}</strong>
+            </div>
           </div>
         </div>
 
-        {/* Patient Details Box */}
+        {/* Patient / Client Details Box */}
         <div className="clinical-patient-card">
           <div>
-            <span style={{ color: '#00696f', fontWeight: 700 }}>Patient Name: </span>
+            <span style={{ color: '#00696f', fontWeight: 700 }}>Patient / Client: </span>
             <strong style={{ color: '#0f172a' }}>{clientName}</strong>
+            {clientAddress && <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2 }}>{clientAddress}</div>}
           </div>
           <div>
-            <span style={{ color: '#00696f', fontWeight: 700 }}>Age / Gender: </span>
-            <span>42 Yrs / Male</span>
+            <span style={{ color: '#00696f', fontWeight: 700 }}>Contact Info: </span>
+            <span style={{ color: '#0f172a' }}>{[clientPhone, clientEmail].filter(Boolean).join(' · ')}</span>
           </div>
           <div>
-            <span style={{ color: '#00696f', fontWeight: 700 }}>OPD / UHID: </span>
-            <span>#{document.billNumber || 'UHID-9821'}</span>
+            <span style={{ color: '#00696f', fontWeight: 700 }}>OPD / Billing Ref: </span>
+            <span>#{document.billNumber || 'MED-2026'}</span>
           </div>
           <div>
-            <span style={{ color: '#00696f', fontWeight: 700 }}>Department: </span>
-            <span>General &amp; Specialty Care</span>
+            <span style={{ color: '#00696f', fontWeight: 700 }}>Payment Terms: </span>
+            <span><strong>{paymentTerms}</strong></span>
           </div>
         </div>
 
@@ -502,46 +695,72 @@ export default function DocumentRenderer({
           '--builder-accent': accentHex,
         } as React.CSSProperties}
       >
-        {/* Formal Navy Header Bar */}
-        <div className="editorial-header">
-          <div>
-            <h2 style={{ fontSize: '1.45rem', fontWeight: 700, margin: 0, letterSpacing: '0.02em' }}>
-              {senderName}
-            </h2>
-            <div style={{ fontSize: '0.78rem', opacity: 0.85, marginTop: 4, fontFamily: 'sans-serif' }}>
-              {senderTagline || 'Attorneys & Legal Advisory LLP'}
+        {/* Formal Navy Header Bar with 52x52 Logo on Left */}
+        <div className="editorial-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {renderBusinessLogo(senderLogo, senderName, true)}
+            <div>
+              <h2 style={{ fontSize: '1.45rem', fontWeight: 700, margin: 0, letterSpacing: '0.02em', color: '#ffffff' }}>
+                {senderName}
+              </h2>
+              <div style={{ fontSize: '0.78rem', opacity: 0.88, marginTop: 3, fontFamily: 'sans-serif', color: '#e2e8f0' }}>
+                {senderTagline || 'Technology & Enterprise Solutions'}
+              </div>
+              <div style={{ fontSize: '0.72rem', opacity: 0.82, marginTop: 2, fontFamily: 'sans-serif', color: '#cbd5e1' }}>
+                {[senderAddress, senderPhone, senderEmail].filter(Boolean).join(' · ')}
+              </div>
+              {document.senderTaxNumber && (
+                <div style={{ fontSize: '0.70rem', color: '#93c5fd', marginTop: 2, fontFamily: 'sans-serif', fontWeight: 600 }}>
+                  GSTIN / PAN: {document.senderTaxNumber}
+                </div>
+              )}
             </div>
           </div>
           <div style={{ textAlign: 'right', fontFamily: 'sans-serif' }}>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, letterSpacing: '0.06em' }}>
-              {docHeading}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, letterSpacing: '0.06em', color: '#ffffff' }}>
+                {docHeading}
+              </span>
+              {renderStatusBadge(document.status)}
             </div>
-            <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>
-              Ref #{document.billNumber || 'LEGAL-2026-089'}
+            <div style={{ fontSize: '0.8rem', opacity: 0.9, color: '#e2e8f0' }}>
+              Ref #{document.billNumber || 'INV-2026-1817'}
             </div>
-            <div style={{ fontSize: '0.74rem', opacity: 0.8 }}>
+            <div style={{ fontSize: '0.74rem', opacity: 0.8, color: '#cbd5e1' }}>
               Date: {formatHeaderDate(document.issueDate)}
+            </div>
+            {document.dueDate && (
+              <div style={{ fontSize: '0.74rem', opacity: 0.8, color: '#cbd5e1' }}>
+                Due: {formatHeaderDate(document.dueDate)}
+              </div>
+            )}
+            <div style={{ fontSize: '0.74rem', opacity: 0.8, color: '#cbd5e1' }}>
+              Terms: <strong>{paymentTerms}</strong>
             </div>
           </div>
         </div>
 
-        {/* Matter Reference Box */}
+        {/* Dynamic Client & Matter Reference Box */}
         <div className="editorial-matter-card">
           <div>
             <span style={{ color: '#64748b' }}>Client: </span>
             <strong style={{ color: '#0f172a' }}>{clientName}</strong>
+            <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: 2 }}>{clientAddress}</div>
           </div>
           <div>
-            <span style={{ color: '#64748b' }}>Matter Reference: </span>
-            <strong style={{ color: '#0d2137' }}>#CORP-2026-ADV</strong>
+            <span style={{ color: '#64748b' }}>Client Contact: </span>
+            <span style={{ color: '#0d2137', fontWeight: 600 }}>{[clientEmail, clientPhone].filter(Boolean).join(' · ')}</span>
+            {document.clientTaxNumber && (
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 2 }}>GSTIN: {document.clientTaxNumber}</div>
+            )}
           </div>
           <div>
-            <span style={{ color: '#64748b' }}>Billing Model: </span>
-            <span>Retainer &amp; Advisory Hours</span>
+            <span style={{ color: '#64748b' }}>Payment Terms: </span>
+            <strong style={{ color: '#0d2137' }}>{paymentTerms}</strong>
           </div>
           <div>
-            <span style={{ color: '#64748b' }}>Lead Partner: </span>
-            <span>Senior Managing Partner</span>
+            <span style={{ color: '#64748b' }}>Matter / PO Ref: </span>
+            <span>{document.poNumber ? `#${document.poNumber}` : `#${document.billNumber || 'INV-2026'}`}</span>
           </div>
         </div>
 
@@ -559,7 +778,7 @@ export default function DocumentRenderer({
             <tbody>
               {document.items.map((item) => (
                 <tr key={item.id}>
-                  <td className="cell-desc" style={{ fontFamily: 'sans-serif' }}>{item.description || 'Legal Advisory'}</td>
+                  <td className="cell-desc" style={{ fontFamily: 'sans-serif' }}>{item.description || 'Professional Services'}</td>
                   <td className="cell-qty" style={{ fontFamily: 'sans-serif' }}>{item.qty}</td>
                   <td className="cell-rate" style={{ fontFamily: 'sans-serif' }}>{currencySymbol}{formatAmount(item.rate)}</td>
                   <td className="cell-amount" style={{ fontFamily: 'sans-serif' }}>{currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
@@ -573,14 +792,30 @@ export default function DocumentRenderer({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 'auto', borderTop: '2px solid #0d2137', paddingTop: 16 }}>
           <div style={{ fontSize: '0.78rem', color: '#475569', maxWidth: 360, fontFamily: 'sans-serif' }}>
             <div style={{ fontWeight: 700, color: '#0d2137', marginBottom: 4 }}>ESCROW / WIRE INSTRUCTIONS:</div>
-            <div>{document.paymentNotes || 'Remit to Firm Trust Account #50200084920194 at HDFC Bank Ltd.'}</div>
+            <div style={{ whiteSpace: 'pre-line' }}>{document.paymentNotes || 'Remit to Firm Trust Account #50200012345678 at HDFC Bank Ltd.'}</div>
+            {document.notes && (
+              <div style={{ marginTop: 8, paddingTop: 6, borderTop: '1px solid #e2e8f0', fontSize: '0.74rem', color: '#64748b' }}>
+                <strong>Note: </strong>{document.notes}
+              </div>
+            )}
           </div>
           <div style={{ textAlign: 'right', fontFamily: 'sans-serif' }}>
+            <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: 2 }}>
+              Subtotal: {currencySymbol}{formatAmount(subtotal)}
+            </div>
+            {discountAmount > 0 && (
+              <div style={{ fontSize: '0.8rem', color: '#dc2626', marginBottom: 2 }}>
+                Discount: -{currencySymbol}{formatAmount(discountAmount)}
+              </div>
+            )}
+            <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: 4 }}>
+              Tax ({document.taxRate || 0}%): {currencySymbol}{formatAmount(taxAmount)}
+            </div>
             <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Total Fee Due:</div>
             <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0d2137' }}>
               {currencySymbol}{formatAmount(totalAmount)}
             </div>
-            <div style={{ marginTop: 16, borderTop: '1px solid #94a3b8', width: 180, marginLeft: 'auto', paddingTop: 4, fontSize: '0.72rem', color: '#64748b' }}>
+            <div style={{ marginTop: 14, borderTop: '1px solid #94a3b8', width: 180, marginLeft: 'auto', paddingTop: 4, fontSize: '0.72rem', color: '#64748b' }}>
               Authorized Partner Signature
             </div>
           </div>
@@ -632,6 +867,7 @@ export default function DocumentRenderer({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {renderBusinessLogo(senderLogo, senderName, true)}
             <div
               style={{
                 width: 48,
@@ -654,29 +890,43 @@ export default function DocumentRenderer({
               <div style={{ fontSize: '0.74rem', color: '#FCD34D', fontWeight: 700, fontStyle: 'italic', marginTop: 3 }}>
                 {senderTagline || 'Academic Affairs & Bursar Office'}
               </div>
+              <div style={{ fontSize: '0.70rem', color: '#CBD5E1', marginTop: 2 }}>
+                {[senderAddress, senderPhone].filter(Boolean).join(' · ')}
+              </div>
             </div>
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div
-              style={{
-                fontSize: '0.66rem',
-                fontWeight: 800,
-                color: '#1E2B69',
-                background: '#E2B93B',
-                padding: '3px 10px',
-                borderRadius: 4,
-                display: 'inline-block',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
-              AUTUMN SEMESTER 2026-27
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 4 }}>
+              <div
+                style={{
+                  fontSize: '0.66rem',
+                  fontWeight: 800,
+                  color: '#1E2B69',
+                  background: '#E2B93B',
+                  padding: '3px 10px',
+                  borderRadius: 4,
+                  display: 'inline-block',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                AUTUMN SEMESTER 2026-27
+              </div>
+              {renderStatusBadge(document.status)}
             </div>
-            <div style={{ fontSize: '0.94rem', fontWeight: 900, letterSpacing: '0.02em', color: '#FFFFFF', marginTop: 5 }}>
+            <div style={{ fontSize: '0.94rem', fontWeight: 900, letterSpacing: '0.02em', color: '#FFFFFF' }}>
               OFFICIAL FEE RECEIPT #{document.billNumber || 'REC-2026-089'}
             </div>
-            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', marginTop: 3 }}>
+            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>
               Date: <strong>{formatHeaderDate(document.issueDate) || '2026-09-06'}</strong>
+            </div>
+            {document.dueDate && (
+              <div style={{ fontSize: '0.70rem', color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>
+                Due: <strong>{formatHeaderDate(document.dueDate)}</strong>
+              </div>
+            )}
+            <div style={{ fontSize: '0.70rem', color: '#FCD34D', marginTop: 2 }}>
+              Terms: <strong>{paymentTerms}</strong>
             </div>
           </div>
         </div>
@@ -701,14 +951,17 @@ export default function DocumentRenderer({
                 <span>ACADEMIC INSTITUTION / BURSAR</span>
               </div>
               <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.94rem', marginTop: 4 }}>
-                {senderName || 'Cambridge Global Academy'}
+                {senderName}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2 }}>
+                {senderAddress}
               </div>
               <div style={{ fontSize: '0.72rem', color: '#283593', fontWeight: 600, marginTop: 2 }}>
-                Affiliation: UGC / AICTE Recognized Inst-9428
+                {[senderEmail, senderPhone].filter(Boolean).join(' · ')}
               </div>
             </div>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1E293B', marginTop: 10, paddingTop: 4, borderTop: '1px solid #E2E8F0' }}>
-              INST REG: 27AABCA1234F1Z9
+              INST REG / GSTIN: {document.senderTaxNumber || '27AABCA1234F1Z9'}
             </div>
           </div>
 
@@ -730,14 +983,17 @@ export default function DocumentRenderer({
                 <span>STUDENT &amp; ENROLMENT PARTICULARS</span>
               </div>
               <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.94rem', marginTop: 4 }}>
-                {clientName || 'Rahul Sharma'}
+                {clientName}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2 }}>
+                {clientAddress}
               </div>
               <div style={{ fontSize: '0.72rem', color: '#283593', fontWeight: 600, marginTop: 2 }}>
-                Higher Secondary Academic Program • Batch 2026-27
+                {[clientEmail, clientPhone].filter(Boolean).join(' · ')}
               </div>
             </div>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1E293B', marginTop: 10, paddingTop: 4, borderTop: '1px solid #E2E8F0' }}>
-              ENROLMENT REF: #CGA-2026-089
+              ENROLMENT REF: #{document.billNumber || 'CGA-2026-089'} · Terms: {paymentTerms}
             </div>
           </div>
         </div>
@@ -848,25 +1104,42 @@ export default function DocumentRenderer({
           '--builder-accent': accentHex,
         } as React.CSSProperties}
       >
-        {/* Statutory GST Maroon Header */}
-        <div className="gst-header">
-          <div>
-            <h2 style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0 }}>
-              {senderName}
-            </h2>
-            <div style={{ fontSize: '0.78rem', opacity: 0.9, marginTop: 2 }}>
-              GSTIN: {document.senderTaxNumber || '22AAAAA0000A1Z5'} | State: 27 (Maharashtra)
+        {/* Statutory GST Maroon Header with 52x52 Logo on Left */}
+        <div className="gst-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {renderBusinessLogo(senderLogo, senderName, true)}
+            <div>
+              <h2 style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0 }}>
+                {senderName}
+              </h2>
+              <div style={{ fontSize: '0.78rem', opacity: 0.95, marginTop: 3 }}>
+                GSTIN: <strong>{document.senderTaxNumber || '22AAAAA0000A1Z5'}</strong> | State: 29 (Karnataka)
+              </div>
+              <div style={{ fontSize: '0.72rem', opacity: 0.85, marginTop: 2 }}>
+                {[senderEmail, senderPhone].filter(Boolean).join(' · ')}
+              </div>
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '0.04em' }}>
-              TAX INVOICE (GST)
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '0.04em' }}>
+                TAX INVOICE (GST)
+              </span>
+              {renderStatusBadge(document.status)}
             </div>
             <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>
               Invoice #{document.billNumber || 'INV-2026-1817'}
             </div>
             <div style={{ fontSize: '0.74rem', opacity: 0.85 }}>
               Date: {formatHeaderDate(document.issueDate)}
+            </div>
+            {document.dueDate && (
+              <div style={{ fontSize: '0.74rem', opacity: 0.85 }}>
+                Due: {formatHeaderDate(document.dueDate)}
+              </div>
+            )}
+            <div style={{ fontSize: '0.74rem', opacity: 0.85 }}>
+              Terms: <strong>{paymentTerms}</strong>
             </div>
           </div>
         </div>
@@ -875,15 +1148,24 @@ export default function DocumentRenderer({
         <div className="gst-parties-grid">
           <div className="gst-party-card">
             <div style={{ fontWeight: 700, color: '#880e4f', marginBottom: 2 }}>DETAILS OF SUPPLIER:</div>
-            <div style={{ fontWeight: 600 }}>{senderName}</div>
-            <div style={{ color: '#475569', fontSize: '0.76rem' }}>{senderAddress}</div>
+            <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a' }}>{senderName}</div>
+            <div style={{ color: '#475569', fontSize: '0.76rem', whiteSpace: 'pre-line' }}>{senderAddress}</div>
+            <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2 }}>
+              {[senderEmail, senderPhone].filter(Boolean).join(' · ')}
+            </div>
             <div style={{ marginTop: 4, fontSize: '0.76rem' }}>GSTIN: <strong>{document.senderTaxNumber || '22AAAAA0000A1Z5'}</strong></div>
           </div>
           <div className="gst-party-card">
             <div style={{ fontWeight: 700, color: '#880e4f', marginBottom: 2 }}>DETAILS OF RECIPIENT (BILLED TO):</div>
-            <div style={{ fontWeight: 600 }}>{clientName}</div>
-            <div style={{ color: '#475569', fontSize: '0.76rem' }}>{clientAddress}</div>
-            <div style={{ marginTop: 4, fontSize: '0.76rem' }}>GSTIN: <strong>{document.clientTaxNumber || '29AAAAA0000A1Z5'}</strong></div>
+            <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a' }}>{clientName}</div>
+            <div style={{ color: '#475569', fontSize: '0.76rem', whiteSpace: 'pre-line' }}>{clientAddress}</div>
+            <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2 }}>
+              {[clientEmail, clientPhone].filter(Boolean).join(' · ')}
+            </div>
+            <div style={{ marginTop: 4, fontSize: '0.76rem', display: 'flex', justifyContent: 'space-between' }}>
+              <span>GSTIN: <strong>{document.clientTaxNumber || '29AAAAA0000A1Z5'}</strong></span>
+              <span>Terms: <strong>{paymentTerms}</strong></span>
+            </div>
           </div>
         </div>
 
@@ -922,7 +1204,18 @@ export default function DocumentRenderer({
               <strong>Amount in Words: </strong>
               <span>{convertNumberToWords(totalAmount)}</span>
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 8 }}>
+            {document.paymentNotes && (
+              <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 8, background: '#fdf2f8', padding: '6px 10px', borderRadius: 6, border: '1px solid #fbcfe8' }}>
+                <strong style={{ color: '#880e4f' }}>Bank / UPI Settlement: </strong>
+                <span>{document.paymentNotes.replace(/\n/g, ' · ')}</span>
+              </div>
+            )}
+            {document.notes && (
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 4 }}>
+                <strong>Note: </strong>{document.notes}
+              </div>
+            )}
+            <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: 6 }}>
               Declaration: We declare that this invoice shows the actual price of the goods/services described and that all particulars are true and correct.
             </div>
           </div>
@@ -947,6 +1240,9 @@ export default function DocumentRenderer({
             <div style={{ borderTop: '1.5px solid #880e4f', paddingTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: '1.05rem', fontWeight: 800, color: '#880e4f' }}>
               <span>Total Invoice:</span>
               <span>{currencySymbol}{formatAmount(totalAmount)}</span>
+            </div>
+            <div style={{ marginTop: 14, borderTop: '1px solid #cbd5e1', paddingTop: 4, textAlign: 'center', fontSize: '0.70rem', color: '#64748b' }}>
+              Authorized Signatory
             </div>
           </div>
         </div>
@@ -981,52 +1277,53 @@ export default function DocumentRenderer({
           borderRadius: '8px',
         } as React.CSSProperties}
       >
-        {/* Header */}
+        {/* Header with 52x52 Logo on Left */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            {senderLogo ? (
-              <div
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 10,
-                  overflow: 'hidden',
-                  border: '1.5px solid #e5e7eb',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: '#ffffff',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
-                  flexShrink: 0,
-                }}
-              >
-                <img
-                  src={senderLogo}
-                  alt="Business Logo"
-                  style={{ maxWidth: 52, maxHeight: 52, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
-                />
-              </div>
-            ) : null}
+            {renderBusinessLogo(senderLogo, senderName)}
             <div>
               <div style={{ fontSize: '1.6rem', fontWeight: 900, letterSpacing: '-0.8px', color: '#111827' }}>
                 {senderName}
               </div>
-              <div style={{ fontSize: '0.76rem', color: '#6B7280', marginTop: '4px' }}>
+              {senderTagline && (
+                <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: '2px' }}>
+                  {senderTagline}
+                </div>
+              )}
+              <div style={{ fontSize: '0.76rem', color: '#6B7280', marginTop: '3px' }}>
                 {[senderEmail, senderPhone].filter(Boolean).join(' · ')}
               </div>
+              {senderAddress && (
+                <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginTop: '2px' }}>
+                  {senderAddress}
+                </div>
+              )}
+              {document.senderTaxNumber && (
+                <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: '2px', fontWeight: 600 }}>
+                  GSTIN / PAN: {document.senderTaxNumber}
+                </div>
+              )}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '2.2rem', fontWeight: 900, letterSpacing: '-1.5px', lineHeight: 1, color: '#111827' }}>
-              {tplStyle?.docLabel || 'INVOICE'}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginBottom: '4px' }}>
+              <span style={{ fontSize: '2.2rem', fontWeight: 900, letterSpacing: '-1.5px', lineHeight: 1, color: '#111827' }}>
+                {tplStyle?.docLabel || 'INVOICE'}
+              </span>
+              {renderStatusBadge(document.status)}
             </div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6B7280', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6B7280' }}>
               #{document.billNumber || 'INV-2026-1817'}
             </div>
+            {document.poNumber && (
+              <div style={{ fontSize: '0.74rem', color: '#9CA3AF', marginTop: '2px' }}>
+                PO: #{document.poNumber}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Parties */}
+        {/* Parties & Timelines */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', marginBottom: '2.5rem', paddingBottom: '1.75rem', borderBottom: '1px solid #E5E7EB' }}>
           <div>
             <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', color: '#9CA3AF', marginBottom: '6px' }}>
@@ -1038,24 +1335,27 @@ export default function DocumentRenderer({
             <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: '4px', whiteSpace: 'pre-line', lineHeight: 1.4 }}>
               {clientAddress}
             </div>
-            {clientEmail && (
-              <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: '2px' }}>
-                {clientEmail}
-              </div>
-            )}
+            <div style={{ fontSize: '0.76rem', color: '#6B7280', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {clientEmail && <span>{clientEmail}</span>}
+              {clientPhone && <span>Ph: {clientPhone}</span>}
+              {document.clientTaxNumber && <span>GSTIN: {document.clientTaxNumber}</span>}
+            </div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', color: '#9CA3AF', marginBottom: '6px' }}>
-              TIMELINES
+              TIMELINES &amp; TERMS
             </div>
             <div style={{ fontSize: '0.78rem', color: '#6B7280', marginBottom: '4px' }}>
               Issued on: <strong style={{ color: '#111827' }}>{formatDisplayDate(document.issueDate)}</strong>
             </div>
             {document.dueDate && (
-              <div style={{ fontSize: '0.78rem', color: '#6B7280' }}>
+              <div style={{ fontSize: '0.78rem', color: '#6B7280', marginBottom: '4px' }}>
                 Payment Due: <strong style={{ color: '#111827' }}>{formatDisplayDate(document.dueDate)}</strong>
               </div>
             )}
+            <div style={{ fontSize: '0.78rem', color: '#6B7280' }}>
+              Payment Terms: <strong style={{ color: '#111827' }}>{paymentTerms}</strong>
+            </div>
           </div>
         </div>
 
@@ -1085,12 +1385,18 @@ export default function DocumentRenderer({
         </table>
 
         {/* Totals Pill */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginBottom: '3rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginBottom: '2.5rem' }}>
           <div style={{ width: '240px', fontSize: '0.8rem', color: '#6B7280', marginBottom: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
               <span>Subtotal</span>
               <span style={{ fontWeight: 600, color: '#111827' }}>{currencySymbol}{formatAmount(subtotal)}</span>
             </div>
+            {discountAmount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#dc2626' }}>
+                <span>Discount</span>
+                <span style={{ fontWeight: 600 }}>-{currencySymbol}{formatAmount(discountAmount)}</span>
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Tax ({document.taxRate || 0}%)</span>
               <span style={{ fontWeight: 600, color: '#111827' }}>{currencySymbol}{formatAmount(taxAmount)}</span>
@@ -1126,19 +1432,27 @@ export default function DocumentRenderer({
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
             gap: '2rem',
-            fontSize: '0.72rem',
-            color: '#9CA3AF',
+            fontSize: '0.74rem',
+            color: '#6B7280',
             paddingTop: '1.5rem',
             borderTop: '1px solid #F3F4F6',
           }}
         >
           <div>
-            {document.notes || 'Thank you for your business! Please settle payments within the specified due date.'}
+            <div style={{ fontWeight: 700, color: '#111827', marginBottom: '4px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Customer Notes &amp; Terms
+            </div>
+            <div style={{ whiteSpace: 'pre-line', lineHeight: 1.4 }}>
+              {document.notes || 'Thank you for your business! Please settle payments within the specified due date.'}
+            </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            {document.paymentNotes && (
-              <span>Bank / UPI: {document.paymentNotes.replace(/\n/g, ' · ')}</span>
-            )}
+            <div style={{ fontWeight: 700, color: '#111827', marginBottom: '4px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Bank &amp; UPI Settlement
+            </div>
+            <div style={{ whiteSpace: 'pre-line', lineHeight: 1.4 }}>
+              {document.paymentNotes || 'Bank: HDFC Bank Ltd. · Account: 50200012345678 · IFSC: HDFC0000123 · UPI: billing@upi'}
+            </div>
           </div>
         </div>
       </div>
@@ -1161,29 +1475,7 @@ export default function DocumentRenderer({
       {/* Classic Corporate Header */}
       <div className="a4-tpl-classic-header">
         <div className="a4-classic-left" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          {senderLogo ? (
-            <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 10,
-                overflow: 'hidden',
-                border: '1.5px solid #dbeafe',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#ffffff',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
-                flexShrink: 0,
-              }}
-            >
-              <img
-                src={senderLogo}
-                alt="Business Logo"
-                style={{ maxWidth: 52, maxHeight: 52, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
-              />
-            </div>
-          ) : null}
+          {renderBusinessLogo(senderLogo, senderName)}
           <div>
             <h2 className="a4-classic-company">{senderName}</h2>
             {senderTagline && <p className="a4-classic-tagline">{senderTagline}</p>}
@@ -1198,16 +1490,35 @@ export default function DocumentRenderer({
                   <span>{senderPhone}</span>
                 </span>
               )}
+              {document.senderTaxNumber && (
+                <span className="contact-item">
+                  <span>GSTIN: {document.senderTaxNumber}</span>
+                </span>
+              )}
             </div>
           </div>
         </div>
         <div className="a4-classic-right">
-          <h3 className="a4-classic-title">{docHeading}</h3>
-          <p className="a4-classic-code">#{document.billNumber || 'BL-2026-5479'}</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginBottom: '4px' }}>
+            <h3 className="a4-classic-title" style={{ margin: 0 }}>{docHeading}</h3>
+            {renderStatusBadge(document.status)}
+          </div>
+          <p className="a4-classic-code">#{document.billNumber || (isInvoice ? 'INV-2026-0042' : 'BL-2026-5479')}</p>
           <p className="a4-classic-date">
             <Calendar size={12} />
             <span>Date: {formatHeaderDate(document.issueDate)}</span>
           </p>
+          {document.dueDate && (
+            <p className="a4-classic-date" style={{ color: '#dc2626' }}>
+              <Calendar size={12} />
+              <span>Due Date: {formatHeaderDate(document.dueDate)}</span>
+            </p>
+          )}
+          {paymentTerms && (
+            <p className="a4-classic-date" style={{ color: '#4b5563', fontSize: '0.72rem' }}>
+              <span>Terms: {paymentTerms}</span>
+            </p>
+          )}
         </div>
       </div>
 
@@ -1225,6 +1536,17 @@ export default function DocumentRenderer({
               <Mail size={13} />
               <span>{senderEmail}</span>
             </span>
+            {senderPhone && (
+              <span className="addr-meta-row">
+                <Phone size={13} />
+                <span>{senderPhone}</span>
+              </span>
+            )}
+            {document.senderTaxNumber && (
+              <span className="addr-meta-row">
+                <span>GSTIN / PAN: {document.senderTaxNumber}</span>
+              </span>
+            )}
           </div>
         </div>
         <div className="a4-classic-addr-card">
@@ -1243,6 +1565,16 @@ export default function DocumentRenderer({
               <span className="addr-meta-row">
                 <Phone size={13} />
                 <span>{clientPhone}</span>
+              </span>
+            )}
+            {document.clientTaxNumber && (
+              <span className="addr-meta-row">
+                <span>GSTIN / Tax ID: {document.clientTaxNumber}</span>
+              </span>
+            )}
+            {paymentTerms && (
+              <span className="addr-meta-row" style={{ color: '#2563eb', fontWeight: 600 }}>
+                <span>Terms: {paymentTerms}</span>
               </span>
             )}
           </div>
@@ -1305,6 +1637,16 @@ export default function DocumentRenderer({
                   </div>
                 ))}
               </div>
+              {document.notes && (
+                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #bfdbfe' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', marginBottom: '3px' }}>
+                    Customer Notes
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
+                    {document.notes}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
