@@ -561,30 +561,6 @@ export default function CreateBillPage({
               </>
             )}
           </button>
-          <button
-            type="button"
-            className="btn-primary-action"
-            onClick={() => handleCreateBillAndFinish('my-documents')}
-            title="Create bill and view in My Documents"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              background: '#059669',
-              color: '#ffffff',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: 8,
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(5,150,105,0.25)',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <CheckCircle2 size={16} />
-            <span>Create Bill</span>
-          </button>
         </div>
       </div>
 
