@@ -1,0 +1,153 @@
+import { AccentColor, CurrencyCode, BillDocument } from '../types';
+import {
+  TEMPLATES as STYLE_TEMPLATES,
+  BILL_TEMPLATES,
+  INVOICE_TEMPLATES,
+  normalizeTemplateId,
+  getTemplateById,
+  TemplateStyle,
+} from './templateStyles';
+
+export { normalizeTemplateId, getTemplateById, BILL_TEMPLATES, INVOICE_TEMPLATES };
+export type { TemplateStyle };
+export const TEMPLATES = STYLE_TEMPLATES;
+
+export const ACCENT_COLOR_MAP: Record<AccentColor, string> = {
+  indigo: '#349b73',
+  slate: '#1e293b',
+  mono: '#0f172a',
+  teal: '#349b73',
+};
+
+export const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  INR: '₹',
+  CAD: '$',
+};
+
+export const DEFAULT_INVOICE: BillDocument = {
+  id: 'inv-acme-design',
+  type: 'invoice',
+  title: 'Senior UX/UI Design Consulting & Wireframing',
+  billNumber: 'INV 2024-089',
+  poNumber: '',
+  issueDate: '24-10-2024',
+  dueDate: '24-11-2024',
+  currency: 'USD',
+  senderName: 'BillEase',
+  senderTagline: 'Professional Creative Billing',
+  senderEmail: 'billing@billease.com',
+  clientName: 'Acme Corporation Ltd.',
+  clientEmail: 'billing@acmecorp.com',
+  clientAddress: '1042 Innovation Way, Suite 400\nSan Francisco, CA 94107',
+  items: [
+    { id: '1', description: 'Senior UX/UI Design Consulting & Wireframing', qty: 40, rate: 150 },
+    { id: '2', description: 'Frontend Tailwind & Design System Setup', qty: 25, rate: 120 },
+  ],
+  taxRate: 10,
+  discount: 0,
+  paymentNotes: 'Payment is due within 30 days of invoice date. Please send remittances via wire transfer to Bank Account ending in #4092 or via Stripe checkout link provided in the accompanying email.',
+  template: 'modern',
+  accent: 'teal',
+  status: 'Draft',
+  createdAt: new Date().toISOString(),
+};
+
+export const DEFAULT_BILL: BillDocument = {
+  id: 'doc-apex-billing',
+  type: 'bill',
+  title: 'BILL',
+  billNumber: 'BIL-2026-5479',
+  poNumber: 'PO-12345',
+  issueDate: '2026-09-06',
+  dueDate: '2026-10-06',
+  currency: 'INR',
+  senderName: 'Apex Corporate',
+  senderTagline: 'Corporate Billing Services',
+  senderEmail: 'billing@apexcorp.com',
+  senderPhone: '+91 98765 43210',
+  senderAddress: '101 Cyber Towers, BKC, Mumbai 400051',
+  senderWebsite: 'www.apexcorp.com',
+  senderTaxNumber: '27AABCA1234F1Z9',
+  clientName: 'Stellar Innovations Pvt. Ltd.',
+  clientCompany: 'Stellar Innovations Pvt. Ltd.',
+  clientEmail: 'accounts@stellarinnovations.com',
+  clientPhone: '+91 98111 22334',
+  clientAddress: '45 Innovation Way, Tech Corridor, Bangalore 560100',
+  shippingAddress: '45 Innovation Way, Tech Corridor, Bangalore 560100',
+  shippingSameAsBilling: true,
+  clientTaxNumber: '29AABCS5678G1Z2',
+  items: [
+    {
+      id: '1',
+      name: 'Enterprise Architecture Consulting',
+      description: 'System design, microservices analysis & blueprinting',
+      qty: 20,
+      rate: 2500,
+      taxRate: 2,
+      discount: 0,
+    },
+    {
+      id: '2',
+      name: 'Cloud Infrastructure Audit & Hardening',
+      description: 'Security audit, cost optimization & VPC hardening',
+      qty: 10,
+      rate: 3500,
+      taxRate: 0,
+      discount: 0,
+    },
+    {
+      id: '3',
+      name: 'Executive Stakeholder Presentation',
+      description: 'C-level architecture review & executive roadmap sign-off',
+      qty: 3,
+      rate: 1500,
+      taxRate: 0,
+      discount: 0,
+    },
+  ],
+  taxRate: 0,
+  discount: 0,
+  additionalCharges: 0,
+  amountPaid: 0,
+  paymentMethod: 'Bank Transfer',
+  bankName: 'HDFC Bank Ltd.',
+  accountNumber: '502000486720194',
+  ifscCode: 'HDFC0001234',
+  branch: 'BKC Premier Mumbai',
+  upiId: 'apexcorp@hdfcbank',
+  paymentTerms: '30 days',
+  notes: 'Thank you for your business.',
+  paymentNotes: 'Payment is due within the agreed payment period. Please include the bill number in your transaction reference.',
+  termsAndConditions: 'Goods/services are subject to the agreed terms.',
+  template: 'classic',
+  accent: 'indigo',
+  status: 'Draft',
+  createdAt: new Date().toISOString(),
+};
+
+export const SAMPLE_DOCUMENTS: BillDocument[] = [
+  {
+    id: 'doc-hero-match',
+    type: 'bill',
+    title: 'Walk-in Counter Bill',
+    billNumber: 'BIL-2026-3927',
+    issueDate: '2026-09-06',
+    dueDate: '2026-09-06',
+    currency: 'INR',
+    clientName: 'Walk-in Customer',
+    clientEmail: '',
+    clientAddress: '',
+    items: [],
+    taxRate: 0,
+    discount: 0,
+    paymentNotes: 'Settled at counter.',
+    template: 'modern',
+    accent: 'teal',
+    status: 'Paid',
+    createdAt: '2026-09-06T10:00:00.000Z',
+  },
+];
+
