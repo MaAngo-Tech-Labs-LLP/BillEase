@@ -48,7 +48,7 @@ export default function HomePage({
       <section className="home-action-cards-grid" aria-label="Creation Options">
         {/* Card 1: Create Bill */}
         <div
-          className="home-card-item card-mint-hover"
+          className="home-card-item quick-action-card card-mint-hover"
           onClick={() => onNavigate('create-bill')}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -77,7 +77,7 @@ export default function HomePage({
 
         {/* Card 2: Create Invoice */}
         <div
-          className="home-card-item card-lavender-hover"
+          className="home-card-item quick-action-card card-lavender-hover"
           onClick={() => onNavigate('create-invoice')}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -184,10 +184,6 @@ export default function HomePage({
                       className={`home-recent-square-icon ${
                         isInvoice ? 'icon-invoice-lavender' : 'icon-bill-mint'
                       }`}
-                      style={{
-                        background: isInvoice ? 'rgba(139, 92, 246, 0.12)' : 'rgba(16, 185, 129, 0.12)',
-                        color: isInvoice ? '#8b5cf6' : '#10b981',
-                      }}
                     >
                       {isInvoice ? <FileText size={17} /> : <Receipt size={17} />}
                     </div>
