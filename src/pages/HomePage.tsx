@@ -38,7 +38,10 @@ export default function HomePage({
     <div className="homepage-exact-container">
       {/* 1. Centered Hero Header */}
       <section className="home-hero-centered" aria-label="What will you create">
-        <h1 className="home-hero-main-title">What will you create?</h1>
+        <div className="home-hero-tagline">FAST &bull; SIMPLE &bull; PROFESSIONAL</div>
+        <h1 className="home-hero-main-title">
+          What will <span className="hero-gradient-text">you create?</span>
+        </h1>
         <p className="home-hero-main-subtitle">
           Create professional documents in a few simple steps.
         </p>
@@ -167,7 +170,7 @@ export default function HomePage({
               return (
                 <div
                   key={doc.id}
-                  className="home-recent-row-item"
+                  className={`home-recent-row-item row-status-${(doc.status || 'paid').toLowerCase()}`}
                   onClick={() => onSelectDocument(doc)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
