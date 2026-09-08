@@ -15,6 +15,7 @@ import {
   Scale,
   CheckCircle2,
   FileCheck2,
+  FileText,
 } from 'lucide-react';
 import { BillDocument } from '../types';
 import {
@@ -311,8 +312,10 @@ export default function DocumentRenderer({
         } as React.CSSProperties}
       >
         {/* Left-aligned Store Header with 52x52 Logo on Left */}
-        <div className="receipt-header-box" style={{ background: tplStyle?.headerBg || '#00695C', display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', textAlign: 'left' }}>
-          {renderBusinessLogo(senderLogo, senderName, true)}
+        <div className="receipt-header-box" style={{ background: tplStyle?.headerBg || '#00695C', display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 20px', textAlign: 'left' }}>
+          <div style={{ marginTop: '2px', flexShrink: 0 }}>
+            {renderBusinessLogo(senderLogo, senderName, true)}
+          </div>
           <div style={{ flex: 1 }}>
             <div className="receipt-header-title" style={{ textAlign: 'left' }}>{senderName}</div>
             <div className="receipt-header-sub" style={{ textAlign: 'left' }}>{senderTagline || 'Retail Store & POS Billing'}</div>
@@ -356,10 +359,10 @@ export default function DocumentRenderer({
           <table className="a4-items-table receipt-table">
             <thead>
               <tr>
-                <th style={{ width: '55%' }}>PARTICULARS</th>
-                <th style={{ width: '15%', textAlign: 'right' }}>QTY</th>
-                <th style={{ width: '15%', textAlign: 'right' }}>RATE</th>
-                <th style={{ width: '15%', textAlign: 'right' }}>AMOUNT</th>
+                <th style={{ width: '55%', textAlign: 'left', padding: '8px 10px' }}>PARTICULARS</th>
+                <th style={{ width: '15%', textAlign: 'center', padding: '8px 6px' }}>QTY</th>
+                <th style={{ width: '15%', textAlign: 'right', padding: '8px 10px' }}>RATE</th>
+                <th style={{ width: '15%', textAlign: 'right', padding: '8px 10px' }}>AMOUNT</th>
               </tr>
             </thead>
             <tbody>
@@ -367,10 +370,10 @@ export default function DocumentRenderer({
                 const itemAmt = (Number(item.qty) || 0) * (Number(item.rate) || 0);
                 return (
                   <tr key={item.id}>
-                    <td className="cell-desc">{item.description || 'Item'}</td>
-                    <td className="cell-qty">{item.qty}</td>
-                    <td className="cell-rate">{currencySymbol}{formatAmount(item.rate)}</td>
-                    <td className="cell-amount">{currencySymbol}{formatAmount(itemAmt)}</td>
+                    <td className="cell-desc" style={{ textAlign: 'left', padding: '8px 10px' }}>{item.description || 'Item'}</td>
+                    <td className="cell-qty" style={{ textAlign: 'center', padding: '8px 6px', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
+                    <td className="cell-rate" style={{ textAlign: 'right', padding: '8px 10px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(item.rate)}</td>
+                    <td className="cell-amount" style={{ textAlign: 'right', padding: '8px 10px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(itemAmt)}</td>
                   </tr>
                 );
               })}
@@ -514,19 +517,19 @@ export default function DocumentRenderer({
               <table className="a4-items-table sidebar-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '55%' }}>DELIVERABLE</th>
-                    <th style={{ width: '15%', textAlign: 'right' }}>QTY</th>
-                    <th style={{ width: '15%', textAlign: 'right' }}>RATE</th>
-                    <th style={{ width: '15%', textAlign: 'right' }}>AMOUNT</th>
+                    <th style={{ width: '55%', textAlign: 'left', padding: '8px 10px' }}>DELIVERABLE</th>
+                    <th style={{ width: '15%', textAlign: 'center', padding: '8px 6px' }}>QTY</th>
+                    <th style={{ width: '15%', textAlign: 'right', padding: '8px 10px' }}>RATE</th>
+                    <th style={{ width: '15%', textAlign: 'right', padding: '8px 10px' }}>AMOUNT</th>
                   </tr>
                 </thead>
                 <tbody>
                   {document.items.map((item) => (
                     <tr key={item.id}>
-                      <td className="cell-desc">{item.description || 'Item'}</td>
-                      <td className="cell-qty">{item.qty}</td>
-                      <td className="cell-rate">{currencySymbol}{formatAmount(item.rate)}</td>
-                      <td className="cell-amount">{currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
+                      <td className="cell-desc" style={{ textAlign: 'left', padding: '8px 10px' }}>{item.description || 'Item'}</td>
+                      <td className="cell-qty" style={{ textAlign: 'center', padding: '8px 6px', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
+                      <td className="cell-rate" style={{ textAlign: 'right', padding: '8px 10px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(item.rate)}</td>
+                      <td className="cell-amount" style={{ textAlign: 'right', padding: '8px 10px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -641,19 +644,19 @@ export default function DocumentRenderer({
           <table className="a4-items-table clinical-table">
             <thead>
               <tr>
-                <th style={{ width: '55%' }}>SERVICE / INVESTIGATION / CONSULTATION</th>
-                <th style={{ width: '15%', textAlign: 'right' }}>UNITS</th>
-                <th style={{ width: '15%', textAlign: 'right' }}>FEE</th>
-                <th style={{ width: '15%', textAlign: 'right' }}>NET AMOUNT</th>
+                <th style={{ width: '55%', textAlign: 'left', padding: '8px 10px' }}>SERVICE / INVESTIGATION / CONSULTATION</th>
+                <th style={{ width: '15%', textAlign: 'center', padding: '8px 6px' }}>UNITS</th>
+                <th style={{ width: '15%', textAlign: 'right', padding: '8px 10px' }}>FEE</th>
+                <th style={{ width: '15%', textAlign: 'right', padding: '8px 10px' }}>NET AMOUNT</th>
               </tr>
             </thead>
             <tbody>
               {document.items.map((item) => (
                 <tr key={item.id}>
-                  <td className="cell-desc">{item.description || 'Consultation'}</td>
-                  <td className="cell-qty">{item.qty}</td>
-                  <td className="cell-rate">{currencySymbol}{formatAmount(item.rate)}</td>
-                  <td className="cell-amount">{currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
+                  <td className="cell-desc" style={{ textAlign: 'left', padding: '8px 10px' }}>{item.description || 'Consultation'}</td>
+                  <td className="cell-qty" style={{ textAlign: 'center', padding: '8px 6px', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
+                  <td className="cell-rate" style={{ textAlign: 'right', padding: '8px 10px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(item.rate)}</td>
+                  <td className="cell-amount" style={{ textAlign: 'right', padding: '8px 10px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
                 </tr>
               ))}
             </tbody>
@@ -769,19 +772,19 @@ export default function DocumentRenderer({
           <table className="a4-items-table editorial-table">
             <thead>
               <tr>
-                <th style={{ width: '55%' }}>PROFESSIONAL SERVICES &amp; COUNSEL</th>
-                <th style={{ width: '15%', textAlign: 'right' }}>HOURS/QTY</th>
-                <th style={{ width: '15%', textAlign: 'right' }}>RATE</th>
-                <th style={{ width: '15%', textAlign: 'right' }}>AMOUNT</th>
+                <th style={{ width: '55%', textAlign: 'left', padding: '8px 10px' }}>PROFESSIONAL SERVICES &amp; COUNSEL</th>
+                <th style={{ width: '15%', textAlign: 'center', padding: '8px 6px' }}>HOURS/QTY</th>
+                <th style={{ width: '15%', textAlign: 'right', padding: '8px 10px' }}>RATE</th>
+                <th style={{ width: '15%', textAlign: 'right', padding: '8px 10px' }}>AMOUNT</th>
               </tr>
             </thead>
             <tbody>
               {document.items.map((item) => (
                 <tr key={item.id}>
-                  <td className="cell-desc" style={{ fontFamily: 'sans-serif' }}>{item.description || 'Professional Services'}</td>
-                  <td className="cell-qty" style={{ fontFamily: 'sans-serif' }}>{item.qty}</td>
-                  <td className="cell-rate" style={{ fontFamily: 'sans-serif' }}>{currencySymbol}{formatAmount(item.rate)}</td>
-                  <td className="cell-amount" style={{ fontFamily: 'sans-serif' }}>{currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
+                  <td className="cell-desc" style={{ textAlign: 'left', padding: '8px 10px', fontFamily: 'sans-serif' }}>{item.description || 'Professional Services'}</td>
+                  <td className="cell-qty" style={{ textAlign: 'center', padding: '8px 6px', fontFamily: 'sans-serif', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
+                  <td className="cell-rate" style={{ textAlign: 'right', padding: '8px 10px', fontFamily: 'sans-serif', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(item.rate)}</td>
+                  <td className="cell-amount" style={{ textAlign: 'right', padding: '8px 10px', fontFamily: 'sans-serif', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
                 </tr>
               ))}
             </tbody>
@@ -1174,23 +1177,23 @@ export default function DocumentRenderer({
           <table className="a4-items-table gst-table">
             <thead>
               <tr>
-                <th style={{ width: '45%' }}>DESCRIPTION OF GOODS / SERVICES</th>
-                <th style={{ width: '15%', textAlign: 'center' }}>HSN/SAC</th>
-                <th style={{ width: '10%', textAlign: 'right' }}>QTY</th>
-                <th style={{ width: '15%', textAlign: 'right' }}>RATE</th>
-                <th style={{ width: '15%', textAlign: 'right' }}>TAXABLE AMT</th>
+                <th style={{ width: '45%', textAlign: 'left', padding: '8px 10px' }}>DESCRIPTION OF GOODS / SERVICES</th>
+                <th style={{ width: '15%', textAlign: 'center', padding: '8px 6px' }}>HSN/SAC</th>
+                <th style={{ width: '10%', textAlign: 'center', padding: '8px 6px' }}>QTY</th>
+                <th style={{ width: '15%', textAlign: 'right', padding: '8px 10px' }}>RATE</th>
+                <th style={{ width: '15%', textAlign: 'right', padding: '8px 10px' }}>TAXABLE AMT</th>
               </tr>
             </thead>
             <tbody>
               {document.items.map((item, idx) => (
                 <tr key={item.id}>
-                  <td className="cell-desc">{item.description || 'Service Deliverable'}</td>
-                  <td style={{ textAlign: 'center', fontSize: '0.76rem', color: '#64748b' }}>
+                  <td className="cell-desc" style={{ textAlign: 'left', padding: '8px 10px' }}>{item.description || 'Service Deliverable'}</td>
+                  <td style={{ textAlign: 'center', fontSize: '0.76rem', color: '#64748b', padding: '8px 6px' }}>
                     {idx % 2 === 0 ? '998314' : '998315'}
                   </td>
-                  <td className="cell-qty">{item.qty}</td>
-                  <td className="cell-rate">{currencySymbol}{formatAmount(item.rate)}</td>
-                  <td className="cell-amount">{currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
+                  <td className="cell-qty" style={{ textAlign: 'center', padding: '8px 6px', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
+                  <td className="cell-rate" style={{ textAlign: 'right', padding: '8px 10px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(item.rate)}</td>
+                  <td className="cell-amount" style={{ textAlign: 'right', padding: '8px 10px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
                 </tr>
               ))}
             </tbody>
@@ -1271,52 +1274,65 @@ export default function DocumentRenderer({
           maxWidth: 800,
           margin: '0 auto',
           boxSizing: 'border-box',
-          padding: '3.5rem 3rem',
+          padding: '38px 42px',
+          gap: '24px',
           color: '#111827',
           boxShadow: '0 4px 30px rgba(0,0,0,0.06)',
-          borderRadius: '8px',
+          borderRadius: '12px',
         } as React.CSSProperties}
       >
         {/* Header with 52x52 Logo on Left */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            {renderBusinessLogo(senderLogo, senderName)}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+            <div style={{ marginTop: '2px', flexShrink: 0 }}>
+              {renderBusinessLogo(senderLogo, senderName)}
+            </div>
             <div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 900, letterSpacing: '-0.8px', color: '#111827' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.5px', color: '#111827', lineHeight: 1.15 }}>
                 {senderName}
               </div>
               {senderTagline && (
-                <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: '2px' }}>
+                <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: '3px' }}>
                   {senderTagline}
                 </div>
               )}
-              <div style={{ fontSize: '0.76rem', color: '#6B7280', marginTop: '3px' }}>
-                {[senderEmail, senderPhone].filter(Boolean).join(' · ')}
+              <div style={{ fontSize: '0.74rem', color: '#4B5563', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Mail size={12} color="#6B7280" />
+                  {senderEmail}
+                </span>
+                {senderPhone && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Phone size={12} color="#6B7280" />
+                    {senderPhone}
+                  </span>
+                )}
               </div>
               {senderAddress && (
-                <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginTop: '2px' }}>
+                <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: '3px', maxWidth: '340px', lineHeight: 1.35 }}>
                   {senderAddress}
                 </div>
               )}
               {document.senderTaxNumber && (
-                <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: '2px', fontWeight: 600 }}>
+                <div style={{ fontSize: '0.72rem', color: '#111827', marginTop: '4px', fontWeight: 700 }}>
                   GSTIN / PAN: {document.senderTaxNumber}
                 </div>
               )}
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginBottom: '4px' }}>
-              <span style={{ fontSize: '2.2rem', fontWeight: 900, letterSpacing: '-1.5px', lineHeight: 1, color: '#111827' }}>
-                {tplStyle?.docLabel || 'INVOICE'}
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <span style={{ fontSize: '1.9rem', fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1, color: '#111827' }}>
+                {docHeading}
               </span>
               {renderStatusBadge(document.status)}
             </div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6B7280' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#4B5563' }}>
               #{document.billNumber || 'INV-2026-1817'}
             </div>
             {document.poNumber && (
-              <div style={{ fontSize: '0.74rem', color: '#9CA3AF', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.74rem', color: '#6B7280', marginTop: '3px' }}>
                 PO: #{document.poNumber}
               </div>
             )}
@@ -1324,134 +1340,227 @@ export default function DocumentRenderer({
         </div>
 
         {/* Parties & Timelines */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', marginBottom: '2.5rem', paddingBottom: '1.75rem', borderBottom: '1px solid #E5E7EB' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1.2fr 1fr',
+            gap: '24px',
+            padding: '16px 0',
+            borderTop: '1px solid #E5E7EB',
+            borderBottom: '1px solid #E5E7EB',
+          }}
+        >
           <div>
-            <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', color: '#9CA3AF', marginBottom: '6px' }}>
+            <div style={{ fontSize: '0.66rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9CA3AF', marginBottom: '6px' }}>
               BILLED TO
             </div>
-            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#111827' }}>
+            <div style={{ fontSize: '1.02rem', fontWeight: 800, color: '#111827' }}>
               {clientName}
             </div>
-            <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: '4px', whiteSpace: 'pre-line', lineHeight: 1.4 }}>
+            <div style={{ fontSize: '0.76rem', color: '#4B5563', marginTop: '4px', whiteSpace: 'pre-line', lineHeight: 1.45 }}>
               {clientAddress}
             </div>
-            <div style={{ fontSize: '0.76rem', color: '#6B7280', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              {clientEmail && <span>{clientEmail}</span>}
-              {clientPhone && <span>Ph: {clientPhone}</span>}
-              {document.clientTaxNumber && <span>GSTIN: {document.clientTaxNumber}</span>}
+            <div style={{ fontSize: '0.74rem', color: '#4B5563', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              {clientEmail && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <Mail size={12} color="#6B7280" />
+                  {clientEmail}
+                </span>
+              )}
+              {clientPhone && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <Phone size={12} color="#6B7280" />
+                  {clientPhone}
+                </span>
+              )}
+              {document.clientTaxNumber && (
+                <span style={{ fontWeight: 600, color: '#111827' }}>
+                  GSTIN / Tax ID: {document.clientTaxNumber}
+                </span>
+              )}
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', color: '#9CA3AF', marginBottom: '6px' }}>
-              TIMELINES &amp; TERMS
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <div style={{ fontSize: '0.66rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9CA3AF', marginBottom: '8px' }}>
+              INVOICE TIMELINES &amp; TERMS
             </div>
-            <div style={{ fontSize: '0.78rem', color: '#6B7280', marginBottom: '4px' }}>
-              Issued on: <strong style={{ color: '#111827' }}>{formatDisplayDate(document.issueDate)}</strong>
-            </div>
-            {document.dueDate && (
-              <div style={{ fontSize: '0.78rem', color: '#6B7280', marginBottom: '4px' }}>
-                Payment Due: <strong style={{ color: '#111827' }}>{formatDisplayDate(document.dueDate)}</strong>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '230px', fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#6B7280' }}>Issue Date:</span>
+                <strong style={{ color: '#111827' }}>{formatDisplayDate(document.issueDate)}</strong>
               </div>
-            )}
-            <div style={{ fontSize: '0.78rem', color: '#6B7280' }}>
-              Payment Terms: <strong style={{ color: '#111827' }}>{paymentTerms}</strong>
+              {document.dueDate && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#6B7280' }}>Payment Due:</span>
+                  <strong style={{ color: '#dc2626' }}>{formatDisplayDate(document.dueDate)}</strong>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#6B7280' }}>Payment Terms:</span>
+                <strong style={{ color: '#111827' }}>{paymentTerms}</strong>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Table */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2.5rem' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid #111827', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              <th style={{ textAlign: 'left', padding: '10px 0' }}>ITEM DESCRIPTION</th>
-              <th style={{ textAlign: 'center', padding: '10px 0', width: '60px' }}>QTY</th>
-              <th style={{ textAlign: 'right', padding: '10px 0', width: '100px' }}>RATE</th>
-              <th style={{ textAlign: 'right', padding: '10px 0', width: '120px' }}>AMOUNT</th>
-            </tr>
-          </thead>
-          <tbody>
-            {document.items.map((it, idx) => {
-              const amt = (Number(it.qty) || 0) * (Number(it.rate) || 0);
-              return (
-                <tr key={it.id || idx} style={{ borderBottom: '1px solid #F3F4F6', fontSize: '0.82rem' }}>
-                  <td style={{ padding: '12px 0', fontWeight: 600, color: '#111827' }}>{it.description}</td>
-                  <td style={{ padding: '12px 0', textAlign: 'center', color: '#6B7280' }}>{it.qty}</td>
-                  <td style={{ padding: '12px 0', textAlign: 'right', color: '#6B7280' }}>{currencySymbol}{formatAmount(it.rate)}</td>
-                  <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 700, color: '#111827' }}>{currencySymbol}{formatAmount(amt)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        {/* Totals Pill */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginBottom: '2.5rem' }}>
-          <div style={{ width: '240px', fontSize: '0.8rem', color: '#6B7280', marginBottom: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <span>Subtotal</span>
-              <span style={{ fontWeight: 600, color: '#111827' }}>{currencySymbol}{formatAmount(subtotal)}</span>
-            </div>
-            {discountAmount > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#dc2626' }}>
-                <span>Discount</span>
-                <span style={{ fontWeight: 600 }}>-{currencySymbol}{formatAmount(discountAmount)}</span>
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Tax ({document.taxRate || 0}%)</span>
-              <span style={{ fontWeight: 600, color: '#111827' }}>{currencySymbol}{formatAmount(taxAmount)}</span>
-            </div>
-          </div>
-          <div
-            style={{
-              background: '#111827',
-              color: '#ffffff',
-              padding: '10px 24px',
-              borderRadius: '100px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '16px',
-              fontSize: '0.9rem',
-              fontWeight: 800,
-              boxShadow: '0 4px 14px rgba(17,24,39,0.2)',
-            }}
-          >
-            <span style={{ fontSize: '0.68rem', letterSpacing: '1px', textTransform: 'uppercase', opacity: 0.7 }}>
-              TOTAL DUE
-            </span>
-            <span style={{ fontSize: '1.25rem' }}>
-              {currencySymbol}{formatAmount(totalAmount)}
-            </span>
-          </div>
+        <div style={{ width: '100%', overflow: 'hidden' }}>
+          <table className="a4-items-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderTop: '2px solid #111827', borderBottom: '2px solid #111827', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#111827' }}>
+                <th style={{ textAlign: 'center', padding: '10px 6px', width: '6%' }}>#</th>
+                <th style={{ textAlign: 'left', padding: '10px 12px', width: '50%' }}>ITEM DESCRIPTION</th>
+                <th style={{ textAlign: 'center', padding: '10px 6px', width: '12%' }}>QTY</th>
+                <th style={{ textAlign: 'right', padding: '10px 12px', width: '16%' }}>RATE ({currencySymbol})</th>
+                <th style={{ textAlign: 'right', padding: '10px 12px', width: '16%' }}>AMOUNT ({currencySymbol})</th>
+              </tr>
+            </thead>
+            <tbody>
+              {document.items.map((it, idx) => {
+                const amt = (Number(it.qty) || 0) * (Number(it.rate) || 0);
+                return (
+                  <tr key={it.id || idx} style={{ borderBottom: '1px solid #F3F4F6', fontSize: '0.82rem' }}>
+                    <td style={{ padding: '12px 6px', textAlign: 'center', color: '#6B7280', fontWeight: 600 }}>
+                      {idx + 1}
+                    </td>
+                    <td style={{ padding: '12px 12px', textAlign: 'left', fontWeight: 600, color: '#111827' }}>
+                      {it.description || 'Untitled Item'}
+                    </td>
+                    <td style={{ padding: '12px 6px', textAlign: 'center', color: '#4B5563', fontVariantNumeric: 'tabular-nums' }}>
+                      {it.qty}
+                    </td>
+                    <td style={{ padding: '12px 12px', textAlign: 'right', color: '#4B5563', fontVariantNumeric: 'tabular-nums' }}>
+                      {currencySymbol}{formatAmount(it.rate)}
+                    </td>
+                    <td style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                      {currencySymbol}{formatAmount(amt)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
-        {/* Footer */}
+        {/* Bottom Section: Left (Bank details + Notes) and Right (Totals + Signature) */}
         <div
           style={{
             marginTop: 'auto',
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '2rem',
-            fontSize: '0.74rem',
-            color: '#6B7280',
-            paddingTop: '1.5rem',
-            borderTop: '1px solid #F3F4F6',
+            gridTemplateColumns: '1.15fr 1fr',
+            gap: '24px',
+            alignItems: 'start',
+            paddingTop: '8px',
           }}
         >
-          <div>
-            <div style={{ fontWeight: 700, color: '#111827', marginBottom: '4px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Customer Notes &amp; Terms
+          {/* Left Column: Settlement & Notes */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div
+              style={{
+                border: '1px solid #E5E7EB',
+                borderRadius: '8px',
+                background: '#F9FAFB',
+                padding: '12px 14px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', fontWeight: 800, color: '#111827', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <Landmark size={14} color="#374151" />
+                <span>BANK &amp; PAYMENT SETTLEMENT</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px', fontSize: '0.74rem' }}>
+                {bankRows.map((r, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+                    <span style={{ width: 110, color: '#6B7280', flexShrink: 0 }}>{r.label || 'Note'}</span>
+                    <span style={{ width: 14, color: '#9CA3AF', textAlign: 'center' }}>:</span>
+                    <span style={{ color: '#111827', fontWeight: 600 }}>{r.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div style={{ whiteSpace: 'pre-line', lineHeight: 1.4 }}>
-              {document.notes || 'Thank you for your business! Please settle payments within the specified due date.'}
-            </div>
+
+            {document.notes && (
+              <div
+                style={{
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '8px',
+                  background: '#FFFFFF',
+                  padding: '10px 14px',
+                }}
+              >
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                  Customer Notes &amp; Terms
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#4B5563', lineHeight: 1.45, whiteSpace: 'pre-line' }}>
+                  {document.notes}
+                </div>
+              </div>
+            )}
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontWeight: 700, color: '#111827', marginBottom: '4px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Bank &amp; UPI Settlement
+
+          {/* Right Column: Totals Summary & Authorized Signature */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div
+              style={{
+                border: '1px solid #E5E7EB',
+                borderRadius: '8px',
+                background: '#FFFFFF',
+                padding: '14px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#4B5563' }}>
+                <span>Subtotal</span>
+                <span style={{ fontWeight: 600, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                  {currencySymbol}{formatAmount(subtotal)}
+                </span>
+              </div>
+
+              {discountAmount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#DC2626' }}>
+                  <span>Discount</span>
+                  <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                    -{currencySymbol}{formatAmount(discountAmount)}
+                  </span>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#4B5563' }}>
+                <span>Tax ({document.taxRate || 0}%)</span>
+                <span style={{ fontWeight: 600, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                  {currencySymbol}{formatAmount(taxAmount)}
+                </span>
+              </div>
+
+              <div style={{ borderTop: '1.5px solid #E5E7EB', margin: '4px 0' }} />
+
+              <div
+                style={{
+                  background: '#111827',
+                  color: '#FFFFFF',
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <span style={{ fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.85, fontWeight: 700 }}>
+                  TOTAL DUE
+                </span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
+                  {currencySymbol}{formatAmount(totalAmount)}
+                </span>
+              </div>
             </div>
-            <div style={{ whiteSpace: 'pre-line', lineHeight: 1.4 }}>
-              {document.paymentNotes || 'Bank: HDFC Bank Ltd. · Account: 50200012345678 · IFSC: HDFC0000123 · UPI: billing@upi'}
+
+            <div style={{ textAlign: 'center', marginTop: '4px' }}>
+              <div style={{ borderBottom: '1px solid #CBD5E1', width: '160px', margin: '0 auto 6px' }} />
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Authorized Signatory
+              </div>
             </div>
           </div>
         </div>
@@ -1474,8 +1583,10 @@ export default function DocumentRenderer({
     >
       {/* Classic Corporate Header */}
       <div className="a4-tpl-classic-header">
-        <div className="a4-classic-left" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          {renderBusinessLogo(senderLogo, senderName)}
+        <div className="a4-classic-left" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+          <div style={{ marginTop: '2px', flexShrink: 0 }}>
+            {renderBusinessLogo(senderLogo, senderName)}
+          </div>
           <div>
             <h2 className="a4-classic-company">{senderName}</h2>
             {senderTagline && <p className="a4-classic-tagline">{senderTagline}</p>}
@@ -1492,6 +1603,7 @@ export default function DocumentRenderer({
               )}
               {document.senderTaxNumber && (
                 <span className="contact-item">
+                  <FileText size={12} />
                   <span>GSTIN: {document.senderTaxNumber}</span>
                 </span>
               )}
@@ -1504,21 +1616,24 @@ export default function DocumentRenderer({
             {renderStatusBadge(document.status)}
           </div>
           <p className="a4-classic-code">#{document.billNumber || (isInvoice ? 'INV-2026-0042' : 'BL-2026-5479')}</p>
-          <p className="a4-classic-date">
-            <Calendar size={12} />
-            <span>Date: {formatHeaderDate(document.issueDate)}</span>
-          </p>
-          {document.dueDate && (
-            <p className="a4-classic-date" style={{ color: '#dc2626' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px', marginTop: '6px' }}>
+            <p className="a4-classic-date" style={{ margin: 0 }}>
               <Calendar size={12} />
-              <span>Due Date: {formatHeaderDate(document.dueDate)}</span>
+              <span>Date: {formatHeaderDate(document.issueDate)}</span>
             </p>
-          )}
-          {paymentTerms && (
-            <p className="a4-classic-date" style={{ color: '#4b5563', fontSize: '0.72rem' }}>
-              <span>Terms: {paymentTerms}</span>
-            </p>
-          )}
+            {document.dueDate && (
+              <p className="a4-classic-date" style={{ margin: 0, color: '#dc2626' }}>
+                <Calendar size={12} />
+                <span>Due Date: {formatHeaderDate(document.dueDate)}</span>
+              </p>
+            )}
+            {paymentTerms && (
+              <p className="a4-classic-date" style={{ margin: 0, color: '#4b5563', fontSize: '0.72rem' }}>
+                <FileText size={12} />
+                <span>Terms: {paymentTerms}</span>
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1544,6 +1659,7 @@ export default function DocumentRenderer({
             )}
             {document.senderTaxNumber && (
               <span className="addr-meta-row">
+                <FileText size={13} />
                 <span>GSTIN / PAN: {document.senderTaxNumber}</span>
               </span>
             )}
@@ -1569,11 +1685,13 @@ export default function DocumentRenderer({
             )}
             {document.clientTaxNumber && (
               <span className="addr-meta-row">
+                <FileText size={13} />
                 <span>GSTIN / Tax ID: {document.clientTaxNumber}</span>
               </span>
             )}
             {paymentTerms && (
               <span className="addr-meta-row" style={{ color: '#2563eb', fontWeight: 600 }}>
+                <FileText size={13} />
                 <span>Terms: {paymentTerms}</span>
               </span>
             )}
@@ -1586,10 +1704,10 @@ export default function DocumentRenderer({
         <table className="a4-items-table a4-classic-table">
           <thead>
             <tr>
-              <th style={{ width: '55%' }}>DESCRIPTION OF SERVICES / PRODUCTS</th>
-              <th style={{ width: '15%', textAlign: 'right' }}>QTY</th>
-              <th style={{ width: '15%', textAlign: 'right' }}>RATE</th>
-              <th style={{ width: '15%', textAlign: 'right' }}>AMOUNT</th>
+              <th style={{ width: '55%', textAlign: 'left', padding: '10px 12px' }}>DESCRIPTION OF SERVICES / PRODUCTS</th>
+              <th style={{ width: '15%', textAlign: 'center', padding: '10px 8px' }}>QTY</th>
+              <th style={{ width: '15%', textAlign: 'right', padding: '10px 12px' }}>RATE</th>
+              <th style={{ width: '15%', textAlign: 'right', padding: '10px 12px' }}>AMOUNT</th>
             </tr>
           </thead>
           <tbody>
@@ -1597,12 +1715,12 @@ export default function DocumentRenderer({
               const itemAmt = (Number(item.qty) || 0) * (Number(item.rate) || 0);
               return (
                 <tr key={item.id}>
-                  <td className="cell-desc">{item.description || 'Untitled Item'}</td>
-                  <td className="cell-qty">{item.qty}</td>
-                  <td className="cell-rate">
+                  <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px' }}>{item.description || 'Untitled Item'}</td>
+                  <td className="cell-qty" style={{ textAlign: 'center', padding: '10px 8px', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
+                  <td className="cell-rate" style={{ textAlign: 'right', padding: '10px 12px', fontVariantNumeric: 'tabular-nums' }}>
                     {currencySymbol}{formatAmount(item.rate)}
                   </td>
-                  <td className="cell-amount">
+                  <td className="cell-amount" style={{ textAlign: 'right', padding: '10px 12px', fontVariantNumeric: 'tabular-nums' }}>
                     {currencySymbol}{formatAmount(itemAmt)}
                   </td>
                 </tr>
