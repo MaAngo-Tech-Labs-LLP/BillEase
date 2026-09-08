@@ -49,26 +49,29 @@ const PreviewPage = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { id: routeId } = useParams<{ id: string }>()
-  const { documents, saveDocument, deleteDocument } = useDocuments()
+  const { documents, saveDocument, deleteDocument, updateStatus } = useDocuments()
   const [docToDelete, setDocToDelete] = useState<BillEaseDocument | null>(null)
 
   const urlId = routeId || searchParams.get('id')
-  const [selectedId, setSelectedId] = useState<string | null>(urlId || null)
+  const [selectedId, setSelectedId] = useState<string | null>(() => urlId || (documents[0]?.id ?? null))
 
-  // Sync selectedId with URL or fallback to first document
+  // Sync selectedId when urlId changes or documents load
   useEffect(() => {
     if (urlId) {
       setSelectedId(urlId)
     } else if (documents.length > 0 && !selectedId) {
       setSelectedId(documents[0].id)
     }
-  }, [urlId, documents, selectedId])
+  }, [urlId, documents])
 
-  // Handle action=print query param
+  // Handle action=print query param safely (only once)
   useEffect(() => {
     const action = searchParams.get('action')
     if (action === 'print') {
-      setTimeout(() => window.print(), 500)
+      const timer = setTimeout(() => {
+        window.print()
+      }, 500)
+      return () => clearTimeout(timer)
     }
   }, [searchParams])
 
@@ -76,16 +79,16 @@ const PreviewPage = () => {
   const isSaved = searchParams.get('saved') === '1'
   const statusParam = searchParams.get('status')
 
-  const [activeTemplateId, setActiveTemplateId] = useState<string>('tpl-gst')
+  const [activeTemplateId, setActiveTemplateId] = useState<string>('gst-tax-invoice')
 
   // Keep activeTemplateId synced with the document's selected template
   useEffect(() => {
     if (selectedDoc?.templateId) {
       setActiveTemplateId(selectedDoc.templateId)
     } else if (selectedDoc?.type === 'bill') {
-      setActiveTemplateId('tpl-receipt')
+      setActiveTemplateId('bold-emerald')
     } else if (selectedDoc?.type === 'invoice') {
-      setActiveTemplateId('tpl-gst')
+      setActiveTemplateId('gst-tax-invoice')
     }
   }, [selectedDoc])
 
@@ -93,7 +96,7 @@ const PreviewPage = () => {
 
   const handleDownloadText = () => {
     if (!selectedDoc) return
-    const content = `BillEase Document\n${selectedDoc.type === 'bill' ? 'BILL' : 'INVOICE'} #${selectedDoc.invoiceNumber || selectedDoc.id}\n\nBilled To: ${selectedDoc.billTo?.name}\nDate: ${selectedDoc.date}\nDue Date: ${selectedDoc.dueDate}\n\nItems:\n${(selectedDoc.items || []).map(i => `  ${i.description} x${i.quantity} @ ${fmt(i.rate)} = ${fmt(i.amount)}`).join('\n')}\n\nSubtotal: ${fmt(selectedDoc.subtotal || 0)}\nTax (${selectedDoc.taxRate}%): ${fmt(selectedDoc.taxAmount || 0)}\nTotal Due: ${fmt(selectedDoc.total || 0)}\n\n${selectedDoc.notes ? `Notes: ${selectedDoc.notes}` : ''}`
+    const content = `BillEase Document\n${selectedDoc.type === 'bill' ? 'BILL' : 'INVOICE'} #${selectedDoc.invoiceNumber || selectedDoc.id}\n\nBilled To: ${selectedDoc.billTo?.name || 'Walk-in'}\nDate: ${selectedDoc.date || formatDisplayDate(selectedDoc.createdAt)}\nDue Date: ${selectedDoc.dueDate || 'Upon Receipt'}\nStatus: ${(selectedDoc.status || 'paid').toUpperCase()}\n\nItems:\n${(selectedDoc.items || []).map(i => `  ${i.description} x${i.quantity} @ ${fmt(i.rate)} = ${fmt(i.amount)}`).join('\n')}\n\nSubtotal: ${fmt(selectedDoc.subtotal || 0)}\nTax (${selectedDoc.taxRate || 0}%): ${fmt(selectedDoc.taxAmount || 0)}\nTotal Due: ${fmt(selectedDoc.total || 0)}\n\n${selectedDoc.notes ? `Notes: ${selectedDoc.notes}\n` : ''}${selectedDoc.bankDetails ? `Bank / Payment Details: ${selectedDoc.bankDetails}\n` : ''}`
     const blob = new Blob([content], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url
@@ -195,7 +198,10 @@ const PreviewPage = () => {
                       return (
                         <button
                           key={doc.id}
-                          onClick={() => setSelectedId(doc.id)}
+                          onClick={() => {
+                            setSelectedId(doc.id)
+                            navigate(`/preview?id=${encodeURIComponent(doc.id)}`, { replace: true })
+                          }}
                           style={{
                             width: '100%', padding: '0.875rem 1.25rem', display: 'flex', alignItems: 'center', gap: '10px',
                             background: isSelected ? 'rgba(91,158,134,0.12)' : 'transparent',
@@ -294,6 +300,31 @@ const PreviewPage = () => {
                       <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(0,0,0,0.05)', fontSize: '0.85rem' }}>
                         <span style={{ color: 'var(--charcoal-soft)' }}>Tax ({selectedDoc.taxRate || 0}%)</span>
                         <span style={{ fontWeight: 600, color: 'var(--charcoal)' }}>{fmt(selectedDoc.taxAmount || 0)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(0,0,0,0.05)', fontSize: '0.85rem', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--charcoal-soft)' }}>Status</span>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          {(['paid', 'unpaid', 'pending', 'draft'] as const).map(st => {
+                            const isCurrent = selectedDoc.status === st
+                            const cfg = STATUS_COLORS[st]
+                            return (
+                              <button
+                                key={st}
+                                onClick={() => updateStatus(selectedDoc.id, st)}
+                                style={{
+                                  padding: '3px 8px', borderRadius: '6px',
+                                  border: isCurrent ? `1.5px solid ${cfg.color}` : '1px solid rgba(0,0,0,0.08)',
+                                  background: isCurrent ? cfg.bg : 'transparent',
+                                  color: isCurrent ? cfg.color : 'var(--charcoal-soft)',
+                                  fontWeight: isCurrent ? 700 : 500, fontSize: '0.7rem',
+                                  cursor: 'pointer', textTransform: 'capitalize',
+                                }}
+                              >
+                                {st}
+                              </button>
+                            )
+                          })}
+                        </div>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '2px solid rgba(0,0,0,0.08)', fontSize: '1.1rem', fontWeight: 800 }}>
                         <span style={{ color: 'var(--charcoal)' }}>Total Amount</span>
@@ -522,10 +553,12 @@ const PreviewPage = () => {
       {/* Enhanced Print Styles */}
       <style>{`
         @media print {
-          body {
+          html, body {
             background: #fff !important;
             margin: 0 !important;
             padding: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           nav, header, .navbar, button, a, .no-print, .no-print * {
             display: none !important;
@@ -538,6 +571,11 @@ const PreviewPage = () => {
             margin: 0 !important;
             max-width: 100% !important;
           }
+          main > div {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+          }
           #printable-a4-doc {
             box-shadow: none !important;
             margin: 0 auto !important;
@@ -545,7 +583,7 @@ const PreviewPage = () => {
           }
           @page {
             size: A4 portrait;
-            margin: 10mm;
+            margin: 8mm;
           }
         }
       `}</style>

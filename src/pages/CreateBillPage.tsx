@@ -6,8 +6,8 @@ import {
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import DocumentRenderer from '../components/DocumentRenderer'
-import { useDocuments, generateDocId } from '../hooks/useDocuments'
-import type { LineItem, BillEaseDocument } from '../types/document'
+import { useDocuments, generateDocId, getBusinessProfile } from '../hooks/useDocuments'
+import type { LineItem, BillEaseDocument, DocStatus } from '../types/document'
 import { TEMPLATES, getTemplateChoice, getTemplateById, setTemplateChoice } from '../data/templates'
 
 // ─── helpers ────────────────────────────────────────────────
@@ -15,7 +15,7 @@ const today = new Date().toISOString().slice(0, 10)
 const due30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
 
 const fmt = (n: number) =>
-  '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  '₹' + (Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const newItem = (): LineItem => ({
   id: crypto.randomUUID(),
@@ -26,7 +26,7 @@ const newItem = (): LineItem => ({
 })
 
 // ─── step config ────────────────────────────────────────────
-const STEPS = ['Details', 'Customer', 'My Info', 'Items', 'Payment', 'Preview']
+const STEPS = ['Details', 'Customer', 'My Info', 'Items', 'Payment', 'Review']
 
 // ─── reusable input style ───────────────────────────────────
 const inputStyle: React.CSSProperties = {
@@ -85,11 +85,11 @@ const CreateBillPage = () => {
   const { documents, saveDocument } = useDocuments()
   const [step, setStep]  = useState(0)
 
-  // Active template
+  // Active template (canonical default: 'bold-emerald')
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(() => {
     if (templateParam) return templateParam
     const stored = getTemplateChoice()
-    return stored || 'tpl-receipt'
+    return stored || 'bold-emerald'
   })
 
   const currentTemplate = getTemplateById(selectedTemplateId)
@@ -99,6 +99,8 @@ const CreateBillPage = () => {
   const [reference,  setReference]  = useState('')
   const [issueDate,  setIssueDate]  = useState(today)
   const [dueDate,    setDueDate]    = useState(due30)
+  const [status,     setStatus]     = useState<DocStatus>('paid')
+  const [createdAt,  setCreatedAt]  = useState<string>(() => new Date().toISOString())
 
   // Step 2 – Customer
   const [clientName,    setClientName]    = useState('')
@@ -106,17 +108,18 @@ const CreateBillPage = () => {
   const [clientAddress, setClientAddress] = useState('')
   const [clientPhone,   setClientPhone]   = useState('')
 
-  // Step 3 – My Info
-  const [myName,    setMyName]    = useState('')
-  const [myEmail,   setMyEmail]   = useState('')
-  const [myAddress, setMyAddress] = useState('')
-  const [myPhone,   setMyPhone]   = useState('')
+  // Step 3 – My Info (prefilled from BusinessProfile if new bill)
+  const defaultProfile = getBusinessProfile()
+  const [myName,    setMyName]    = useState(defaultProfile.name || '')
+  const [myEmail,   setMyEmail]   = useState(defaultProfile.email || '')
+  const [myAddress, setMyAddress] = useState(defaultProfile.address || '')
+  const [myPhone,   setMyPhone]   = useState(defaultProfile.phone || '')
 
   // Step 4 – Items
   const [items, setItems] = useState<LineItem[]>([newItem()])
 
   // Load sample items for this layout
-  const loadTemplateSampleData = (tId: string) => {
+  const loadTemplateSampleData = useCallback((tId: string) => {
     const t = getTemplateById(tId)
     if (t?.sampleItems && t.sampleItems.length > 0) {
       setItems(t.sampleItems.map(si => ({
@@ -124,12 +127,12 @@ const CreateBillPage = () => {
         description: si.desc,
         quantity: si.qty,
         rate: si.rate,
-        amount: si.qty * si.rate,
+        amount: Math.round(si.qty * si.rate * 100) / 100,
       })))
-      if (!myName && t.logoText) setMyName(t.logoText)
-      if (!clientName && t.sampleClient) setClientName(t.sampleClient)
+      if (t.logoText && !defaultProfile.name) setMyName(t.logoText)
+      if (t.sampleClient) setClientName(t.sampleClient)
     }
-  }
+  }, [defaultProfile.name])
 
   // Load existing document if in edit mode or prefill from template
   useEffect(() => {
@@ -137,6 +140,8 @@ const CreateBillPage = () => {
       const doc = documents.find(d => d.id === editId)
       if (doc) {
         setBillNumber(doc.id)
+        if (doc.status) setStatus(doc.status)
+        if (doc.createdAt) setCreatedAt(doc.createdAt)
         if (doc.templateId) setSelectedTemplateId(doc.templateId)
         if (doc.invoiceNumber) setReference(doc.invoiceNumber)
         if (doc.date) setIssueDate(doc.date)
@@ -160,35 +165,38 @@ const CreateBillPage = () => {
     } else if (templateParam && items.length === 1 && !items[0].description) {
       loadTemplateSampleData(templateParam)
     }
-  }, [editId, documents, templateParam])
+  }, [editId, documents, templateParam, loadTemplateSampleData])
 
   const updateItem = useCallback((id: string, field: keyof LineItem, val: string | number) => {
     setItems(prev => prev.map(it => {
       if (it.id !== id) return it
       const updated = { ...it, [field]: val }
-      updated.amount = Number(updated.quantity) * Number(updated.rate)
+      const qty = Number(updated.quantity) || 0
+      const rate = Number(updated.rate) || 0
+      updated.amount = Math.round(qty * rate * 100) / 100
       return updated
     }))
   }, [])
 
   const addItem    = () => setItems(p => [...p, newItem()])
-  const removeItem = (id: string) => setItems(p => p.length > 1 ? p.filter(i => i.id !== id) : p)
+  const removeItem = (id: string) => setItems(p => p.length > 1 ? p.filter(i => i.id !== id) : [newItem()])
 
   // Step 5 – Payment
   const [taxRate,   setTaxRate]   = useState('0')
   const [notes,     setNotes]     = useState('')
 
-  // Totals
-  const subtotal  = items.reduce((s, i) => s + i.amount, 0)
-  const taxAmt    = subtotal * (parseFloat(taxRate) || 0) / 100
-  const total     = subtotal + taxAmt
+  // Totals (cleanly rounded)
+  const subtotal  = Math.round(items.reduce((s, i) => s + (Number(i.amount) || 0), 0) * 100) / 100
+  const rateVal   = Math.max(0, parseFloat(taxRate) || 0)
+  const taxAmt    = Math.round((subtotal * rateVal / 100) * 100) / 100
+  const total     = Math.round((subtotal + taxAmt) * 100) / 100
 
   // ── Save to localStorage ──────────────────────────────────
-  const buildDoc = (status: 'draft' | 'paid'): BillEaseDocument => ({
+  const buildDoc = (docStatus?: DocStatus): BillEaseDocument => ({
     id: billNumber,
     type: 'bill',
-    status,
-    createdAt:  new Date().toISOString(),
+    status: docStatus || status,
+    createdAt,
     updatedAt:  new Date().toISOString(),
     date:       issueDate,
     dueDate,
@@ -196,7 +204,7 @@ const CreateBillPage = () => {
     billFrom: { name: myName, email: myEmail, address: myAddress, phone: myPhone },
     items,
     subtotal,
-    taxRate:    parseFloat(taxRate) || 0,
+    taxRate:    rateVal,
     taxAmount:  taxAmt,
     total,
     invoiceNumber: reference,
@@ -210,8 +218,8 @@ const CreateBillPage = () => {
     navigate(`/preview?id=${encodeURIComponent(doc.id)}&saved=1&status=draft`)
   }
 
-  const handleGenerate = (downloadImmediately = false) => {
-    const doc = buildDoc('paid')
+  const handleGenerate = (downloadImmediately = false, newStatus?: DocStatus) => {
+    const doc = buildDoc(newStatus || 'paid')
     saveDocument(doc)
     // Seamless workflow: redirect straight to PDF Downloader & Ready preview
     navigate(`/preview?id=${encodeURIComponent(doc.id)}&saved=1&ready=1${downloadImmediately ? '&action=print' : ''}`)
@@ -347,6 +355,109 @@ const CreateBillPage = () => {
             <span style={{ fontWeight: 600, color: 'var(--charcoal)' }}>{value}</span>
           </div>
         ))}
+      </div>
+    </div>,
+
+    // 5 – Review & Finalize
+    <div key="review" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div>
+        <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--charcoal)', marginBottom: '4px' }}>Review & Finalize</h2>
+        <p style={{ fontSize: '0.85rem', color: 'var(--charcoal-soft)' }}>Verify all details before downloading or saving your bill.</p>
+      </div>
+
+      <div style={{ background: 'rgba(255,255,255,0.7)', borderRadius: '14px', padding: '1.25rem', border: '1px solid rgba(255,255,255,0.8)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '0.6rem' }}>
+          <div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--charcoal-soft)', textTransform: 'uppercase', fontWeight: 700 }}>Bill Identifier</div>
+            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--charcoal)' }}>{billNumber}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--charcoal-soft)', textTransform: 'uppercase', fontWeight: 700 }}>Issue Date</div>
+            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--charcoal)' }}>{issueDate}</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '0.75rem' }}>
+          <div>
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase' }}>Billed To:</span>
+            <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--charcoal)' }}>{clientName || 'Walk-in Customer'}</div>
+            {clientPhone && <div style={{ fontSize: '0.75rem', color: 'var(--charcoal-soft)' }}>{clientPhone}</div>}
+            {clientEmail && <div style={{ fontSize: '0.75rem', color: 'var(--charcoal-soft)' }}>{clientEmail}</div>}
+          </div>
+          <div>
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase' }}>Billed From:</span>
+            <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--charcoal)' }}>{myName || 'Your Business'}</div>
+            {myPhone && <div style={{ fontSize: '0.75rem', color: 'var(--charcoal-soft)' }}>{myPhone}</div>}
+            {myEmail && <div style={{ fontSize: '0.75rem', color: 'var(--charcoal-soft)' }}>{myEmail}</div>}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.825rem', color: 'var(--charcoal-soft)' }}>
+            <span>Line Items ({items.length})</span>
+            <span>{fmt(subtotal)}</span>
+          </div>
+          {taxAmt > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.825rem', color: 'var(--charcoal-soft)' }}>
+              <span>Tax ({taxRate}%)</span>
+              <span>{fmt(taxAmt)}</span>
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 800, color: '#4E8F75', paddingTop: '4px' }}>
+            <span>Total Amount</span>
+            <span>{fmt(total)}</span>
+          </div>
+        </div>
+
+        {/* Status Selector */}
+        <div>
+          <label style={labelStyle}>Payment Status</label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {(['paid', 'unpaid', 'pending', 'draft'] as DocStatus[]).map(st => (
+              <button
+                key={st}
+                type="button"
+                onClick={() => setStatus(st)}
+                style={{
+                  flex: 1, padding: '7px 10px', borderRadius: '8px',
+                  border: status === st ? '2px solid #5B9E86' : '1px solid rgba(0,0,0,0.1)',
+                  background: status === st ? 'rgba(91,158,134,0.15)' : 'rgba(255,255,255,0.7)',
+                  color: status === st ? '#4E8F75' : 'var(--charcoal-mid)',
+                  fontWeight: status === st ? 700 : 500, fontSize: '0.75rem', cursor: 'pointer',
+                  textTransform: 'capitalize', transition: 'all 0.15s'
+                }}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => handleGenerate(true)}
+          style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+            padding: '13px 20px', borderRadius: '12px', border: 'none',
+            background: 'linear-gradient(135deg, #5B9E86, #7BBFA5)', color: '#fff',
+            fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(91,158,134,0.35)',
+          }}
+        >
+          <Download size={16} /> Save & Download PDF
+        </button>
+        <button
+          onClick={() => handleGenerate(false)}
+          style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+            padding: '13px 18px', borderRadius: '12px', border: '1.5px solid #5B9E86',
+            background: 'rgba(91,158,134,0.1)', color: '#4E8F75',
+            fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
+          }}
+        >
+          <Eye size={16} /> Preview Document
+        </button>
       </div>
     </div>,
   ]

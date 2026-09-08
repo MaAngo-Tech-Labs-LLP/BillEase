@@ -2,10 +2,11 @@ import React from 'react'
 import type { BillEaseDocument } from '../types/document'
 import { getTemplateById, TEMPLATES } from '../data/templates'
 import type { TemplateStyle } from '../data/templates'
+import { formatDisplayDate } from '../hooks/useDocuments'
 
 // ── Currency Formatter ───────────────────────────────────────
 const fmt = (n: number) =>
-  '₹' + (n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  '₹' + (Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // ── Indian Number to Words Helper ────────────────────────────
 function numToWords(n: number): string {
@@ -46,16 +47,28 @@ export const DocumentRenderer: React.FC<DocumentRendererProps> = ({
 
   // Document metadata fallbacks
   const docNumber = doc.invoiceNumber || doc.id || 'INV-2026-001'
-  const dateStr = doc.date || new Date().toISOString().slice(0, 10)
-  const dueDateStr = doc.dueDate || 'Upon Receipt'
-  const myName = doc.billFrom?.name?.trim() || tpl.logoText || 'Apex Corporate Ltd.'
-  const myEmail = doc.billFrom?.email?.trim() || 'billing@apexcorp.com'
-  const myPhone = doc.billFrom?.phone?.trim() || '+91 98765 43210'
-  const myAddress = doc.billFrom?.address?.trim() || '101 Cyber Towers, BKC, Mumbai 400051'
-  const clientName = doc.billTo?.name?.trim() || tpl.sampleClient || 'Stellar Innovations Pvt. Ltd.'
-  const clientEmail = doc.billTo?.email?.trim() || 'accounts@stellarinnovations.com'
-  const clientPhone = doc.billTo?.phone?.trim() || '+91 98111 22334'
-  const clientAddress = doc.billTo?.address?.trim() || '45 Innovation Way, Tech Corridor, Bangalore 560100'
+  const dateStr = doc.date ? formatDisplayDate(doc.date) : (doc.createdAt ? formatDisplayDate(doc.createdAt) : formatDisplayDate(new Date().toISOString()))
+  const dueDateStr = doc.dueDate ? formatDisplayDate(doc.dueDate) : 'Upon Receipt'
+
+  // Determine if caller provided real business or client details
+  const hasUserBillFrom = Boolean(
+    doc.billFrom && (doc.billFrom.name?.trim() || doc.billFrom.email?.trim() || doc.billFrom.phone?.trim() || doc.billFrom.address?.trim())
+  )
+  const hasUserBillTo = Boolean(
+    doc.billTo && (doc.billTo.name?.trim() || doc.billTo.email?.trim() || doc.billTo.phone?.trim() || doc.billTo.address?.trim())
+  )
+
+  const myName = doc.billFrom?.name?.trim() || (hasUserBillFrom ? '' : tpl.logoText || 'Apex Corporate Ltd.')
+  const myEmail = doc.billFrom?.email?.trim() || (hasUserBillFrom ? '' : 'billing@apexcorp.com')
+  const myPhone = doc.billFrom?.phone?.trim() || (hasUserBillFrom ? '' : '+91 98765 43210')
+  const myAddress = doc.billFrom?.address?.trim() || (hasUserBillFrom ? '' : '101 Cyber Towers, BKC, Mumbai 400051')
+  const myGst = doc.billFrom?.gstNumber || doc.gstNumber || '27AAAAA0000A1Z5'
+
+  const clientName = doc.billTo?.name?.trim() || (hasUserBillTo ? 'Valued Customer' : tpl.sampleClient || 'Stellar Innovations Pvt. Ltd.')
+  const clientEmail = doc.billTo?.email?.trim() || (hasUserBillTo ? '' : 'accounts@stellarinnovations.com')
+  const clientPhone = doc.billTo?.phone?.trim() || (hasUserBillTo ? '' : '+91 98111 22334')
+  const clientAddress = doc.billTo?.address?.trim() || (hasUserBillTo ? '' : '45 Innovation Way, Tech Corridor, Bangalore 560100')
+  const clientGst = doc.billTo?.gstNumber || '07AAAAA0000A1Z5'
 
   // Intelligent item fallback: if user has typed no real item description or rate, render realistic sample items
   const hasUserItems = Boolean(
@@ -139,7 +152,7 @@ export const DocumentRenderer: React.FC<DocumentRendererProps> = ({
               <div style={{ fontSize: '0.75rem', color: '#4B5563', whiteSpace: 'pre-line', marginTop: '2px', lineHeight: 1.4 }}>{myAddress}</div>
               <div style={{ fontSize: '0.75rem', color: '#374151', marginTop: '4px' }}><strong>Email:</strong> {myEmail} | <strong>Phone:</strong> {myPhone}</div>
               <div style={{ fontSize: '0.75rem', color: '#111827', marginTop: '6px', padding: '4px 8px', background: '#EEF2FF', display: 'inline-block', borderRadius: '4px' }}>
-                <strong>GSTIN:</strong> 27AAAAA0000A1Z5 | <strong>State:</strong> 27 - Maharashtra
+                <strong>GSTIN:</strong> {myGst} | <strong>State:</strong> 27 - Maharashtra
               </div>
             </div>
             <div style={{ padding: '0.85rem 1rem', fontSize: '0.76rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '5px' }}>
@@ -180,7 +193,7 @@ export const DocumentRenderer: React.FC<DocumentRendererProps> = ({
               <div style={{ fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#6B7280' }}>Buyer GSTIN:</span>
-                  <span style={{ fontWeight: 700 }}>27BBBBB9999B1Z2</span>
+                  <span style={{ fontWeight: 700 }}>{clientGst}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#6B7280' }}>State Code:</span>
@@ -382,7 +395,7 @@ export const DocumentRenderer: React.FC<DocumentRendererProps> = ({
           <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
             <div style={{ fontSize: '1.6rem', fontWeight: 900, color: tpl.accentColor, letterSpacing: '-0.5px' }}>{myName}</div>
             <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '2px' }}>{myAddress}</div>
-            <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '2px' }}>Tel: {myPhone} · GSTIN: 27AABCT1234F1Z5</div>
+            <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '2px' }}>Tel: {myPhone} · GSTIN: {myGst}</div>
             <div style={{ margin: '8px auto', display: 'inline-block', padding: '3px 14px', background: tpl.accentColor, color: '#fff', fontSize: '0.7rem', fontWeight: 800, borderRadius: '12px' }}>
               {tpl.docLabel}
             </div>

@@ -32,12 +32,14 @@ export interface BillEaseDocument {
     email?: string
     address?: string
     phone?: string
+    gstNumber?: string
   }
   billFrom: {
     name: string
     email?: string
     address?: string
     phone?: string
+    gstNumber?: string
   }
 
   // Line items
@@ -55,4 +57,5 @@ export interface BillEaseDocument {
   bankDetails?: string
   notes?: string
   templateId?: string
+  gstNumber?: string
 }

@@ -10,6 +10,46 @@ import type { BillEaseDocument, DocStatus } from '../types/document'
 
 const STORAGE_KEY = 'billease_documents'
 
+// ---------- Business Profile Defaults ----------
+export interface BusinessProfile {
+  name: string
+  email: string
+  phone: string
+  address: string
+  gstNumber?: string
+  bankDetails?: string
+}
+
+const PROFILE_KEY = 'billease_business_profile'
+
+export function getBusinessProfile(): BusinessProfile {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY)
+    if (!raw) {
+      return {
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        gstNumber: '',
+        bankDetails: '',
+      }
+    }
+    return JSON.parse(raw) as BusinessProfile
+  } catch {
+    return { name: '', email: '', phone: '', address: '', gstNumber: '', bankDetails: '' }
+  }
+}
+
+export function saveBusinessProfile(profile: BusinessProfile): void {
+  try {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile))
+    window.dispatchEvent(new CustomEvent('billease_profile_updated', { detail: profile }))
+  } catch {
+    console.error('BillEase: failed to save business profile')
+  }
+}
+
 // ---------- Helper: generate a document ID ----------
 export function generateDocId(type: 'bill' | 'invoice'): string {
   const prefix = type === 'bill' ? 'BIL' : 'INV'
@@ -19,15 +59,19 @@ export function generateDocId(type: 'bill' | 'invoice'): string {
 }
 
 // ---------- Helper: format date for display ----------
-export function formatDisplayDate(isoString: string): string {
-  return new Date(isoString).toLocaleDateString('en-IN', {
+export function formatDisplayDate(isoString?: string): string {
+  if (!isoString) return '—'
+  const d = new Date(isoString)
+  if (isNaN(d.getTime())) return String(isoString)
+  return d.toLocaleDateString('en-IN', {
     day: 'numeric', month: 'short', year: 'numeric'
   })
 }
 
 // ---------- Helper: format amount ----------
 export function formatAmount(amount: number): string {
-  return '₹' + amount.toLocaleString('en-IN', {
+  const safe = Number(amount) || 0
+  return '₹' + safe.toLocaleString('en-IN', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })
@@ -35,12 +79,19 @@ export function formatAmount(amount: number): string {
 
 // ---------- Low-level storage functions ----------
 
-/** Read all documents from localStorage */
+/** Read all documents from localStorage (sorted newest first) */
 function readFromStorage(): BillEaseDocument[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
-    return JSON.parse(raw) as BillEaseDocument[]
+    const parsed = JSON.parse(raw) as BillEaseDocument[]
+    if (!Array.isArray(parsed)) return []
+    // Sort newest first based on updatedAt or createdAt
+    return parsed.sort((a, b) => {
+      const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime()
+      const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime()
+      return dateB - dateA
+    })
   } catch {
     console.error('BillEase: failed to read from localStorage')
     return []
@@ -60,12 +111,10 @@ function writeToStorage(docs: BillEaseDocument[]): void {
 // ---------- The hook ----------
 
 export function useDocuments() {
-  const [documents, setDocuments] = useState<BillEaseDocument[]>([])
+  const [documents, setDocuments] = useState<BillEaseDocument[]>(() => readFromStorage())
 
-  // Load from localStorage on mount and listen to broadcast updates
+  // Listen to broadcast and storage updates
   useEffect(() => {
-    setDocuments(readFromStorage())
-
     const handleUpdate = () => {
       setDocuments(readFromStorage())
     }
@@ -77,14 +126,19 @@ export function useDocuments() {
     }
   }, [])
 
-  // ----- Save a new document -----
+  // ----- Save a new or edited document -----
   const saveDocument = useCallback((doc: BillEaseDocument): void => {
     setDocuments(prev => {
       const exists = prev.find(d => d.id === doc.id)
-      // If already exists, update it; otherwise add it
+      const now = new Date().toISOString()
+      const updatedDoc = {
+        ...doc,
+        createdAt: doc.createdAt || exists?.createdAt || now,
+        updatedAt: now,
+      }
       const updated = exists
-        ? prev.map(d => d.id === doc.id ? { ...doc, updatedAt: new Date().toISOString() } : d)
-        : [...prev, doc]
+        ? prev.map(d => d.id === doc.id ? updatedDoc : d)
+        : [updatedDoc, ...prev]
       writeToStorage(updated)
       return updated
     })
@@ -94,11 +148,8 @@ export function useDocuments() {
   const deleteDocument = useCallback((id: string): void => {
     setDocuments(prev => {
       const cleanId = String(id || '').trim()
-      const updated = prev.filter(d => {
-        const dId = String(d.id || '').trim()
-        const invNum = String(d.invoiceNumber || '').trim()
-        return dId !== cleanId && invNum !== cleanId
-      })
+      if (!cleanId) return prev
+      const updated = prev.filter(d => String(d.id || '').trim() !== cleanId)
       writeToStorage(updated)
       return updated
     })
@@ -129,7 +180,7 @@ export function useDocuments() {
   }, [])
 
   return {
-    documents,       // all documents (reactive)
+    documents,       // all documents (reactive, newest first)
     saveDocument,    // create or update
     deleteDocument,  // delete by ID
     updateStatus,    // change status only

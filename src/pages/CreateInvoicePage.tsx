@@ -5,15 +5,15 @@ import {
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import DocumentRenderer from '../components/DocumentRenderer'
-import { useDocuments, generateDocId } from '../hooks/useDocuments'
-import type { LineItem, BillEaseDocument } from '../types/document'
+import { useDocuments, generateDocId, getBusinessProfile } from '../hooks/useDocuments'
+import type { LineItem, BillEaseDocument, DocStatus } from '../types/document'
 import { TEMPLATES, getTemplateChoice, getTemplateById, setTemplateChoice } from '../data/templates'
 
 const today = new Date().toISOString().slice(0, 10)
 const due30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
 
 const fmt = (n: number) =>
-  '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  '₹' + (Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const newItem = (): LineItem => ({
   id: crypto.randomUUID(),
@@ -68,11 +68,11 @@ const CreateInvoicePage = () => {
   const templateParam = searchParams.get('template')
   const { documents, saveDocument } = useDocuments()
 
-  // Active template choice
+  // Active template choice (canonical default: 'gst-tax-invoice')
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(() => {
     if (templateParam) return templateParam
     const stored = getTemplateChoice()
-    return stored || 'tpl-gst'
+    return stored || 'gst-tax-invoice'
   })
 
   const currentTemplate = getTemplateById(selectedTemplateId)
@@ -85,18 +85,24 @@ const CreateInvoicePage = () => {
   const [issueDate,     setIssueDate]     = useState(today)
   const [dueDate,       setDueDate]       = useState(due30)
   const [paymentTerms,  setPaymentTerms]  = useState('Net 30')
+  const [status,        setStatus]        = useState<DocStatus>('unpaid')
+  const [createdAt,     setCreatedAt]     = useState<string>(() => new Date().toISOString())
 
-  const [myName,    setMyName]    = useState('')
-  const [myEmail,   setMyEmail]   = useState('')
-  const [myPhone,   setMyPhone]   = useState('')
-  const [myAddress, setMyAddress] = useState('')
-  const [gstNumber, setGstNumber] = useState('')
+  // Prefill business details from profile if creating new invoice
+  const defaultProfile = getBusinessProfile()
+  const [myName,       setMyName]       = useState(defaultProfile.name || '')
+  const [myEmail,      setMyEmail]      = useState(defaultProfile.email || '')
+  const [myPhone,      setMyPhone]      = useState(defaultProfile.phone || '')
+  const [myAddress,    setMyAddress]    = useState(defaultProfile.address || '')
+  const [gstNumber,    setGstNumber]    = useState(defaultProfile.gstNumber || '')
+  const [bankDetails,  setBankDetails]  = useState(defaultProfile.bankDetails || '')
+  const [notes,        setNotes]        = useState('')
 
   const [items,   setItems]   = useState<LineItem[]>([newItem()])
   const [taxRate, setTaxRate] = useState('18')
 
   // Load sample data helper when template changes or initially
-  const loadTemplateSampleData = (tId: string) => {
+  const loadTemplateSampleData = useCallback((tId: string) => {
     const t = getTemplateById(tId)
     if (t?.sampleItems && t.sampleItems.length > 0) {
       setItems(t.sampleItems.map(si => ({
@@ -104,12 +110,12 @@ const CreateInvoicePage = () => {
         description: si.desc,
         quantity: si.qty,
         rate: si.rate,
-        amount: si.qty * si.rate,
+        amount: Math.round(si.qty * si.rate * 100) / 100,
       })))
-      if (!myName && t.logoText) setMyName(t.logoText)
-      if (!clientName && t.sampleClient) setClientName(t.sampleClient)
+      if (t.logoText && !defaultProfile.name) setMyName(t.logoText)
+      if (t.sampleClient) setClientName(t.sampleClient)
     }
-  }
+  }, [defaultProfile.name])
 
   // Load existing document if in edit mode or apply templateParam
   useEffect(() => {
@@ -117,6 +123,8 @@ const CreateInvoicePage = () => {
       const doc = documents.find(d => d.id === editId)
       if (doc) {
         setInvoiceNumber(doc.id)
+        if (doc.status) setStatus(doc.status)
+        if (doc.createdAt) setCreatedAt(doc.createdAt)
         if (doc.templateId) {
           setSelectedTemplateId(doc.templateId)
         }
@@ -131,7 +139,9 @@ const CreateInvoicePage = () => {
           setMyEmail(doc.billFrom.email || '')
           setMyPhone(doc.billFrom.phone || '')
           setMyAddress(doc.billFrom.address || '')
+          if (doc.billFrom.gstNumber) setGstNumber(doc.billFrom.gstNumber)
         }
+        if (doc.gstNumber) setGstNumber(doc.gstNumber)
         if (doc.date) setIssueDate(doc.date)
         if (doc.dueDate) setDueDate(doc.dueDate)
         if (doc.paymentTerms) setPaymentTerms(doc.paymentTerms)
@@ -141,43 +151,43 @@ const CreateInvoicePage = () => {
         if (doc.notes) setNotes(doc.notes)
       }
     } else if (templateParam && items.length === 1 && !items[0].description) {
-      // If user came directly with ?template=... and items are empty, prefill sample items
       loadTemplateSampleData(templateParam)
     }
-  }, [editId, documents, templateParam])
+  }, [editId, documents, templateParam, loadTemplateSampleData])
 
   const updateItem = useCallback((id: string, field: keyof LineItem, val: string | number) => {
     setItems(prev => prev.map(it => {
       if (it.id !== id) return it
       const updated = { ...it, [field]: val }
-      updated.amount = Number(updated.quantity) * Number(updated.rate)
+      const qty = Number(updated.quantity) || 0
+      const rate = Number(updated.rate) || 0
+      updated.amount = Math.round(qty * rate * 100) / 100
       return updated
     }))
   }, [])
 
   const addItem    = () => setItems(p => [...p, newItem()])
-  const removeItem = (id: string) => setItems(p => p.length > 1 ? p.filter(i => i.id !== id) : p)
+  const removeItem = (id: string) => setItems(p => p.length > 1 ? p.filter(i => i.id !== id) : [newItem()])
 
-  const [bankDetails, setBankDetails] = useState('')
-  const [notes,       setNotes]       = useState('')
+  // Accurate totals
+  const subtotal = Math.round(items.reduce((s, i) => s + (Number(i.amount) || 0), 0) * 100) / 100
+  const rateVal  = Math.max(0, parseFloat(taxRate) || 0)
+  const taxAmt   = Math.round((subtotal * rateVal / 100) * 100) / 100
+  const total    = Math.round((subtotal + taxAmt) * 100) / 100
 
-  const subtotal = items.reduce((s, i) => s + i.amount, 0)
-  const taxAmt   = subtotal * (parseFloat(taxRate) || 0) / 100
-  const total    = subtotal + taxAmt
-
-  const buildDoc = (status: 'draft' | 'paid'): BillEaseDocument => ({
+  const buildDoc = (docStatus?: DocStatus): BillEaseDocument => ({
     id: invoiceNumber,
     type: 'invoice',
-    status,
-    createdAt: new Date().toISOString(),
+    status: docStatus || status,
+    createdAt,
     updatedAt: new Date().toISOString(),
     date: issueDate,
     dueDate,
     billTo:   { name: clientName, email: clientEmail, address: clientAddress, phone: clientPhone },
-    billFrom: { name: myName, email: myEmail, address: myAddress, phone: myPhone },
+    billFrom: { name: myName, email: myEmail, address: myAddress, phone: myPhone, gstNumber },
     items,
     subtotal,
-    taxRate: parseFloat(taxRate) || 0,
+    taxRate: rateVal,
     taxAmount: taxAmt,
     total,
     invoiceNumber,
@@ -185,20 +195,19 @@ const CreateInvoicePage = () => {
     bankDetails,
     notes,
     templateId: selectedTemplateId,
+    gstNumber,
   })
 
   // ── Workflow handlers ──
   const handleSaveDraft = () => {
     const doc = buildDoc('draft')
     saveDocument(doc)
-    // Takes user directly to the preview of their saved draft
     navigate(`/preview?id=${encodeURIComponent(doc.id)}&saved=1&status=draft`)
   }
 
-  const handleFinalize = (downloadImmediately = false) => {
-    const doc = buildDoc('paid')
+  const handleFinalize = (downloadImmediately = false, newStatus?: DocStatus) => {
+    const doc = buildDoc(newStatus || (editId ? status : 'paid'))
     saveDocument(doc)
-    // Takes user to preview with download ready
     navigate(`/preview?id=${encodeURIComponent(doc.id)}&saved=1&ready=1${downloadImmediately ? '&action=print' : ''}`)
   }
 
@@ -224,7 +233,7 @@ const CreateInvoicePage = () => {
               </h1>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button onClick={() => navigate(-1)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', borderRadius: '12px', border: '1.5px solid rgba(0,0,0,0.1)', background: 'rgba(255,255,255,0.7)', color: 'var(--charcoal-mid)', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
+              <button onClick={() => { if (window.history.length > 1) { navigate(-1) } else { navigate('/documents') } }} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', borderRadius: '12px', border: '1.5px solid rgba(0,0,0,0.1)', background: 'rgba(255,255,255,0.7)', color: 'var(--charcoal-mid)', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
                 <ArrowLeft size={15} /> Back
               </button>
               <button onClick={handleSaveDraft} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '12px', border: '1.5px solid rgba(0,0,0,0.1)', background: 'rgba(255,255,255,0.7)', color: 'var(--charcoal)', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
@@ -388,6 +397,28 @@ const CreateInvoicePage = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <Field label="Bank / UPI Payment Details" value={bankDetails} onChange={setBankDetails} rows={3} placeholder={'Bank: HDFC Bank\nAccount: 1234567890\nIFSC: HDFC0001234\nUPI: yourname@upi'} />
                   <Field label="Additional Notes / Thank You Message" value={notes} onChange={setNotes} rows={2} placeholder="Thank you for your business! Payment is due within 30 days." />
+                  <div>
+                    <label style={labelStyle}>Invoice Status</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {(['unpaid', 'paid', 'pending', 'draft'] as DocStatus[]).map(st => (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => setStatus(st)}
+                          style={{
+                            flex: 1, padding: '8px 12px', borderRadius: '8px',
+                            border: status === st ? '2px solid #6E5CB6' : '1px solid rgba(0,0,0,0.1)',
+                            background: status === st ? 'rgba(110,92,182,0.14)' : 'rgba(255,255,255,0.7)',
+                            color: status === st ? '#6E5CB6' : 'var(--charcoal-mid)',
+                            fontWeight: status === st ? 700 : 500, fontSize: '0.78rem', cursor: 'pointer',
+                            textTransform: 'capitalize', transition: 'all 0.15s'
+                          }}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(0,0,0,0.06)', flexWrap: 'wrap' }}>

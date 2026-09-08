@@ -19,21 +19,39 @@ const STATUS_CONFIG: Record<DocStatus, { label: string; bg: string; color: strin
   pending: { label: 'Pending', bg: 'rgba(255, 180, 80,  0.2)', color: '#B07D2A' },
 }
 
-const StatusBadge = ({ status }: { status: DocStatus }) => {
-  const cfg = STATUS_CONFIG[status]
+const StatusBadge = ({
+  status,
+  onChange,
+}: {
+  status: DocStatus
+  onChange?: (newStatus: DocStatus) => void
+}) => {
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.draft
   return (
-    <span style={{
-      display: 'inline-block',
-      padding: '3px 10px',
-      borderRadius: '20px',
-      fontSize: '0.7rem',
-      fontWeight: 600,
-      background: cfg.bg,
-      color: cfg.color,
-      whiteSpace: 'nowrap',
-    }}>
-      {cfg.label}
-    </span>
+    <select
+      value={status}
+      onChange={e => onChange?.(e.target.value as DocStatus)}
+      style={{
+        display: 'inline-block',
+        padding: '3px 8px',
+        borderRadius: '20px',
+        fontSize: '0.72rem',
+        fontWeight: 700,
+        background: cfg.bg,
+        color: cfg.color,
+        border: 'none',
+        outline: 'none',
+        cursor: 'pointer',
+        textTransform: 'capitalize',
+        fontFamily: 'inherit',
+      }}
+      title="Click to update status"
+    >
+      <option value="paid">Paid</option>
+      <option value="unpaid">Unpaid</option>
+      <option value="pending">Pending</option>
+      <option value="draft">Draft</option>
+    </select>
   )
 }
 
@@ -43,7 +61,7 @@ const MyDocumentsPage = () => {
   const [search, setSearch] = useState('')
   const [docToDelete, setDocToDelete] = useState<BillEaseDocument | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
-  const { documents, deleteDocument } = useDocuments()
+  const { documents, deleteDocument, updateStatus } = useDocuments()
 
   const handleConfirmDelete = () => {
     if (!docToDelete) return
@@ -241,11 +259,11 @@ const MyDocumentsPage = () => {
                         </td>
 
                         {/* Client */}
-                        <td style={{ padding: '14px 14px', color: 'var(--charcoal)' }}>{doc.billTo.name}</td>
+                        <td style={{ padding: '14px 14px', color: 'var(--charcoal)' }}>{doc.billTo?.name || 'Walk-in'}</td>
 
                         {/* Date */}
                         <td style={{ padding: '14px 14px', color: 'var(--charcoal-soft)' }}>
-                          {formatDisplayDate(doc.createdAt)}
+                          {formatDisplayDate(doc.date || doc.createdAt)}
                         </td>
 
                         {/* Amount */}
@@ -255,7 +273,14 @@ const MyDocumentsPage = () => {
 
                         {/* Status */}
                         <td style={{ padding: '14px 14px' }}>
-                          <StatusBadge status={doc.status} />
+                          <StatusBadge
+                            status={doc.status}
+                            onChange={newSt => {
+                              updateStatus(doc.id, newSt)
+                              setToastMessage(`Document #${doc.id} status updated to ${newSt}.`)
+                              setTimeout(() => setToastMessage(null), 3000)
+                            }}
+                          />
                         </td>
 
                         {/* Actions */}

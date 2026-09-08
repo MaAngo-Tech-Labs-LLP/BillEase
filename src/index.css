@@ -37,6 +37,21 @@
   --duration:     0.3s;
 }
 
+[data-theme="dark"] {
+  --ivory:        #121519;
+  --ivory-dark:   #181C22;
+  --charcoal:     #F3F4F6;
+  --charcoal-mid: #D1D5DB;
+  --charcoal-soft:#9CA3AF;
+  --mint:         #5B9E86;
+  --mint-light:   #1E3A30;
+  --lavender:     #8A7CC0;
+  --lavender-light:#2E2650;
+  --glass-bg:     rgba(26, 32, 44, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-shadow: rgba(0, 0, 0, 0.4);
+}
+
 html, body {
   font-family: var(--font);
   background-color: var(--ivory);
@@ -44,6 +59,7 @@ html, body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--duration) var(--ease), color var(--duration) var(--ease);
 }
 
 /* Subtle mesh background */

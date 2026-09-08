@@ -253,8 +253,23 @@ export function getTemplateChoice(): string | null {
   return localStorage.getItem(TEMPLATE_STORAGE_KEY)
 }
 
-export function getTemplateById(id: string): TemplateStyle | undefined {
-  return TEMPLATES.find(t => t.id === id)
+const TEMPLATE_ALIASES: Record<string, string> = {
+  'tpl-receipt': 'bold-emerald',
+  'tpl-gst': 'gst-tax-invoice',
+  'receipt': 'bold-emerald',
+  'gst': 'gst-tax-invoice',
+  'classic': 'classic-pro',
+  'minimal': 'modern-minimal',
+  'sidebar': 'warm-saffron',
+  'clinical': 'medical-clinical',
+  'editorial': 'corporate-navy',
+  'academic': 'academia-blue',
+}
+
+export function getTemplateById(id?: string): TemplateStyle | undefined {
+  if (!id) return TEMPLATES[0]
+  const targetId = TEMPLATE_ALIASES[id] || id
+  return TEMPLATES.find(t => t.id === targetId) || TEMPLATES[0]
 }
 
 export const ALL_CATEGORIES = [
