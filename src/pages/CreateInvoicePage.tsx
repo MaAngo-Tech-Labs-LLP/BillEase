@@ -53,9 +53,32 @@ export default function CreateInvoicePage({
       name: it.name !== undefined && it.name !== null ? it.name : (it.description || ''),
       description: it.description || '',
     }));
+
+    let bankName = doc.bankName;
+    let accountNumber = doc.accountNumber;
+    let ifscCode = doc.ifscCode;
+    let upiId = doc.upiId;
+
+    if (!bankName && !accountNumber && !ifscCode && !upiId && doc.paymentNotes) {
+      const lines = doc.paymentNotes.split('\n');
+      for (const line of lines) {
+        const lower = line.toLowerCase();
+        const colonIdx = line.indexOf(':');
+        const val = colonIdx !== -1 ? line.slice(colonIdx + 1).trim() : line.trim();
+        if (lower.includes('bank') && !bankName) bankName = val;
+        else if ((lower.includes('account') || lower.includes('a/c') || lower.includes('acct')) && !accountNumber) accountNumber = val;
+        else if (lower.includes('ifsc') && !ifscCode) ifscCode = val;
+        else if (lower.includes('upi') && !upiId) upiId = val;
+      }
+    }
+
     return {
       ...DEFAULT_INVOICE,
       ...doc,
+      bankName: bankName || DEFAULT_INVOICE.bankName,
+      accountNumber: accountNumber || DEFAULT_INVOICE.accountNumber,
+      ifscCode: ifscCode || DEFAULT_INVOICE.ifscCode,
+      upiId: upiId || DEFAULT_INVOICE.upiId,
       items,
       senderLogo: doc.senderLogo || (doc as any)?.logo || DEFAULT_INVOICE.senderLogo,
       type: 'invoice',
@@ -135,6 +158,19 @@ export default function CreateInvoicePage({
 
   const handleInputChange = (field: keyof BillDocument, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleBankDetailChange = (field: 'bankName' | 'accountNumber' | 'ifscCode' | 'upiId', value: string) => {
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value };
+      const lines = [];
+      if (updated.bankName) lines.push(`Bank: ${updated.bankName}`);
+      if (updated.accountNumber) lines.push(`Account: ${updated.accountNumber}`);
+      if (updated.ifscCode) lines.push(`IFSC: ${updated.ifscCode}`);
+      if (updated.upiId) lines.push(`UPI: ${updated.upiId}`);
+      updated.paymentNotes = lines.join('\n');
+      return updated;
+    });
   };
 
   const handleItemChange = (id: string, field: 'name' | 'description' | 'qty' | 'rate', value: string) => {
@@ -921,16 +957,71 @@ export default function CreateInvoicePage({
             </div>
 
             <div className="form-fields-stack">
-              <div className="form-group">
-                <label className="form-label">Bank / UPI Payment Details</label>
-                <textarea
-                  className="form-input"
-                  rows={3}
-                  value={formData.paymentNotes}
-                  onChange={(e) => handleInputChange('paymentNotes', e.target.value)}
-                  placeholder={'Bank: HDFC Bank\nAccount: 1234567890\nIFSC: HDFC0001234\nUPI: yourname@upi'}
-                  style={{ resize: 'vertical' }}
-                />
+              <div style={{ marginBottom: '0.85rem' }}>
+                <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700, marginBottom: '6px', display: 'block', color: '#1e293b' }}>
+                  Bank &amp; Payment Settlement Details
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" htmlFor="input-bank-name" style={{ fontSize: '0.70rem', color: '#64748b' }}>
+                      Bank Name
+                    </label>
+                    <input
+                      id="input-bank-name"
+                      type="text"
+                      className="form-input"
+                      value={formData.bankName || ''}
+                      onChange={(e) => handleBankDetailChange('bankName', e.target.value)}
+                      placeholder="e.g. HDFC Bank Ltd."
+                      style={{ padding: '0.45rem 0.65rem', fontSize: '0.82rem' }}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" htmlFor="input-acct-number" style={{ fontSize: '0.70rem', color: '#64748b' }}>
+                      Account Number
+                    </label>
+                    <input
+                      id="input-acct-number"
+                      type="text"
+                      className="form-input"
+                      value={formData.accountNumber || ''}
+                      onChange={(e) => handleBankDetailChange('accountNumber', e.target.value)}
+                      placeholder="e.g. 502000486720194"
+                      style={{ padding: '0.45rem 0.65rem', fontSize: '0.82rem' }}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" htmlFor="input-ifsc-code" style={{ fontSize: '0.70rem', color: '#64748b' }}>
+                      IFSC Code / Swift
+                    </label>
+                    <input
+                      id="input-ifsc-code"
+                      type="text"
+                      className="form-input"
+                      value={formData.ifscCode || ''}
+                      onChange={(e) => handleBankDetailChange('ifscCode', e.target.value)}
+                      placeholder="e.g. HDFC0001234"
+                      style={{ padding: '0.45rem 0.65rem', fontSize: '0.82rem' }}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" htmlFor="input-upi-id" style={{ fontSize: '0.70rem', color: '#64748b' }}>
+                      UPI ID
+                    </label>
+                    <input
+                      id="input-upi-id"
+                      type="text"
+                      className="form-input"
+                      value={formData.upiId || ''}
+                      onChange={(e) => handleBankDetailChange('upiId', e.target.value)}
+                      placeholder="e.g. yourname@hdfcbank"
+                      style={{ padding: '0.45rem 0.65rem', fontSize: '0.82rem' }}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="form-group">
