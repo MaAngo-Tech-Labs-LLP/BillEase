@@ -186,6 +186,9 @@ export default function CreateBillPage({
       items: prev.items.map((it) => {
         if (it.id === id) {
           if (field === 'qty' || field === 'rate' || field === 'taxRate' || field === 'discount') {
+            if (value === '' || value === null || value === undefined) {
+              return { ...it, [field]: '' };
+            }
             const numVal = Math.max(0, parseFloat(value) || 0);
             return { ...it, [field]: numVal };
           }
@@ -201,7 +204,7 @@ export default function CreateBillPage({
       ...prev,
       items: prev.items.map((it) => {
         if (it.id === id) {
-          const current = Number(it.qty) || 1;
+          const current = Number(it.qty) || 0;
           const next = Math.max(1, current + delta);
           return { ...it, qty: next };
         }
@@ -213,11 +216,11 @@ export default function CreateBillPage({
   const handleAddItem = () => {
     const newItem = {
       id: Date.now().toString(),
-      name: 'Service / Product Item',
-      description: 'Consulting deliverable or product item description',
-      qty: 1,
-      rate: 1000,
-      taxRate: formData.taxRate || 18,
+      name: '',
+      description: '',
+      qty: '' as any,
+      rate: '' as any,
+      taxRate: formData.taxRate !== undefined ? formData.taxRate : 18,
       discount: 0,
     };
     setFormData((prev) => ({ ...prev, items: [...prev.items, newItem] }));
@@ -1401,7 +1404,8 @@ export default function CreateBillPage({
                               type="number"
                               min="1"
                               step="1"
-                              value={item.qty}
+                              value={item.qty ?? ''}
+                              placeholder="1"
                               onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
                             />
                             <div className="number-stepper-btns">
@@ -1434,7 +1438,8 @@ export default function CreateBillPage({
                             type="number"
                             min="0"
                             step="0.01"
-                            value={item.rate}
+                            value={item.rate ?? ''}
+                            placeholder="0.00"
                             onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)}
                           />
                         </div>

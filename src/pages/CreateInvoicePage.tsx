@@ -178,8 +178,14 @@ export default function CreateInvoicePage({
       ...prev,
       items: prev.items.map((it) => {
         if (it.id === id) {
-          const parsed = field === 'qty' || field === 'rate' ? Math.max(0, parseFloat(value) || 0) : value;
-          return { ...it, [field]: parsed };
+          if (field === 'qty' || field === 'rate') {
+            if (value === '' || value === null || value === undefined) {
+              return { ...it, [field]: '' };
+            }
+            const parsed = Math.max(0, parseFloat(value) || 0);
+            return { ...it, [field]: parsed };
+          }
+          return { ...it, [field]: value };
         }
         return it;
       }),
@@ -191,7 +197,7 @@ export default function CreateInvoicePage({
       ...prev,
       items: prev.items.map((it) => {
         if (it.id === id) {
-          const current = Number(it.qty) || 1;
+          const current = Number(it.qty) || 0;
           const next = Math.max(1, current + delta);
           return { ...it, qty: next };
         }
@@ -203,10 +209,10 @@ export default function CreateInvoicePage({
   const handleAddItem = () => {
     const newItem = {
       id: Date.now().toString(),
-      name: 'Service / Product Item',
-      description: 'Consulting deliverable or product item description',
-      qty: 1,
-      rate: 1000,
+      name: '',
+      description: '',
+      qty: '' as any,
+      rate: '' as any,
     };
     setFormData((prev) => ({ ...prev, items: [...prev.items, newItem] }));
   };
@@ -873,8 +879,9 @@ export default function CreateInvoicePage({
                           min="1"
                           step="1"
                           className="form-input"
-                          value={item.qty}
+                          value={item.qty ?? ''}
                           onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
+                          placeholder="1"
                           style={{ textAlign: 'center', padding: '0.5rem 24px 0.5rem 0.5rem', fontSize: '0.83rem' }}
                         />
                         <div
@@ -913,7 +920,7 @@ export default function CreateInvoicePage({
                         min="0"
                         step="0.01"
                         className="form-input"
-                        value={item.rate}
+                        value={item.rate ?? ''}
                         onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)}
                         placeholder="0.00"
                         style={{ textAlign: 'right', padding: '0.5rem 0.65rem', fontSize: '0.83rem' }}
