@@ -1874,11 +1874,11 @@ export default function CreateBillPage({
                       marginBottom: '10px',
                     }}
                   >
-                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Palette size={15} color="#2563eb" />
                       <span>Available Bill Templates ({BILL_TEMPLATES.length})</span>
                     </div>
-                    <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                       Click any template to switch instantly
                     </span>
                   </div>
