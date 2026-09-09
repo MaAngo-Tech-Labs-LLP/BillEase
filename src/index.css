@@ -467,8 +467,14 @@ body[data-theme='dark'] .ambient-liquid-background::after {
   display: inline-flex;
   align-items: baseline;
   white-space: nowrap;
-  min-width: 130px;
+  min-width: 180px;
   text-align: left;
+}
+
+@media (max-width: 640px) {
+  .hero-typewriter-wrapper {
+    min-width: 145px;
+  }
 }
 
 .hero-typewriter-cursor {
