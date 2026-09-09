@@ -1531,33 +1531,31 @@ export default function DocumentRenderer({
           background: '#ffffff',
           display: 'flex',
           flexDirection: 'column',
-          minHeight: 1080,
-          maxWidth: 800,
+          maxWidth: 760,
           margin: '0 auto',
           boxSizing: 'border-box',
-          padding: '38px 42px',
-          gap: '24px',
+          padding: '30px 32px 36px 32px',
+          gap: '18px',
           color: '#111827',
-          boxShadow: '0 4px 30px rgba(0,0,0,0.06)',
-          borderRadius: '12px',
+          borderRadius: '16px',
         } as React.CSSProperties}
       >
         {/* Header with 52x52 Logo on Left */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '20px', width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', width: '100%', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', flex: 1, minWidth: 0 }}>
             <div style={{ marginTop: '2px', flexShrink: 0 }}>
               {renderBusinessLogo(senderLogo, senderName)}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.5px', color: '#111827', lineHeight: 1.15, wordBreak: 'break-word' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.5px', color: '#111827', lineHeight: 1.15, wordBreak: 'break-word' }}>
                 {senderName}
               </div>
               {senderTagline && (
-                <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: '3px', wordBreak: 'break-word' }}>
+                <div style={{ fontSize: '0.76rem', color: '#6B7280', marginTop: '2px', wordBreak: 'break-word' }}>
                   {senderTagline}
                 </div>
               )}
-              <div style={{ fontSize: '0.74rem', color: '#4B5563', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px 12px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px 12px', flexWrap: 'wrap' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <Mail size={12} color="#6B7280" />
                   <span>{senderEmail}</span>
@@ -1575,7 +1573,7 @@ export default function DocumentRenderer({
                 </div>
               )}
               {document.senderTaxNumber && (
-                <div style={{ fontSize: '0.72rem', color: '#111827', marginTop: '4px', fontWeight: 700 }}>
+                <div style={{ fontSize: '0.72rem', color: '#111827', marginTop: '3px', fontWeight: 700 }}>
                   GSTIN / PAN: {document.senderTaxNumber}
                 </div>
               )}
@@ -1584,16 +1582,16 @@ export default function DocumentRenderer({
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <span style={{ fontSize: '1.9rem', fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1, color: '#111827' }}>
+              <span style={{ fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1, color: '#111827' }}>
                 {docHeading}
               </span>
               {renderStatusBadge(document.status)}
             </div>
-            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#4B5563' }}>
+            <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#4B5563' }}>
               #{document.billNumber || 'INV-2026-1817'}
             </div>
             {document.poNumber && (
-              <div style={{ fontSize: '0.74rem', color: '#6B7280', marginTop: '3px' }}>
+              <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: '2px' }}>
                 PO: #{document.poNumber}
               </div>
             )}
@@ -1605,32 +1603,32 @@ export default function DocumentRenderer({
           style={{
             display: 'grid',
             gridTemplateColumns: '1.2fr 1fr',
-            gap: '24px',
-            padding: '16px 0',
+            gap: '20px',
+            padding: '12px 0',
             borderTop: '1px solid #E5E7EB',
             borderBottom: '1px solid #E5E7EB',
           }}
         >
           <div>
-            <div style={{ fontSize: '0.66rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9CA3AF', marginBottom: '6px' }}>
+            <div style={{ fontSize: '0.66rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9CA3AF', marginBottom: '4px' }}>
               BILLED TO
             </div>
-            <div style={{ fontSize: '1.02rem', fontWeight: 800, color: '#111827' }}>
+            <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#111827' }}>
               {clientName}
             </div>
-            <div style={{ fontSize: '0.76rem', color: '#4B5563', marginTop: '4px', whiteSpace: 'pre-line', lineHeight: 1.45 }}>
+            <div style={{ fontSize: '0.74rem', color: '#4B5563', marginTop: '3px', whiteSpace: 'pre-line', lineHeight: 1.4 }}>
               {clientAddress}
             </div>
-            <div style={{ fontSize: '0.74rem', color: '#4B5563', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
               {clientEmail && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                  <Mail size={12} color="#6B7280" />
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Mail size={11} color="#6B7280" />
                   {clientEmail}
                 </span>
               )}
               {clientPhone && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                  <Phone size={12} color="#6B7280" />
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Phone size={11} color="#6B7280" />
                   {clientPhone}
                 </span>
               )}
@@ -1643,10 +1641,10 @@ export default function DocumentRenderer({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <div style={{ fontSize: '0.66rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9CA3AF', marginBottom: '8px' }}>
+            <div style={{ fontSize: '0.66rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9CA3AF', marginBottom: '6px' }}>
               INVOICE TIMELINES &amp; TERMS
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '230px', fontSize: '0.78rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', width: '220px', fontSize: '0.76rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: '#6B7280' }}>Issue Date:</span>
                 <strong style={{ color: '#111827' }}>{formatDisplayDate(document.issueDate)}</strong>
@@ -1670,35 +1668,35 @@ export default function DocumentRenderer({
           <table className="a4-items-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderTop: '2px solid #111827', borderBottom: '2px solid #111827', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#111827' }}>
-                <th style={{ textAlign: 'center', padding: '10px 6px', width: '5%' }}>#</th>
-                <th style={{ textAlign: 'left', padding: '10px 12px', width: '25%' }}>ITEM</th>
-                <th style={{ textAlign: 'left', padding: '10px 12px', width: '28%' }}>DESCRIPTION</th>
-                <th style={{ textAlign: 'center', padding: '10px 6px', width: '10%' }}>QTY</th>
-                <th style={{ textAlign: 'right', padding: '10px 12px', width: '16%' }}>RATE ({currencySymbol})</th>
-                <th style={{ textAlign: 'right', padding: '10px 12px', width: '16%' }}>AMOUNT ({currencySymbol})</th>
+                <th style={{ textAlign: 'center', padding: '9px 6px', width: '5%' }}>#</th>
+                <th style={{ textAlign: 'left', padding: '9px 10px', width: '30%' }}>ITEM</th>
+                <th style={{ textAlign: 'left', padding: '9px 10px', width: '30%' }}>DESCRIPTION</th>
+                <th style={{ textAlign: 'center', padding: '9px 6px', width: '8%' }}>QTY</th>
+                <th style={{ textAlign: 'right', padding: '9px 10px', width: '13%' }}>RATE ({currencySymbol})</th>
+                <th style={{ textAlign: 'right', padding: '9px 10px', width: '14%' }}>AMOUNT ({currencySymbol})</th>
               </tr>
             </thead>
             <tbody>
               {document.items.map((it, idx) => {
                 const amt = (Number(it.qty) || 0) * (Number(it.rate) || 0);
                 return (
-                  <tr key={it.id || idx} style={{ borderBottom: '1px solid #F3F4F6', fontSize: '0.82rem' }}>
-                    <td style={{ padding: '12px 6px', textAlign: 'center', color: '#6B7280', fontWeight: 600 }}>
+                  <tr key={it.id || idx} style={{ borderBottom: '1px solid #F3F4F6', fontSize: '0.80rem' }}>
+                    <td style={{ padding: '9px 6px', textAlign: 'center', color: '#6B7280', fontWeight: 600 }}>
                       {idx + 1}
                     </td>
-                    <td style={{ padding: '12px 12px', textAlign: 'left', fontWeight: 600, color: '#111827' }}>
+                    <td style={{ padding: '9px 10px', textAlign: 'left', fontWeight: 600, color: '#111827' }}>
                       {it.name || it.description || 'Item'}
                     </td>
-                    <td style={{ padding: '12px 12px', textAlign: 'left', color: '#6B7280' }}>
+                    <td style={{ padding: '9px 10px', textAlign: 'left', color: '#6B7280' }}>
                       {it.name ? (it.description || '—') : '—'}
                     </td>
-                    <td style={{ padding: '12px 6px', textAlign: 'center', color: '#4B5563', fontVariantNumeric: 'tabular-nums' }}>
+                    <td style={{ padding: '9px 6px', textAlign: 'center', color: '#4B5563', fontVariantNumeric: 'tabular-nums' }}>
                       {it.qty}
                     </td>
-                    <td style={{ padding: '12px 12px', textAlign: 'right', color: '#4B5563', fontVariantNumeric: 'tabular-nums' }}>
+                    <td style={{ padding: '9px 10px', textAlign: 'right', color: '#4B5563', fontVariantNumeric: 'tabular-nums' }}>
                       {currencySymbol}{formatAmount(it.rate)}
                     </td>
-                    <td style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                    <td style={{ padding: '9px 10px', textAlign: 'right', fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
                       {currencySymbol}{formatAmount(amt)}
                     </td>
                   </tr>
@@ -1711,33 +1709,32 @@ export default function DocumentRenderer({
         {/* Bottom Section: Left (Bank details + Notes) and Right (Totals + Signature) */}
         <div
           style={{
-            marginTop: 'auto',
             display: 'grid',
             gridTemplateColumns: '1.15fr 1fr',
-            gap: '24px',
+            gap: '20px',
             alignItems: 'start',
-            paddingTop: '8px',
+            paddingTop: '6px',
           }}
         >
           {/* Left Column: Settlement & Notes */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div
               style={{
                 border: '1px solid #E5E7EB',
                 borderRadius: '8px',
                 background: '#F9FAFB',
-                padding: '12px 14px',
+                padding: '10px 12px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', fontWeight: 800, color: '#111827', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                <Landmark size={14} color="#374151" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.68rem', fontWeight: 800, color: '#111827', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <Landmark size={13} color="#374151" />
                 <span>BANK &amp; PAYMENT SETTLEMENT</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px', fontSize: '0.74rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '6px', fontSize: '0.73rem' }}>
                 {bankRows.map((r, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
-                    <span style={{ width: 110, color: '#6B7280', flexShrink: 0 }}>{r.label || 'Note'}</span>
-                    <span style={{ width: 14, color: '#9CA3AF', textAlign: 'center' }}>:</span>
+                    <span style={{ width: 105, color: '#6B7280', flexShrink: 0 }}>{r.label || 'Note'}</span>
+                    <span style={{ width: 12, color: '#9CA3AF', textAlign: 'center' }}>:</span>
                     <span style={{ color: '#111827', fontWeight: 600 }}>{r.value}</span>
                   </div>
                 ))}
@@ -1750,13 +1747,13 @@ export default function DocumentRenderer({
                   border: '1px solid #E5E7EB',
                   borderRadius: '8px',
                   background: '#FFFFFF',
-                  padding: '10px 14px',
+                  padding: '8px 12px',
                 }}
               >
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>
                   Customer Notes &amp; Terms
                 </div>
-                <div style={{ fontSize: '0.74rem', color: '#4B5563', lineHeight: 1.45, whiteSpace: 'pre-line' }}>
+                <div style={{ fontSize: '0.73rem', color: '#4B5563', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
                   {document.notes}
                 </div>
               </div>
@@ -1764,19 +1761,19 @@ export default function DocumentRenderer({
           </div>
 
           {/* Right Column: Totals Summary & Authorized Signature */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div
               style={{
                 border: '1px solid #E5E7EB',
                 borderRadius: '8px',
                 background: '#FFFFFF',
-                padding: '14px 16px',
+                padding: '10px 14px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '8px',
+                gap: '6px',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#4B5563' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#4B5563' }}>
                 <span>Subtotal</span>
                 <span style={{ fontWeight: 600, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
                   {currencySymbol}{formatAmount(subtotal)}
@@ -1784,7 +1781,7 @@ export default function DocumentRenderer({
               </div>
 
               {discountAmount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#DC2626' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#DC2626' }}>
                   <span>Discount</span>
                   <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                     -{currencySymbol}{formatAmount(discountAmount)}
@@ -1792,38 +1789,38 @@ export default function DocumentRenderer({
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#4B5563' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#4B5563' }}>
                 <span>Tax ({document.taxRate || 0}%)</span>
                 <span style={{ fontWeight: 600, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
                   {currencySymbol}{formatAmount(taxAmount)}
                 </span>
               </div>
 
-              <div style={{ borderTop: '1.5px solid #E5E7EB', margin: '4px 0' }} />
+              <div style={{ borderTop: '1.5px solid #E5E7EB', margin: '3px 0' }} />
 
               <div
                 style={{
                   background: '#111827',
                   color: '#FFFFFF',
-                  padding: '10px 14px',
+                  padding: '8px 12px',
                   borderRadius: '6px',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                 }}
               >
-                <span style={{ fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.85, fontWeight: 700 }}>
+                <span style={{ fontSize: '0.70rem', letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.85, fontWeight: 700 }}>
                   TOTAL DUE
                 </span>
-                <span style={{ fontSize: '1.2rem', fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontSize: '1.1rem', fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
                   {currencySymbol}{formatAmount(totalAmount)}
                 </span>
               </div>
             </div>
 
-            <div style={{ textAlign: 'center', marginTop: '4px' }}>
-              <div style={{ borderBottom: '1px solid #CBD5E1', width: '160px', margin: '0 auto 6px' }} />
-              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div style={{ textAlign: 'center', marginTop: '2px' }}>
+              <div style={{ borderBottom: '1px solid #CBD5E1', width: '150px', margin: '0 auto 4px' }} />
+              <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Authorized Signatory
               </div>
             </div>
