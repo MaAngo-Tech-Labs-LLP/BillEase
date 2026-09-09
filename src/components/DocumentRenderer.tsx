@@ -312,14 +312,14 @@ export default function DocumentRenderer({
         } as React.CSSProperties}
       >
         {/* Left-aligned Store Header with 52x52 Logo on Left */}
-        <div className="receipt-header-box" style={{ background: tplStyle?.headerBg || '#00695C', display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 20px', textAlign: 'left' }}>
+        <div className="receipt-header-box" style={{ background: tplStyle?.headerBg || '#00695C', display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 20px', textAlign: 'left', width: '100%', boxSizing: 'border-box' }}>
           <div style={{ marginTop: '2px', flexShrink: 0 }}>
             {renderBusinessLogo(senderLogo, senderName, true)}
           </div>
-          <div style={{ flex: 1 }}>
-            <div className="receipt-header-title" style={{ textAlign: 'left' }}>{senderName}</div>
-            <div className="receipt-header-sub" style={{ textAlign: 'left' }}>{senderTagline || 'Retail Store & POS Billing'}</div>
-            <div style={{ fontSize: '0.74rem', opacity: 0.88, marginTop: 4 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="receipt-header-title" style={{ textAlign: 'left', wordBreak: 'break-word' }}>{senderName}</div>
+            <div className="receipt-header-sub" style={{ textAlign: 'left', wordBreak: 'break-word' }}>{senderTagline || 'Retail Store & POS Billing'}</div>
+            <div style={{ fontSize: '0.74rem', opacity: 0.88, marginTop: 4, wordBreak: 'break-word' }}>
               {senderAddress} | Ph: {senderPhone}
             </div>
             {document.senderTaxNumber && (
@@ -328,13 +328,13 @@ export default function DocumentRenderer({
               </div>
             )}
           </div>
-          <div style={{ textAlign: 'right' }}>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
             {renderStatusBadge(document.status)}
           </div>
         </div>
 
         {/* POS Metadata Strip */}
-        <div className="receipt-meta-strip" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', padding: '10px 14px' }}>
+        <div className="receipt-meta-strip" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px 12px', padding: '10px 14px', width: '100%', boxSizing: 'border-box' }}>
           <span>{isInvoice ? 'INVOICE' : 'RECEIPT'}: <strong>#{document.billNumber || 'INV-2026-1817'}</strong></span>
           <span>DATE: <strong>{formatHeaderDate(document.issueDate)}</strong></span>
           {document.dueDate && <span>DUE: <strong>{formatHeaderDate(document.dueDate)}</strong></span>}
@@ -342,13 +342,13 @@ export default function DocumentRenderer({
         </div>
 
         {/* Customer Strip */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: '0.82rem', padding: '10px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', color: '#1e293b' }}>
-          <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: '0.82rem', padding: '10px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', color: '#1e293b', width: '100%', boxSizing: 'border-box', gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#004d40', textTransform: 'uppercase', letterSpacing: '0.05em' }}>BILLED TO:</span>
-            <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#0f172a', marginTop: 2 }}>{clientName}</div>
-            {clientAddress && <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: 2, whiteSpace: 'pre-line' }}>{clientAddress}</div>}
+            <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#0f172a', marginTop: 2, wordBreak: 'break-word' }}>{clientName}</div>
+            {clientAddress && <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: 2, whiteSpace: 'pre-line', wordBreak: 'break-word' }}>{clientAddress}</div>}
           </div>
-          <div style={{ textAlign: 'right', fontSize: '0.74rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ textAlign: 'right', fontSize: '0.74rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
             {clientPhone && <div>Ph: <strong>{clientPhone}</strong></div>}
             {clientEmail && <div>{clientEmail}</div>}
             {document.clientTaxNumber && <div style={{ fontWeight: 700, color: '#004d40' }}>GSTIN: {document.clientTaxNumber}</div>}
@@ -510,20 +510,20 @@ export default function DocumentRenderer({
           </div>
 
           {/* Right Main Charges Breakdown */}
-          <div className="tpl-sidebar-right">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #fed7aa', paddingBottom: 14 }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: tplStyle?.accentColor || '#e65100', margin: 0 }}>
+          <div className="tpl-sidebar-right" style={{ flex: 1, minWidth: 0, boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #fed7aa', paddingBottom: 14, gap: 12, width: '100%', boxSizing: 'border-box' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: tplStyle?.accentColor || '#e65100', margin: 0, wordBreak: 'break-word' }}>
                     {docHeading}
                   </h2>
                   {renderStatusBadge(document.status)}
                 </div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', marginTop: 2 }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', marginTop: 2, wordBreak: 'break-word' }}>
                   #{document.billNumber || 'INV-2026-1817'}
                 </div>
               </div>
-              <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#64748b' }}>
+              <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#64748b', flexShrink: 0 }}>
                 <div>Date: <strong>{formatHeaderDate(document.issueDate)}</strong></div>
                 {document.dueDate && <div>Due: <strong>{formatHeaderDate(document.dueDate)}</strong></div>}
                 <div>Terms: <strong>{paymentTerms}</strong></div>
@@ -638,18 +638,20 @@ export default function DocumentRenderer({
         } as React.CSSProperties}
       >
         {/* Healthcare Header with 52x52 Logo on Left */}
-        <div className="clinical-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {renderBusinessLogo(senderLogo, senderName)}
-            <span className="clinical-rx-badge">℞</span>
-            <div>
-              <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#00838f', margin: 0 }}>
+        <div className="clinical-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, width: '100%', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flex: 1, minWidth: 0 }}>
+            <div style={{ flexShrink: 0, marginTop: 2 }}>
+              {renderBusinessLogo(senderLogo, senderName)}
+            </div>
+            <span className="clinical-rx-badge" style={{ flexShrink: 0 }}>℞</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#00838f', margin: 0, wordBreak: 'break-word' }}>
                 {senderName}
               </h2>
-              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0' }}>
+              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0', wordBreak: 'break-word' }}>
                 {senderTagline || 'Multi-Specialty Clinic & Diagnostic Centre'}
               </p>
-              <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: 2 }}>
+              <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: 2, wordBreak: 'break-word' }}>
                 {senderAddress} | Ph: {senderPhone}
               </div>
               {document.senderTaxNumber && (
@@ -659,8 +661,8 @@ export default function DocumentRenderer({
               )}
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 4 }}>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
               <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#00838f', background: '#e0f7fa', padding: '4px 10px', borderRadius: 6, display: 'inline-block' }}>
                 OFFICIAL RECORD
               </div>
@@ -805,17 +807,19 @@ export default function DocumentRenderer({
         } as React.CSSProperties}
       >
         {/* Formal Navy Header Bar with 52x52 Logo on Left */}
-        <div className="editorial-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {renderBusinessLogo(senderLogo, senderName, true)}
-            <div>
-              <h2 style={{ fontSize: '1.45rem', fontWeight: 700, margin: 0, letterSpacing: '0.02em', color: '#ffffff' }}>
+        <div className="editorial-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '16px 20px', gap: 16, width: '100%', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flex: 1, minWidth: 0 }}>
+            <div style={{ flexShrink: 0, marginTop: 2 }}>
+              {renderBusinessLogo(senderLogo, senderName, true)}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 style={{ fontSize: '1.45rem', fontWeight: 700, margin: 0, letterSpacing: '0.02em', color: '#ffffff', wordBreak: 'break-word' }}>
                 {senderName}
               </h2>
-              <div style={{ fontSize: '0.78rem', opacity: 0.88, marginTop: 3, fontFamily: 'sans-serif', color: '#e2e8f0' }}>
+              <div style={{ fontSize: '0.78rem', opacity: 0.88, marginTop: 3, fontFamily: 'sans-serif', color: '#e2e8f0', wordBreak: 'break-word' }}>
                 {senderTagline || 'Technology & Enterprise Solutions'}
               </div>
-              <div style={{ fontSize: '0.72rem', opacity: 0.82, marginTop: 2, fontFamily: 'sans-serif', color: '#cbd5e1' }}>
+              <div style={{ fontSize: '0.72rem', opacity: 0.82, marginTop: 2, fontFamily: 'sans-serif', color: '#cbd5e1', wordBreak: 'break-word' }}>
                 {[senderAddress, senderPhone, senderEmail].filter(Boolean).join(' · ')}
               </div>
               {document.senderTaxNumber && (
@@ -825,8 +829,8 @@ export default function DocumentRenderer({
               )}
             </div>
           </div>
-          <div style={{ textAlign: 'right', fontFamily: 'sans-serif' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginBottom: 4 }}>
+          <div style={{ textAlign: 'right', fontFamily: 'sans-serif', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
               <span style={{ fontSize: '1.1rem', fontWeight: 800, letterSpacing: '0.06em', color: '#ffffff' }}>
                 {docHeading}
               </span>
@@ -986,17 +990,22 @@ export default function DocumentRenderer({
           style={{
             background: 'linear-gradient(135deg, #1E2B69 0%, #283593 100%)',
             borderBottom: '3px solid #E2B93B',
-            padding: '16px 22px',
+            padding: '16px 20px',
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             borderRadius: 8,
             color: '#FFFFFF',
             boxShadow: '0 4px 12px rgba(40,53,147,0.18)',
+            gap: 16,
+            width: '100%',
+            boxSizing: 'border-box',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {renderBusinessLogo(senderLogo, senderName, true)}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flex: 1, minWidth: 0 }}>
+            <div style={{ flexShrink: 0, marginTop: 2 }}>
+              {renderBusinessLogo(senderLogo, senderName, true)}
+            </div>
             <div
               style={{
                 width: 48,
@@ -1012,20 +1021,20 @@ export default function DocumentRenderer({
             >
               <GraduationCap size={28} color="#E2B93B" />
             </div>
-            <div>
-              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '0.02em', lineHeight: 1.2 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '0.02em', lineHeight: 1.2, wordBreak: 'break-word' }}>
                 {senderName || 'Cambridge Global Academy'}
               </h2>
               <div style={{ fontSize: '0.74rem', color: '#FCD34D', fontWeight: 700, fontStyle: 'italic', marginTop: 3 }}>
                 {senderTagline || 'Academic Affairs & Bursar Office'}
               </div>
-              <div style={{ fontSize: '0.70rem', color: '#CBD5E1', marginTop: 2 }}>
+              <div style={{ fontSize: '0.70rem', color: '#CBD5E1', marginTop: 2, wordBreak: 'break-word' }}>
                 {[senderAddress, senderPhone].filter(Boolean).join(' · ')}
               </div>
             </div>
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
               <div
                 style={{
                   fontSize: '0.66rem',
@@ -1277,23 +1286,25 @@ export default function DocumentRenderer({
         } as React.CSSProperties}
       >
         {/* Statutory GST Maroon Header with 52x52 Logo on Left */}
-        <div className="gst-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {renderBusinessLogo(senderLogo, senderName, true)}
-            <div>
-              <h2 style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0 }}>
+        <div className="gst-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '16px 20px', gap: 16, width: '100%', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flex: 1, minWidth: 0 }}>
+            <div style={{ flexShrink: 0, marginTop: 2 }}>
+              {renderBusinessLogo(senderLogo, senderName, true)}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0, wordBreak: 'break-word' }}>
                 {senderName}
               </h2>
               <div style={{ fontSize: '0.78rem', opacity: 0.95, marginTop: 3 }}>
                 GSTIN: <strong>{document.senderTaxNumber || '22AAAAA0000A1Z5'}</strong> | State: 29 (Karnataka)
               </div>
-              <div style={{ fontSize: '0.72rem', opacity: 0.85, marginTop: 2 }}>
+              <div style={{ fontSize: '0.72rem', opacity: 0.85, marginTop: 2, wordBreak: 'break-word' }}>
                 {[senderEmail, senderPhone].filter(Boolean).join(' · ')}
               </div>
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginBottom: 4 }}>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
               <span style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '0.04em' }}>
                 TAX INVOICE (GST)
               </span>
@@ -1468,34 +1479,34 @@ export default function DocumentRenderer({
         } as React.CSSProperties}
       >
         {/* Header with 52x52 Logo on Left */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '20px', width: '100%', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', flex: 1, minWidth: 0 }}>
             <div style={{ marginTop: '2px', flexShrink: 0 }}>
               {renderBusinessLogo(senderLogo, senderName)}
             </div>
-            <div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.5px', color: '#111827', lineHeight: 1.15 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.5px', color: '#111827', lineHeight: 1.15, wordBreak: 'break-word' }}>
                 {senderName}
               </div>
               {senderTagline && (
-                <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: '3px' }}>
+                <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: '3px', wordBreak: 'break-word' }}>
                   {senderTagline}
                 </div>
               )}
-              <div style={{ fontSize: '0.74rem', color: '#4B5563', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '0.74rem', color: '#4B5563', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px 12px', flexWrap: 'wrap' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <Mail size={12} color="#6B7280" />
-                  {senderEmail}
+                  <span>{senderEmail}</span>
                 </span>
                 {senderPhone && (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <Phone size={12} color="#6B7280" />
-                    {senderPhone}
+                    <span>{senderPhone}</span>
                   </span>
                 )}
               </div>
               {senderAddress && (
-                <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: '3px', maxWidth: '340px', lineHeight: 1.35 }}>
+                <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: '3px', maxWidth: '340px', lineHeight: 1.35, wordBreak: 'break-word' }}>
                   {senderAddress}
                 </div>
               )}
@@ -1507,8 +1518,8 @@ export default function DocumentRenderer({
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <span style={{ fontSize: '1.9rem', fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1, color: '#111827' }}>
                 {docHeading}
               </span>
@@ -1768,15 +1779,15 @@ export default function DocumentRenderer({
       } as React.CSSProperties}
     >
       {/* Classic Corporate Header */}
-      <div className="a4-tpl-classic-header">
-        <div className="a4-classic-left" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+      <div className="a4-tpl-classic-header" style={{ width: '100%', boxSizing: 'border-box', padding: '20px 22px', gap: '16px' }}>
+        <div className="a4-classic-left" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', flex: 1, minWidth: 0 }}>
           <div style={{ marginTop: '2px', flexShrink: 0 }}>
-            {renderBusinessLogo(senderLogo, senderName)}
+            {renderBusinessLogo(senderLogo, senderName, true)}
           </div>
-          <div>
-            <h2 className="a4-classic-company">{senderName}</h2>
-            {senderTagline && <p className="a4-classic-tagline">{senderTagline}</p>}
-            <div className="a4-classic-contact">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 className="a4-classic-company" style={{ wordBreak: 'break-word' }}>{senderName}</h2>
+            {senderTagline && <p className="a4-classic-tagline" style={{ wordBreak: 'break-word' }}>{senderTagline}</p>}
+            <div className="a4-classic-contact" style={{ display: 'flex', alignItems: 'center', gap: '6px 12px', flexWrap: 'wrap', marginTop: '8px' }}>
               <span className="contact-item">
                 <Mail size={12} />
                 <span>{senderEmail}</span>
@@ -1796,8 +1807,8 @@ export default function DocumentRenderer({
             </div>
           </div>
         </div>
-        <div className="a4-classic-right">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginBottom: '4px' }}>
+        <div className="a4-classic-right" style={{ flexShrink: 0, textAlign: 'right', minWidth: '175px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
             <h3 className="a4-classic-title" style={{ margin: 0 }}>{docHeading}</h3>
             {renderStatusBadge(document.status)}
           </div>
@@ -1808,13 +1819,13 @@ export default function DocumentRenderer({
               <span>Date: {formatHeaderDate(document.issueDate)}</span>
             </p>
             {document.dueDate && (
-              <p className="a4-classic-date" style={{ margin: 0, color: '#dc2626' }}>
-                <Calendar size={12} />
+              <p className="a4-classic-date" style={{ margin: 0, color: '#fca5a5' }}>
+                <Calendar size={12} color="#fca5a5" />
                 <span>Due Date: {formatHeaderDate(document.dueDate)}</span>
               </p>
             )}
             {paymentTerms && (
-              <p className="a4-classic-date" style={{ margin: 0, color: '#4b5563', fontSize: '0.72rem' }}>
+              <p className="a4-classic-date" style={{ margin: 0, color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.74rem' }}>
                 <FileText size={12} />
                 <span>Terms: {paymentTerms}</span>
               </p>

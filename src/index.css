@@ -2022,6 +2022,8 @@ body[data-theme='dark'] .template-arch-select {
   width: 100%;
   display: flex;
   justify-content: center;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .a4-header-bar {
@@ -2055,18 +2057,19 @@ body[data-theme='dark'] .template-arch-select {
 .a4-paper-sheet {
   width: 100%;
   max-width: 760px;
+  box-sizing: border-box !important;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 16px;
   box-shadow: 0 16px 40px -4px rgba(15, 23, 42, 0.07),
               0 2px 8px -2px rgba(15, 23, 42, 0.03);
-  padding: 38px 40px 48px 40px;
+  padding: 30px 32px 38px 32px;
   color: #1e293b;
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 24px;
+  gap: 22px;
   overflow: hidden;
   font-size: 0.88rem;
   margin: 0 auto;
@@ -2301,74 +2304,86 @@ body[data-theme='dark'] .template-arch-select {
 .a4-tpl-classic-header {
   background: linear-gradient(135deg, #0e2f82 0%, #103289 60%, #153fa8 100%);
   border-radius: 12px;
-  padding: 26px 30px;
+  padding: 20px 22px;
   color: #ffffff;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 24px;
+  margin-bottom: 22px;
   box-shadow: 0 4px 16px -2px rgba(16, 50, 137, 0.22);
+  width: 100%;
+  box-sizing: border-box;
+  gap: 16px;
+}
+
+.a4-classic-left {
+  flex: 1;
+  min-width: 0;
 }
 
 .a4-classic-left .a4-classic-company {
-  font-size: 1.5rem;
+  font-size: 1.45rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: #ffffff;
   line-height: 1.25;
+  word-break: break-word;
 }
 
 .a4-classic-left .a4-classic-tagline {
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   color: rgba(255, 255, 255, 0.85);
   margin-top: 4px;
   font-weight: 500;
+  word-break: break-word;
 }
 
 .a4-classic-left .a4-classic-contact {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: rgba(255, 255, 255, 0.85);
   margin-top: 8px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 6px 12px;
 }
 
 .a4-classic-left .a4-classic-contact .contact-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   white-space: nowrap;
 }
 
 .a4-classic-right {
   text-align: right;
   flex-shrink: 0;
+  min-width: 175px;
 }
 
 .a4-classic-right .a4-classic-title {
-  font-size: 1.6rem;
+  font-size: 1.55rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: #ffffff;
   line-height: 1;
   text-transform: uppercase;
 }
 
 .a4-classic-right .a4-classic-code {
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: #ffffff;
-  margin-top: 6px;
+  margin-top: 5px;
 }
 
 .a4-classic-right .a4-classic-date {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.85);
-  margin-top: 6px;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 4px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   justify-content: flex-end;
 }
 
@@ -4721,10 +4736,13 @@ body[data-theme='dark'] .tpl-modal-footer {
 .tpl-clinical .clinical-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   border-bottom: 2.5px solid #00838f;
   padding-bottom: 16px;
   margin-bottom: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 16px;
 }
 .tpl-clinical .clinical-rx-badge {
   font-size: 2.2rem;
@@ -4757,11 +4775,14 @@ body[data-theme='dark'] .tpl-modal-footer {
   background: #0d2137;
   color: #ffffff;
   border-radius: 10px;
-  padding: 22px 28px;
+  padding: 18px 22px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 18px;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 16px;
 }
 .tpl-editorial .editorial-matter-card {
   background: #f8fafc;
@@ -4785,11 +4806,14 @@ body[data-theme='dark'] .tpl-modal-footer {
   background: #283593;
   color: #ffffff;
   border-radius: 10px;
-  padding: 22px 28px;
+  padding: 18px 22px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 18px;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 16px;
 }
 .tpl-academic .academic-student-card {
   background: #e8eaf6;
@@ -4824,11 +4848,14 @@ body[data-theme='dark'] .tpl-modal-footer {
   background: #880e4f;
   color: #ffffff;
   border-radius: 10px;
-  padding: 22px 28px;
+  padding: 18px 22px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 18px;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 16px;
 }
 .tpl-gst .gst-parties-grid {
   display: grid;
