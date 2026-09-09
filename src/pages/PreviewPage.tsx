@@ -124,7 +124,6 @@ export default function PreviewPage({
           background: 'rgba(16, 185, 129, 0.08)',
           border: '1px solid rgba(16, 185, 129, 0.2)',
           marginBottom: '2rem',
-          color: '#0d9468',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

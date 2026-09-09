@@ -91,6 +91,15 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // When clicking "Edit" on a document in My Documents
+  const handleEditDocument = (doc: BillDocument) => {
+    setDraft(doc);
+    const targetTab = doc.type === 'invoice' ? 'create-invoice' : 'create-bill';
+    setLastEditorTab(targetTab);
+    setCurrentTab(targetTab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // When user clicks "Use this template" in TemplatesPage
   const handleSelectTemplate = (templateId: TemplateId, docType?: 'bill' | 'invoice') => {
     try {
@@ -193,6 +202,7 @@ export default function App() {
           <MyDocumentsPage
             documents={documents}
             onSelectDocument={handleSelectDocument}
+            onEditDocument={handleEditDocument}
             onDeleteDocument={(id) => {
               deleteDocument(id);
               triggerToast('Document deleted.');

@@ -922,6 +922,60 @@ body[data-theme='dark'] .hero-typewriter-cursor {
   color: #4b5563;
 }
 
+.status-sent {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.filter-pill-active {
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+}
+
+body[data-theme='dark'] .filter-pill-active {
+  background: rgba(59, 130, 246, 0.22) !important;
+  color: #93c5fd !important;
+}
+
+.status-unpaid {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.recent-status-pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+body[data-theme='dark'] .status-paid {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+}
+
+body[data-theme='dark'] .status-pending {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+body[data-theme='dark'] .status-sent {
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+}
+
+body[data-theme='dark'] .status-unpaid {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+body[data-theme='dark'] .status-draft {
+  background: rgba(156, 163, 175, 0.18);
+  color: #d1d5db;
+}
+
 .home-chevron-icon {
   color: #9ca3af;
   margin-left: 2px;
@@ -1106,6 +1160,10 @@ body[data-theme='dark'] .home-recent-view-all-link {
 
 body[data-theme='dark'] .home-recent-view-all-link:hover {
   color: #f8fafc;
+}
+
+body[data-theme='dark'] .home-recent-title-label {
+  color: #8b95a5;
 }
 
 
@@ -1371,6 +1429,105 @@ body[data-theme='dark'] .btn-draft-preview {
   background: #2a8460;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(52, 155, 115, 0.38);
+}
+
+.btn-secondary-glass {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.62rem 1.15rem;
+  border-radius: 9px;
+  background: var(--glass-bg, #ffffff);
+  border: 1px solid var(--glass-border, #e5e7eb);
+  color: var(--text-primary, #1f2937);
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 160ms ease;
+  cursor: pointer;
+}
+
+.btn-secondary-glass:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+}
+
+.btn-secondary-glass:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+body[data-theme='dark'] .btn-secondary-glass {
+  background: #1f242c;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f3f4f6;
+}
+
+body[data-theme='dark'] .btn-secondary-glass:hover:not(:disabled) {
+  background: #262c35;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-primary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.62rem 1.25rem;
+  border-radius: 9px;
+  background: var(--builder-accent, #3525cd);
+  border: 1px solid transparent;
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(53, 37, 205, 0.28);
+  transition: all 160ms ease;
+  cursor: pointer;
+}
+
+.btn-primary-action:hover:not(:disabled) {
+  background: #2c1eb0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(53, 37, 205, 0.38);
+}
+
+.btn-primary-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Accent variants matching HomePage's mint (Bill) / lavender (Invoice) card colors */
+.btn-accent-mint {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #047857;
+}
+
+.btn-accent-mint:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+body[data-theme='dark'] .btn-accent-mint {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #34d399;
+}
+
+body[data-theme='dark'] .btn-accent-mint:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.24);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.btn-accent-lavender {
+  background: #8b5cf6;
+  box-shadow: 0 2px 6px rgba(139, 92, 246, 0.32);
+}
+
+.btn-accent-lavender:hover:not(:disabled) {
+  background: #7c3aed;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.42);
 }
 
 /* ---------------- Horizontal Stepper Bar Matching Screenshot ---------------- */
@@ -1937,6 +2094,21 @@ body[data-theme='dark'] .wizard-footer-nav {
   opacity: 0.4;
   cursor: not-allowed;
   color: #9ca3af;
+}
+
+body[data-theme='dark'] .btn-wizard-prev {
+  background: #1f242c;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #c0c6d0;
+}
+
+body[data-theme='dark'] .btn-wizard-prev:hover:not(:disabled) {
+  background: #262b34;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+body[data-theme='dark'] .btn-wizard-prev:disabled {
+  color: #606a78;
 }
 
 .btn-wizard-next {
@@ -3751,6 +3923,15 @@ body[data-theme='dark'] .a4-format-tag {
 }
 
 body[data-theme='dark'] .btn-card-download-pdf {
+  color: #34d399;
+}
+
+/* PDF Ready Status Banner (Preview Page) */
+.preview-status-banner {
+  color: #0d9468;
+}
+
+body[data-theme='dark'] .preview-status-banner {
   color: #34d399;
 }
 

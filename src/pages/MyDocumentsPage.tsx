@@ -10,6 +10,7 @@ import {
   Receipt,
   Calendar,
   DollarSign,
+  Pencil,
 } from 'lucide-react';
 import { BillDocument, DocumentType } from '../types';
 import { CURRENCY_SYMBOLS } from '../data/templates';
@@ -19,6 +20,7 @@ import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 interface MyDocumentsPageProps {
   documents: BillDocument[];
   onSelectDocument: (doc: BillDocument) => void;
+  onEditDocument: (doc: BillDocument) => void;
   onDeleteDocument: (id: string) => void;
   onNavigate: (tabId: string) => void;
 }
@@ -26,6 +28,7 @@ interface MyDocumentsPageProps {
 export default function MyDocumentsPage({
   documents,
   onSelectDocument,
+  onEditDocument,
   onDeleteDocument,
   onNavigate,
 }: MyDocumentsPageProps) {
@@ -93,7 +96,7 @@ export default function MyDocumentsPage({
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button
             type="button"
-            className="btn-secondary-glass"
+            className="btn-secondary-glass btn-accent-mint"
             onClick={() => onNavigate('create-bill')}
           >
             <Receipt size={16} />
@@ -101,7 +104,7 @@ export default function MyDocumentsPage({
           </button>
           <button
             type="button"
-            className="btn-primary-action"
+            className="btn-primary-action btn-accent-lavender"
             onClick={() => onNavigate('create-invoice')}
           >
             <FileText size={16} />
@@ -139,6 +142,7 @@ export default function MyDocumentsPage({
             <button
               key={tab.id}
               type="button"
+              className={activeFilter === tab.id ? 'filter-pill-active' : undefined}
               onClick={() => setActiveFilter(tab.id as any)}
               style={{
                 padding: '0.4rem 0.85rem',
@@ -148,8 +152,8 @@ export default function MyDocumentsPage({
                 border: 'none',
                 cursor: 'pointer',
                 transition: 'all 150ms ease',
-                background: activeFilter === tab.id ? 'var(--builder-accent, #3525cd)' : 'var(--bg-ivory-soft)',
-                color: activeFilter === tab.id ? '#ffffff' : 'var(--text-secondary)',
+                background: activeFilter === tab.id ? undefined : 'var(--bg-ivory-soft)',
+                color: activeFilter === tab.id ? undefined : 'var(--text-secondary)',
               }}
             >
               {tab.label}
@@ -178,6 +182,10 @@ export default function MyDocumentsPage({
                 ? 'status-paid'
                 : doc.status === 'Sent'
                 ? 'status-sent'
+                : doc.status === 'Pending'
+                ? 'status-pending'
+                : doc.status === 'Unpaid'
+                ? 'status-unpaid'
                 : 'status-draft';
 
             return (
@@ -241,11 +249,11 @@ export default function MyDocumentsPage({
                 {/* Right: Amount & Actions */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                   <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                       {sym}
                       {formatCurrencyAmount(total, doc.currency)}
                     </span>
-                    <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       {doc.currency}
                     </span>
                   </div>
@@ -260,6 +268,28 @@ export default function MyDocumentsPage({
                     >
                       <ExternalLink size={15} />
                       <span>Open</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-doc-edit-action"
+                      onClick={() => onEditDocument(doc)}
+                      title={`Edit ${doc.billNumber}`}
+                      aria-label={`Edit document ${doc.billNumber}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 34,
+                        height: 34,
+                        borderRadius: 'var(--radius-sm, 8px)',
+                        border: '1px solid var(--glass-border)',
+                        background: 'transparent',
+                        color: 'var(--text-secondary)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Pencil size={15} />
                     </button>
 
                     <button
