@@ -14,6 +14,7 @@ import {
 import { BillDocument, DocumentType } from '../types';
 import { CURRENCY_SYMBOLS } from '../data/templates';
 import { calculateBillTotals, formatCurrencyAmount } from '../utils/billCalculations';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 
 interface MyDocumentsPageProps {
   documents: BillDocument[];
@@ -30,6 +31,14 @@ export default function MyDocumentsPage({
 }: MyDocumentsPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'bill' | 'invoice' | 'Paid' | 'Sent' | 'Pending' | 'Draft'>('all');
+  const [docToDelete, setDocToDelete] = useState<BillDocument | null>(null);
+
+  const handleConfirmDelete = () => {
+    if (docToDelete) {
+      onDeleteDocument(docToDelete.id);
+      setDocToDelete(null);
+    }
+  };
 
   const filteredDocs = useMemo(() => {
     return [...documents]
@@ -255,16 +264,10 @@ export default function MyDocumentsPage({
 
                     <button
                       type="button"
-                      onClick={() => onDeleteDocument(doc.id)}
-                      style={{
-                        padding: '0.55rem',
-                        borderRadius: 'var(--radius-sm)',
-                        color: 'var(--text-muted)',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                      }}
-                      title="Delete document"
+                      className="btn-doc-delete-action"
+                      onClick={() => setDocToDelete(doc)}
+                      title={`Delete ${doc.billNumber}`}
+                      aria-label={`Delete document ${doc.billNumber}`}
                     >
                       <Trash2 size={17} />
                     </button>
@@ -275,6 +278,14 @@ export default function MyDocumentsPage({
           })}
         </div>
       )}
+
+      {/* Pop-up message modal for delete confirmation */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(docToDelete)}
+        document={docToDelete}
+        onConfirm={handleConfirmDelete}
+        onClose={() => setDocToDelete(null)}
+      />
     </div>
   );
 }
