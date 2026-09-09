@@ -241,11 +241,11 @@ export default function MyDocumentsPage({
                 {/* Right: Amount & Actions */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                   <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                       {sym}
                       {formatCurrencyAmount(total, doc.currency)}
                     </span>
-                    <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       {doc.currency}
                     </span>
                   </div>
