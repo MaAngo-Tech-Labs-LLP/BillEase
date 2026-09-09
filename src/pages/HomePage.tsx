@@ -75,7 +75,7 @@ export default function HomePage({
       <section className="home-hero-centered" aria-label="What will you create">
         <div className="home-hero-tagline">FAST &bull; SIMPLE &bull; PROFESSIONAL</div>
         <h1 className="home-hero-main-title">
-          What will you create:{' '}
+          What will you create{' '}
           <span className="hero-typewriter-wrapper">
             <span className="hero-gradient-text">{currentText}</span>
             <span className="hero-typewriter-cursor" aria-hidden="true">|</span>
