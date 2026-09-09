@@ -222,7 +222,12 @@ export default function DocumentRenderer({
 
   // Status Badge Pill Renderer
   const renderStatusBadge = (statusStr?: string) => {
-    const st = (statusStr || document.status || 'unpaid').toLowerCase();
+    const st = (statusStr || document.status || '').toLowerCase();
+    // Do not show DRAFT badge on the invoice template
+    if (!st || st === 'draft') {
+      return null;
+    }
+
     let bg = '#fef2f2';
     let text = '#dc2626';
     let border = '#fecaca';
@@ -238,11 +243,13 @@ export default function DocumentRenderer({
       text = '#d97706';
       border = '#fde68a';
       label = 'PENDING';
-    } else if (st === 'draft') {
-      bg = '#f1f5f9';
-      text = '#475569';
-      border = '#cbd5e1';
-      label = 'DRAFT';
+    } else if (st === 'unpaid') {
+      bg = '#fef2f2';
+      text = '#dc2626';
+      border = '#fecaca';
+      label = 'UNPAID';
+    } else {
+      return null;
     }
 
     return (
