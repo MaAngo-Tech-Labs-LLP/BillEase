@@ -16,7 +16,9 @@ export type AccentColor = 'indigo' | 'teal' | 'slate' | 'mono';
 
 export type DocumentType = 'bill' | 'invoice';
 
-export type DocumentStatus = 'Draft' | 'Sent' | 'Paid' | 'Pending';
+export type DocumentStatus = 'Draft' | 'Sent' | 'Paid' | 'Pending' | 'Unpaid';
+/** Alias kept for call sites that import the shorter name. */
+export type DocStatus = DocumentStatus;
 
 export interface DocumentItem {
   id: string;
@@ -39,6 +41,8 @@ export interface BillDocument {
   currency: CurrencyCode;
   // Sender / My Info (BILL FROM)
   senderLogo?: string; // Base64 image data URL
+  /** @deprecated legacy alias for senderLogo, read as a fallback for older saved documents */
+  logo?: string;
   senderName?: string;
   senderTagline?: string;
   senderEmail?: string;
@@ -75,11 +79,14 @@ export interface BillDocument {
   notes?: string;
   paymentNotes: string; // Payment instructions
   termsAndConditions?: string;
+  /** Base64 image data URL of an authorized signature, shown on the document when set. */
+  signature?: string;
   // System
   template: TemplateId;
   accent: AccentColor;
   status: DocumentStatus;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface TemplateDefinition {

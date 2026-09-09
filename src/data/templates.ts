@@ -61,7 +61,7 @@ export const DEFAULT_INVOICE: BillDocument = {
   notes: 'Thank you for your business! Please settle payments within the specified due date.',
   template: 'modern-minimal',
   accent: 'indigo',
-  status: 'unpaid',
+  status: 'Unpaid',
   createdAt: new Date().toISOString(),
 };
 
