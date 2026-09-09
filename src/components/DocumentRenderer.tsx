@@ -273,6 +273,23 @@ export default function DocumentRenderer({
     );
   };
 
+  // Render item cell supporting both Item Name (bold) and Description (secondary text)
+  const renderItemCell = (item: any, defaultFallback: string = 'Item', primaryColor: string = '#0f172a') => {
+    if (item.name) {
+      return (
+        <div>
+          <div style={{ fontWeight: 600, color: primaryColor }}>{item.name}</div>
+          {item.description ? (
+            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', lineHeight: 1.35 }}>
+              {item.description}
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+    return item.description || defaultFallback;
+  };
+
   const formatHeaderDate = (d?: string) => {
     if (!d) return '2026-09-06';
     const match = d.match(/^(\d{2})[-/.](\d{2})[-/.](\d{4})$/);
@@ -378,7 +395,7 @@ export default function DocumentRenderer({
                 const itemAmt = (Number(item.qty) || 0) * (Number(item.rate) || 0);
                 return (
                   <tr key={item.id}>
-                    <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px' }}>{item.description || 'Item'}</td>
+                    <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px' }}>{renderItemCell(item, 'Item')}</td>
                     <td className="cell-qty" style={{ textAlign: 'center', padding: '10px 8px', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
                     <td className="cell-rate" style={{ textAlign: 'right', padding: '10px 12px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(item.rate)}</td>
                     <td className="cell-amount" style={{ textAlign: 'right', padding: '10px 12px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(itemAmt)}</td>
@@ -563,7 +580,7 @@ export default function DocumentRenderer({
                 <tbody>
                   {document.items.map((item) => (
                     <tr key={item.id}>
-                      <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px' }}>{item.description || 'Item'}</td>
+                      <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px' }}>{renderItemCell(item, 'Item')}</td>
                       <td className="cell-qty" style={{ textAlign: 'center', padding: '10px 8px', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
                       <td className="cell-rate" style={{ textAlign: 'right', padding: '10px 12px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(item.rate)}</td>
                       <td className="cell-amount" style={{ textAlign: 'right', padding: '10px 12px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
@@ -729,7 +746,7 @@ export default function DocumentRenderer({
             <tbody>
               {document.items.map((item) => (
                 <tr key={item.id}>
-                  <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px' }}>{item.description || 'Consultation'}</td>
+                  <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px' }}>{renderItemCell(item, 'Consultation', '#064e3b')}</td>
                   <td className="cell-qty" style={{ textAlign: 'center', padding: '10px 8px', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
                   <td className="cell-rate" style={{ textAlign: 'right', padding: '10px 12px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(item.rate)}</td>
                   <td className="cell-amount" style={{ textAlign: 'right', padding: '10px 12px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
@@ -898,7 +915,7 @@ export default function DocumentRenderer({
             <tbody>
               {document.items.map((item) => (
                 <tr key={item.id}>
-                  <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px', fontFamily: 'sans-serif' }}>{item.description || 'Professional Services'}</td>
+                  <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px', fontFamily: 'sans-serif' }}>{renderItemCell(item, 'Professional Services')}</td>
                   <td className="cell-qty" style={{ textAlign: 'center', padding: '10px 8px', fontFamily: 'sans-serif', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
                   <td className="cell-rate" style={{ textAlign: 'right', padding: '10px 12px', fontFamily: 'sans-serif', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(item.rate)}</td>
                   <td className="cell-amount" style={{ textAlign: 'right', padding: '10px 12px', fontFamily: 'sans-serif', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
@@ -1165,8 +1182,8 @@ export default function DocumentRenderer({
             <tbody>
               {document.items.map((item, idx) => (
                 <tr key={item.id} style={{ borderBottom: '1px solid #E2E8F0', background: idx % 2 === 1 ? '#F8FAFC' : '#FFFFFF' }}>
-                  <td style={{ textAlign: 'left', padding: '11px 14px', fontWeight: 700, color: '#0F172A', fontSize: '0.82rem' }}>
-                    {item.description || 'Academic Fee'}
+                  <td style={{ textAlign: 'left', padding: '11px 14px', fontSize: '0.82rem' }}>
+                    {renderItemCell(item, 'Academic Fee')}
                   </td>
                   <td style={{ textAlign: 'center', padding: '11px 8px', fontWeight: 600, fontSize: '0.80rem', color: '#334155' }}>
                     {item.qty}
@@ -1380,7 +1397,7 @@ export default function DocumentRenderer({
             <tbody>
               {document.items.map((item, idx) => (
                 <tr key={item.id}>
-                  <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px' }}>{item.description || 'Service Deliverable'}</td>
+                  <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px' }}>{renderItemCell(item, 'Service Deliverable')}</td>
                   <td style={{ textAlign: 'center', fontSize: '0.76rem', color: '#64748b', padding: '10px 8px' }}>
                     {idx % 2 === 0 ? '998314' : '998315'}
                   </td>
@@ -1628,8 +1645,8 @@ export default function DocumentRenderer({
                     <td style={{ padding: '12px 6px', textAlign: 'center', color: '#6B7280', fontWeight: 600 }}>
                       {idx + 1}
                     </td>
-                    <td style={{ padding: '12px 12px', textAlign: 'left', fontWeight: 600, color: '#111827' }}>
-                      {it.description || 'Untitled Item'}
+                    <td style={{ padding: '12px 12px', textAlign: 'left' }}>
+                      {renderItemCell(it, 'Untitled Item')}
                     </td>
                     <td style={{ padding: '12px 6px', textAlign: 'center', color: '#4B5563', fontVariantNumeric: 'tabular-nums' }}>
                       {it.qty}
@@ -1923,7 +1940,7 @@ export default function DocumentRenderer({
               const itemAmt = (Number(item.qty) || 0) * (Number(item.rate) || 0);
               return (
                 <tr key={item.id}>
-                  <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px' }}>{item.description || 'Untitled Item'}</td>
+                  <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px' }}>{renderItemCell(item, 'Untitled Item')}</td>
                   <td className="cell-qty" style={{ textAlign: 'center', padding: '10px 8px', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
                   <td className="cell-rate" style={{ textAlign: 'right', padding: '10px 12px', fontVariantNumeric: 'tabular-nums' }}>
                     {currencySymbol}{formatAmount(item.rate)}

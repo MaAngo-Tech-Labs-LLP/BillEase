@@ -46,48 +46,47 @@ export default function CreateInvoicePage({
   const [isDraggingLogo, setIsDraggingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
+  const sanitizeInvoiceDoc = (doc: Partial<BillDocument>): BillDocument => {
+    const rawItems = doc.items && doc.items.length ? doc.items : DEFAULT_INVOICE.items;
+    const items = rawItems.map((it) => ({
+      ...it,
+      name: it.name !== undefined && it.name !== null ? it.name : (it.description || ''),
+      description: it.description || '',
+    }));
+    return {
+      ...DEFAULT_INVOICE,
+      ...doc,
+      items,
+      senderLogo: doc.senderLogo || (doc as any)?.logo || DEFAULT_INVOICE.senderLogo,
+      type: 'invoice',
+      template: normalizeTemplateId(doc.template || 'modern-minimal', 'invoice'),
+    };
+  };
+
   const [formData, setFormData] = useState<BillDocument>(() => {
     if (initialDocument) {
-      return {
-        ...DEFAULT_INVOICE,
-        ...initialDocument,
-        senderLogo: initialDocument.senderLogo || (initialDocument as any).logo || DEFAULT_INVOICE.senderLogo,
-        type: 'invoice',
-        template: normalizeTemplateId(initialDocument.template || 'modern-minimal', 'invoice'),
-      };
+      return sanitizeInvoiceDoc(initialDocument);
     }
     const saved = localStorage.getItem('billease_invoice_draft');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (parsed.id !== 'inv-acme-design' && parsed.clientName !== 'Acme Corporation Ltd.' && parsed.clientName !== 'Stellar Innovations Pvt. Ltd.') {
-          return {
-            ...DEFAULT_INVOICE,
-            ...parsed,
-            senderLogo: parsed.senderLogo || parsed.logo || DEFAULT_INVOICE.senderLogo,
-            type: 'invoice',
-            template: normalizeTemplateId(parsed.template || 'modern-minimal', 'invoice'),
-          };
+          return sanitizeInvoiceDoc(parsed);
         }
       } catch (e) {
         console.error(e);
       }
     }
-    return {
-      ...DEFAULT_INVOICE,
-      type: 'invoice',
+    return sanitizeInvoiceDoc({
       template: 'modern-minimal',
-    };
+    });
   });
 
   // Sync initialDocument and active template
   useEffect(() => {
     if (initialDocument) {
-      setFormData((prev) => ({
-        ...prev,
-        ...initialDocument,
-        template: normalizeTemplateId(initialDocument.template || prev.template, 'invoice'),
-      }));
+      setFormData(sanitizeInvoiceDoc(initialDocument));
     } else {
       const stored = localStorage.getItem('billease_active_template');
       if (stored) {
@@ -138,7 +137,7 @@ export default function CreateInvoicePage({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleItemChange = (id: string, field: 'description' | 'qty' | 'rate', value: string) => {
+  const handleItemChange = (id: string, field: 'name' | 'description' | 'qty' | 'rate', value: string) => {
     setFormData((prev) => ({
       ...prev,
       items: prev.items.map((it) => {
@@ -168,7 +167,8 @@ export default function CreateInvoicePage({
   const handleAddItem = () => {
     const newItem = {
       id: Date.now().toString(),
-      description: 'Professional Services Deliverable',
+      name: 'Service / Product Item',
+      description: 'Consulting deliverable or product item description',
       qty: 1,
       rate: 1000,
     };
@@ -752,7 +752,12 @@ export default function CreateInvoicePage({
                 letterSpacing: '0.5px',
               }}
             >
-              <div>DESCRIPTION</div>
+              <div>
+                <div style={{ color: '#0f172a', fontWeight: 800 }}>ITEM</div>
+                <div style={{ fontSize: '0.60rem', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.3px', marginTop: '1px' }}>
+                  DESCRIPTION
+                </div>
+              </div>
               <div style={{ textAlign: 'center' }}>QTY</div>
               <div style={{ textAlign: 'right' }}>RATE ({currencySymbol})</div>
               <div style={{ textAlign: 'right' }}>AMOUNT</div>
@@ -760,7 +765,7 @@ export default function CreateInvoicePage({
             </div>
 
             {/* Items List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
               {formData.items.map((item) => {
                 const itemAmount = (Number(item.qty) || 0) * (Number(item.rate) || 0);
                 return (
@@ -773,14 +778,22 @@ export default function CreateInvoicePage({
                       alignItems: 'center',
                     }}
                   >
-                    <div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <input
                         type="text"
                         className="form-input"
-                        value={item.description}
+                        value={item.name || ''}
+                        onChange={(e) => handleItemChange(item.id, 'name', e.target.value)}
+                        placeholder="Item name / title..."
+                        style={{ padding: '0.45rem 0.65rem', fontSize: '0.82rem', fontWeight: 600 }}
+                      />
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={item.description || ''}
                         onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
-                        placeholder="Item description..."
-                        style={{ padding: '0.5rem 0.65rem', fontSize: '0.83rem' }}
+                        placeholder="Description (optional)..."
+                        style={{ padding: '0.38rem 0.65rem', fontSize: '0.76rem', color: '#64748b' }}
                       />
                     </div>
 
