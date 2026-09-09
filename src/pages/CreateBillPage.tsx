@@ -1009,18 +1009,18 @@ export default function CreateBillPage({
                 <div className="form-group">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                     <label className="form-label" style={{ margin: 0 }}>Business Logo</label>
-                    <span style={{ fontSize: '0.73rem', color: '#64748b', fontWeight: 500 }}>
+                    <span style={{ fontSize: '0.73rem', color: 'var(--text-muted, #64748b)', fontWeight: 500 }}>
                       Visible in left part of bill (52 × 52px)
                     </span>
                   </div>
                   <div
                     className="bill-logo-upload-zone"
                     style={{
-                      border: isDraggingLogo ? '2px dashed #0284c7' : '2px dashed #cbd5e1',
+                      border: isDraggingLogo ? '2px dashed #0284c7' : '2px dashed var(--glass-border, #cbd5e1)',
                       borderRadius: '12px',
                       padding: '14px 16px',
                       textAlign: 'center',
-                      background: isDraggingLogo ? '#f0f9ff' : '#f8fafc',
+                      background: isDraggingLogo ? 'rgba(2, 132, 199, 0.15)' : 'var(--glass-bg-subtle, #f8fafc)',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
                       boxShadow: isDraggingLogo ? '0 0 0 4px rgba(2,132,199,0.12)' : 'none',
@@ -1048,8 +1048,8 @@ export default function CreateBillPage({
                               width: 52,
                               height: 52,
                               borderRadius: 10,
-                              background: '#ffffff',
-                              border: '1.5px solid #e2e8f0',
+                              background: 'var(--glass-bg, #ffffff)',
+                              border: '1.5px solid var(--glass-border-subtle, #e2e8f0)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -1065,7 +1065,7 @@ export default function CreateBillPage({
                             />
                           </div>
                           <div style={{ textAlign: 'left' }}>
-                            <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e293b' }}>
+                            <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary, #1e293b)' }}>
                               Business Logo
                             </div>
                             <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>
@@ -1099,25 +1099,25 @@ export default function CreateBillPage({
                         </div>
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', color: '#64748b' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', color: 'var(--text-muted, #64748b)' }}>
                         <div
                           style={{
                             width: 44,
                             height: 44,
                             borderRadius: 10,
-                            background: '#f1f5f9',
+                            background: 'var(--glass-bg-subtle, #f1f5f9)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             marginBottom: 2,
                           }}
                         >
-                          <ImageIcon size={24} style={{ color: '#94a3b8' }} />
+                          <ImageIcon size={24} style={{ color: 'var(--text-dim, #94a3b8)' }} />
                         </div>
-                        <span style={{ fontSize: '0.86rem', fontWeight: 600, color: '#1e293b' }}>
+                        <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary, #1e293b)' }}>
                           Drag & drop image from desktop or click to upload
                         </span>
-                        <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-muted, #64748b)' }}>
                           PNG, JPG, SVG or WEBP • Auto-reduced to fit 52 × 52px template slot
                         </span>
                       </div>
@@ -1288,7 +1288,7 @@ export default function CreateBillPage({
                   const lineTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0);
 
                   return (
-                    <div key={item.id} className="item-row-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', marginBottom: '12px' }}>
+                    <div key={item.id} className="item-row-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px', background: 'var(--glass-bg-subtle, #f8fafc)', border: '1px solid var(--glass-border-subtle, #e2e8f0)', borderRadius: '12px', marginBottom: '12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase' }}>
                           Item #{idx + 1}
@@ -1300,7 +1300,7 @@ export default function CreateBillPage({
                             onClick={() => handleMoveItem(idx, 'up')}
                             disabled={idx === 0}
                             title="Move Up"
-                            style={{ padding: '2px 6px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff', cursor: idx === 0 ? 'not-allowed' : 'pointer', opacity: idx === 0 ? 0.4 : 1 }}
+                            style={{ padding: '2px 6px', border: '1px solid var(--glass-border-subtle, #cbd5e1)', borderRadius: '4px', background: 'var(--glass-bg, #fff)', color: 'var(--text-primary)', cursor: idx === 0 ? 'not-allowed' : 'pointer', opacity: idx === 0 ? 0.4 : 1 }}
                           >
                             <ArrowUp size={12} />
                           </button>
@@ -1310,7 +1310,7 @@ export default function CreateBillPage({
                             onClick={() => handleMoveItem(idx, 'down')}
                             disabled={idx === formData.items.length - 1}
                             title="Move Down"
-                            style={{ padding: '2px 6px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff', cursor: idx === formData.items.length - 1 ? 'not-allowed' : 'pointer', opacity: idx === formData.items.length - 1 ? 0.4 : 1 }}
+                            style={{ padding: '2px 6px', border: '1px solid var(--glass-border-subtle, #cbd5e1)', borderRadius: '4px', background: 'var(--glass-bg, #fff)', color: 'var(--text-primary)', cursor: idx === formData.items.length - 1 ? 'not-allowed' : 'pointer', opacity: idx === formData.items.length - 1 ? 0.4 : 1 }}
                           >
                             <ArrowDown size={12} />
                           </button>
@@ -1320,7 +1320,7 @@ export default function CreateBillPage({
                             onClick={() => handleRemoveItem(item.id)}
                             title={formData.items.length <= 1 ? 'At least one item required' : 'Remove item'}
                             disabled={formData.items.length <= 1}
-                            style={{ padding: '2px 6px', border: '1px solid #fca5a5', borderRadius: '4px', background: '#fff', color: '#ef4444', cursor: formData.items.length <= 1 ? 'not-allowed' : 'pointer' }}
+                            style={{ padding: '2px 6px', border: '1px solid rgba(239, 68, 68, 0.35)', borderRadius: '4px', background: 'var(--glass-bg, #fff)', color: '#ef4444', cursor: formData.items.length <= 1 ? 'not-allowed' : 'pointer' }}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -1420,8 +1420,8 @@ export default function CreateBillPage({
                         </div>
 
                         <div className="form-group" style={{ textAlign: 'right' }}>
-                          <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>Line Total</span>
-                          <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, #64748b)', display: 'block' }}>Line Total</span>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary, #0f172a)' }}>
                             {currencySymbol}{formatAmount(lineTotal)}
                           </span>
                         </div>
@@ -1431,11 +1431,11 @@ export default function CreateBillPage({
                 })}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: '#eff6ff', borderRadius: '8px', marginTop: '8px' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#1e40af' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(59, 130, 246, 0.12)', borderRadius: '8px', marginTop: '8px', border: '1px solid rgba(59, 130, 246, 0.22)' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#3b82f6' }}>
                   Items Subtotal ({formData.items.length} items):
                 </span>
-                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e40af' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#3b82f6' }}>
                   {currencySymbol}{formatAmount(calc.subtotal)}
                 </span>
               </div>
@@ -1467,9 +1467,9 @@ export default function CreateBillPage({
                             fontSize: '0.82rem',
                             fontWeight: 600,
                             borderRadius: '8px',
-                            border: isSelected ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
-                            background: isSelected ? '#eff6ff' : '#ffffff',
-                            color: isSelected ? '#1e40af' : '#334155',
+                            border: isSelected ? '1.5px solid #2563eb' : '1px solid var(--glass-border-subtle, #cbd5e1)',
+                            background: isSelected ? 'rgba(37, 99, 235, 0.15)' : 'var(--glass-bg, #ffffff)',
+                            color: isSelected ? '#3b82f6' : 'var(--text-secondary, #334155)',
                             cursor: 'pointer',
                           }}
                           onClick={() => handleInputChange('paymentMethod', method)}
@@ -1482,8 +1482,8 @@ export default function CreateBillPage({
                 </div>
 
                 {/* Bank / UPI Details */}
-                <div style={{ padding: '14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e40af', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ padding: '14px', background: 'var(--glass-bg-subtle, #f8fafc)', borderRadius: '12px', border: '1px solid var(--glass-border-subtle, #e2e8f0)' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary, #1e40af)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Landmark size={15} />
                     <span>Bank &amp; UPI Account Details (Optional)</span>
                   </div>
@@ -1732,9 +1732,9 @@ export default function CreateBillPage({
                 </div>
 
                 {/* Real-time Calculation Summary Card inside Step 5 */}
-                <div style={{ padding: '14px', background: '#f1f5f9', borderRadius: '10px', marginTop: '6px' }}>
+                <div style={{ padding: '14px', background: 'var(--glass-bg-subtle, #f1f5f9)', borderRadius: '10px', marginTop: '6px', border: '1px solid var(--glass-border-subtle, #e2e8f0)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 4 }}>
-                    <span style={{ color: '#64748b' }}>Subtotal:</span>
+                    <span style={{ color: 'var(--text-muted, #64748b)' }}>Subtotal:</span>
                     <span style={{ fontWeight: 600 }}>{currencySymbol}{formatAmount(calc.subtotal)}</span>
                   </div>
                   {calc.discountAmount > 0 && (
@@ -1745,17 +1745,17 @@ export default function CreateBillPage({
                   )}
                   {calc.taxAmount > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 4 }}>
-                      <span style={{ color: '#64748b' }}>Tax / GST:</span>
+                      <span style={{ color: 'var(--text-muted, #64748b)' }}>Tax / GST:</span>
                       <span style={{ fontWeight: 600 }}>+{currencySymbol}{formatAmount(calc.taxAmount)}</span>
                     </div>
                   )}
                   {calc.additionalCharges > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 4 }}>
-                      <span style={{ color: '#64748b' }}>Additional Charges:</span>
+                      <span style={{ color: 'var(--text-muted, #64748b)' }}>Additional Charges:</span>
                       <span style={{ fontWeight: 600 }}>+{currencySymbol}{formatAmount(calc.additionalCharges)}</span>
                     </div>
                   )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem', fontWeight: 700, borderTop: '1px solid #cbd5e1', paddingTop: 6, marginTop: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem', fontWeight: 700, borderTop: '1px solid var(--glass-border-subtle, #cbd5e1)', paddingTop: 6, marginTop: 4 }}>
                     <span>Grand Total:</span>
                     <span>{currencySymbol}{formatAmount(calc.grandTotal)}</span>
                   </div>
@@ -1763,7 +1763,7 @@ export default function CreateBillPage({
                     <span>Amount Paid:</span>
                     <span style={{ fontWeight: 700 }}>{currencySymbol}{formatAmount(calc.amountPaid)}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800, color: '#1e40af', borderTop: '1px solid #cbd5e1', paddingTop: 6, marginTop: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800, color: 'var(--builder-accent, #1e40af)', borderTop: '1px solid var(--glass-border-subtle, #cbd5e1)', paddingTop: 6, marginTop: 6 }}>
                     <span>BALANCE DUE:</span>
                     <span>{currencySymbol}{formatAmount(calc.balanceDue)}</span>
                   </div>
@@ -1853,10 +1853,10 @@ export default function CreateBillPage({
                             onNotify(`Applied ${tpl.name}!`);
                           }}
                           style={{
-                            border: isSelected ? '2px solid #2563eb' : '1px solid #e2e8f0',
+                            border: isSelected ? '2px solid var(--builder-accent, #2563eb)' : '1px solid var(--glass-border-subtle, #e2e8f0)',
                             borderRadius: '12px',
                             padding: '14px',
-                            background: isSelected ? '#f0f7ff' : '#ffffff',
+                            background: isSelected ? 'rgba(37, 99, 235, 0.15)' : 'var(--glass-bg, #ffffff)',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
                             position: 'relative',
@@ -1880,8 +1880,8 @@ export default function CreateBillPage({
                                 textTransform: 'uppercase',
                                 padding: '2px 8px',
                                 borderRadius: '9999px',
-                                background: isSelected ? '#dbeafe' : '#f1f5f9',
-                                color: isSelected ? '#1e40af' : '#475569',
+                                background: isSelected ? 'rgba(37, 99, 235, 0.25)' : 'var(--glass-bg-subtle, #f1f5f9)',
+                                color: isSelected ? '#3b82f6' : 'var(--text-secondary, #475569)',
                               }}
                             >
                               {tpl.badge}
@@ -1918,7 +1918,7 @@ export default function CreateBillPage({
                             style={{
                               fontWeight: 700,
                               fontSize: '0.92rem',
-                              color: isSelected ? '#1e40af' : '#0f172a',
+                              color: isSelected ? 'var(--builder-accent, #2563eb)' : 'var(--text-primary, #0f172a)',
                               marginBottom: '4px',
                             }}
                           >
@@ -1928,7 +1928,7 @@ export default function CreateBillPage({
                           <div
                             style={{
                               fontSize: '0.75rem',
-                              color: '#64748b',
+                              color: 'var(--text-muted, #64748b)',
                               lineHeight: '1.35',
                               marginBottom: '8px',
                             }}
@@ -1942,9 +1942,9 @@ export default function CreateBillPage({
                                 key={tag}
                                 style={{
                                   fontSize: '0.68rem',
-                                  color: '#64748b',
-                                  background: '#f8fafc',
-                                  border: '1px solid #e2e8f0',
+                                  color: 'var(--text-muted, #64748b)',
+                                  background: 'var(--glass-bg-subtle, #f8fafc)',
+                                  border: '1px solid var(--glass-border-subtle, #e2e8f0)',
                                   borderRadius: '4px',
                                   padding: '1px 6px',
                                 }}
@@ -2002,8 +2002,8 @@ export default function CreateBillPage({
                 </div>
 
                 {/* Review & Finalize Card */}
-                <div className="summary-review-card" style={{ padding: '16px', background: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e40af', marginBottom: '8px' }}>
+                <div className="summary-review-card" style={{ padding: '16px', background: 'var(--glass-bg-subtle, #eff6ff)', borderRadius: '12px', border: '1px solid var(--glass-border-subtle, #bfdbfe)' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary, #1e40af)', marginBottom: '8px' }}>
                     Document Summary
                   </div>
                   <div className="summary-review-row">
@@ -2028,9 +2028,9 @@ export default function CreateBillPage({
                       <span style={{ fontWeight: 600 }}>+{currencySymbol}{formatAmount(calc.additionalCharges)}</span>
                     </div>
                   )}
-                  <div className="summary-review-row" style={{ borderTop: '1px solid #cbd5e1', paddingTop: '0.65rem', marginTop: '0.5rem' }}>
+                  <div className="summary-review-row" style={{ borderTop: '1px solid var(--glass-border-subtle, #cbd5e1)', paddingTop: '0.65rem', marginTop: '0.5rem' }}>
                     <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Grand Total</span>
-                    <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f2b6a' }}>
+                    <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary, #0f2b6a)' }}>
                       {currencySymbol}{formatAmount(calc.grandTotal)}
                     </span>
                   </div>
@@ -2038,9 +2038,9 @@ export default function CreateBillPage({
                     <span style={{ fontWeight: 600 }}>Amount Paid</span>
                     <span style={{ fontWeight: 700 }}>{currencySymbol}{formatAmount(calc.amountPaid)}</span>
                   </div>
-                  <div className="summary-review-row" style={{ borderTop: '1px solid #cbd5e1', paddingTop: '0.65rem', marginTop: '0.5rem' }}>
-                    <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#1e40af' }}>BALANCE DUE</span>
-                    <span className="summary-total-large" style={{ color: '#1e40af', fontWeight: 900 }}>
+                  <div className="summary-review-row" style={{ borderTop: '1px solid var(--glass-border-subtle, #cbd5e1)', paddingTop: '0.65rem', marginTop: '0.5rem' }}>
+                    <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--builder-accent, #1e40af)' }}>BALANCE DUE</span>
+                    <span className="summary-total-large" style={{ color: 'var(--builder-accent, #1e40af)', fontWeight: 900 }}>
                       {currencySymbol}{formatAmount(calc.balanceDue)}
                     </span>
                   </div>
@@ -2079,7 +2079,7 @@ export default function CreateBillPage({
                   className="btn-wizard-next"
                   onClick={handleGeneratePdf}
                   disabled={isGeneratingPdf}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e293b' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--builder-accent, #2563eb)' }}
                 >
                   <Download size={16} />
                   <span>Download PDF</span>

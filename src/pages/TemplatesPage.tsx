@@ -775,7 +775,7 @@ export default function TemplatesPage({
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: previewModalTpl.docType === 'bill' ? '#10b981' : '#2563eb', textTransform: 'uppercase' }}>
                   {previewModalTpl.docType === 'bill' ? 'Bill Template' : 'Invoice Template'} • {previewModalTpl.category}
                 </div>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '2px 0 0', color: '#0f172a' }}>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '2px 0 0', color: 'var(--text-primary, #0f172a)' }}>
                   {previewModalTpl.name}
                 </h3>
               </div>
@@ -790,32 +790,32 @@ export default function TemplatesPage({
 
             <div className="tpl-modal-body">
               <div>
-                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, marginBottom: 4, color: '#1e293b' }}>
+                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, marginBottom: 4, color: 'var(--text-primary, #1e293b)' }}>
                   Layout &amp; Styling Specifications
                 </h4>
-                <p style={{ fontSize: '0.86rem', color: '#64748b', lineHeight: 1.5 }}>
+                <p style={{ fontSize: '0.86rem', color: 'var(--text-muted, #64748b)', lineHeight: 1.5 }}>
                   {previewModalTpl.description}
                 </p>
               </div>
 
               {/* Color Swatch Bar */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>Palette Tokens:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem', background: 'var(--glass-bg-subtle, #f8fafc)', borderRadius: 10, border: '1px solid var(--glass-border-subtle, #e2e8f0)' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary, #475569)' }}>Palette Tokens:</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <div style={{ width: 16, height: 16, borderRadius: '50%', background: previewModalTpl.accentColor, border: '1px solid rgba(0,0,0,0.1)' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Accent ({previewModalTpl.accentColor})</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)' }}>Accent ({previewModalTpl.accentColor})</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <div style={{ width: 16, height: 16, borderRadius: '50%', background: previewModalTpl.headerBg, border: '1px solid rgba(0,0,0,0.1)' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Header</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)' }}>Header</span>
                   </div>
                 </div>
               </div>
 
               {/* Sample Items Table */}
               <div>
-                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, marginBottom: 4, color: '#1e293b' }}>
+                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, marginBottom: 4, color: 'var(--text-primary, #1e293b)' }}>
                   {previewModalTpl.docType === 'bill' ? 'Sample Bill Items:' : 'Sample Deliverables:'}
                 </h4>
                 <table className="tpl-modal-items-table">
@@ -855,7 +855,7 @@ export default function TemplatesPage({
             <div className="tpl-modal-footer">
               <button
                 type="button"
-                style={{ padding: '0.6rem 1rem', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', color: '#475569' }}
+                style={{ padding: '0.6rem 1rem', background: 'var(--glass-bg-subtle, #f1f5f9)', border: '1px solid var(--glass-border-subtle, #cbd5e1)', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', color: 'var(--text-secondary, #475569)' }}
                 onClick={() => setPreviewModalTpl(null)}
               >
                 Close Preview

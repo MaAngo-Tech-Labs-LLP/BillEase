@@ -34,13 +34,52 @@ export default function HomePage({
       .slice(0, 5);
   }, [documents]);
 
+  // Typewriter effect cycling through "bills" and "invoices"
+  const WORDS = React.useMemo(() => ['bills', 'invoices'], []);
+  const [wordIndex, setWordIndex] = React.useState(0);
+  const [currentText, setCurrentText] = React.useState('bills');
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  React.useEffect(() => {
+    const currentWord = WORDS[wordIndex];
+    let timeout: ReturnType<typeof setTimeout>;
+
+    if (isDeleting) {
+      if (currentText === '') {
+        setIsDeleting(false);
+        setWordIndex((prev) => (prev + 1) % WORDS.length);
+        timeout = setTimeout(() => {}, 350);
+      } else {
+        timeout = setTimeout(() => {
+          setCurrentText((prev) => prev.slice(0, -1));
+        }, 60);
+      }
+    } else {
+      if (currentText === currentWord) {
+        timeout = setTimeout(() => {
+          setIsDeleting(true);
+        }, 1800);
+      } else {
+        timeout = setTimeout(() => {
+          setCurrentText(currentWord.slice(0, currentText.length + 1));
+        }, 100);
+      }
+    }
+
+    return () => clearTimeout(timeout);
+  }, [currentText, isDeleting, wordIndex, WORDS]);
+
   return (
     <div className="homepage-exact-container">
-      {/* 1. Centered Hero Header */}
+      {/* 1. Centered Hero Header with Animated Typewriter Effect */}
       <section className="home-hero-centered" aria-label="What will you create">
         <div className="home-hero-tagline">FAST &bull; SIMPLE &bull; PROFESSIONAL</div>
         <h1 className="home-hero-main-title">
-          What will <span className="hero-gradient-text">you create?</span>
+          What will you create?{' '}
+          <span className="hero-typewriter-wrapper">
+            <span className="hero-gradient-text">{currentText}</span>
+            <span className="hero-typewriter-cursor" aria-hidden="true">|</span>
+          </span>
         </h1>
         <p className="home-hero-main-subtitle">
           Create professional documents in a few simple steps.
@@ -137,10 +176,10 @@ export default function HomePage({
               style={{
                 textAlign: 'center',
                 padding: '24px',
-                color: '#6b7280',
-                background: '#ffffff',
+                color: 'var(--text-muted)',
+                background: 'var(--glass-bg)',
                 borderRadius: '18px',
-                border: '1px solid rgba(0, 0, 0, 0.05)',
+                border: '1px solid var(--glass-border-subtle)',
                 fontSize: '0.9rem',
               }}
             >

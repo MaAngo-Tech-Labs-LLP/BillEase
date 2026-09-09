@@ -20,7 +20,15 @@ export default function App() {
     } catch (_) {}
     return 'home';
   });
-  const [isDark, setIsDark] = useState<boolean>(false);
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('billease_theme');
+      if (saved) return saved === 'dark';
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch (_) {
+      return false;
+    }
+  });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const {
@@ -37,13 +45,19 @@ export default function App() {
 
   const [lastEditorTab, setLastEditorTab] = useState<'create-bill' | 'create-invoice'>('create-bill');
 
-  // Sync theme attribute on document body
+  // Sync theme attribute on document body and html, and persist to localStorage
   useEffect(() => {
-    if (isDark) {
-      document.body.setAttribute('data-theme', 'dark');
-    } else {
-      document.body.removeAttribute('data-theme');
-    }
+    try {
+      if (isDark) {
+        document.body.setAttribute('data-theme', 'dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('billease_theme', 'dark');
+      } else {
+        document.body.removeAttribute('data-theme');
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('billease_theme', 'light');
+      }
+    } catch (_) {}
   }, [isDark]);
 
   // Toast feedback trigger

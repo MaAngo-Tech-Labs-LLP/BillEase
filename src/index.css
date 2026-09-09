@@ -76,6 +76,7 @@
 }
 
 /* Darker Glass Variation if toggled */
+html[data-theme='dark'],
 body[data-theme='dark'] {
   --bg-ivory: #131518;
   --bg-ivory-soft: #191c21;
@@ -86,12 +87,12 @@ body[data-theme='dark'] {
   --text-muted: #8b95a5;
   --text-dim: #606a78;
 
-  --glass-bg-subtle: rgba(28, 32, 38, 0.45);
-  --glass-bg: rgba(30, 35, 42, 0.65);
-  --glass-bg-hover: rgba(36, 42, 51, 0.85);
+  --glass-bg-subtle: rgba(28, 32, 38, 0.55);
+  --glass-bg: rgba(30, 35, 42, 0.75);
+  --glass-bg-hover: rgba(36, 42, 51, 0.88);
   --glass-border: rgba(255, 255, 255, 0.12);
-  --glass-border-subtle: rgba(255, 255, 255, 0.07);
-  --glass-border-hover: rgba(255, 255, 255, 0.2);
+  --glass-border-subtle: rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(255, 255, 255, 0.22);
 
   --glass-specular: inset 0 1px 1px 0 rgba(255, 255, 255, 0.18),
                     inset 0 -1px 1px 0 rgba(0, 0, 0, 0.4);
@@ -101,12 +102,15 @@ body[data-theme='dark'] {
   --mint-tint: rgba(16, 185, 129, 0.14);
   --lavender-tint: rgba(139, 92, 246, 0.14);
 
-  --glass-card-bg: rgba(30, 35, 45, 0.55);
+  --glass-card-bg: rgba(30, 35, 45, 0.65);
   --glass-card-border: 1px solid rgba(255, 255, 255, 0.12);
   --glass-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
   --glass-row-bg: rgba(30, 35, 45, 0.55);
   --glass-row-border: 1px solid rgba(255, 255, 255, 0.1);
   --glass-row-divider: rgba(255, 255, 255, 0.06);
+
+  background-color: #0e1012 !important;
+  color: #f5f6f8 !important;
 }
 
 /* Base Reset */
@@ -119,7 +123,7 @@ body[data-theme='dark'] {
 html {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   color: var(--text-primary);
-  background-color: var(--bg-ivory);
+  background-color: var(--bg-canvas, var(--bg-ivory));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -449,13 +453,44 @@ body[data-theme='dark'] .ambient-liquid-background::after {
   margin: 0 0 12px 0;
 }
 
-/* Linear-gradient text fill (purple to mint) on 'you create?' only */
+/* Linear-gradient text fill (purple to mint) */
 .hero-gradient-text {
   background: linear-gradient(135deg, #8b7ff0 0%, #7fd8b0 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline;
+}
+
+/* Animated Typewriter Effect in Hero */
+.hero-typewriter-wrapper {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+  min-width: 130px;
+  text-align: left;
+}
+
+.hero-typewriter-cursor {
+  display: inline-block;
+  margin-left: 3px;
+  font-weight: 300;
+  color: var(--mint-primary, #0d9468);
+  animation: typewriterBlink 0.85s step-end infinite;
+  user-select: none;
+}
+
+@keyframes typewriterBlink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+body[data-theme='dark'] .hero-typewriter-cursor {
+  color: #34d399;
 }
 
 .home-hero-main-subtitle {
@@ -1920,6 +1955,16 @@ body[data-theme='dark'] .wizard-footer-nav {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
+body[data-theme='dark'] .btn-wizard-next {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+body[data-theme='dark'] .btn-wizard-next:hover {
+  background: #1d4ed8;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);
+}
+
 /* ---------------- Right Column: Live Layout Architecture ---------------- */
 .live-layout-architecture-card {
   background: #ffffff;
@@ -2016,6 +2061,18 @@ body[data-theme='dark'] .template-arch-select {
 .btn-gallery-trigger:hover {
   background: #f8fafc;
   border-color: #cbd5e1;
+}
+
+body[data-theme='dark'] .btn-gallery-trigger {
+  background: #1f242c;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f3f4f6;
+}
+
+body[data-theme='dark'] .btn-gallery-trigger:hover {
+  background: #2a303a;
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }
 
 .live-arch-paper-container {
@@ -5279,6 +5336,23 @@ body[data-theme='dark'] .tpl-modal-footer {
 .bill-logo-upload-zone:hover {
   border-color: #0ea5e9 !important;
   background: #f0f9ff !important;
+}
+
+body[data-theme='dark'] .bill-logo-upload-zone {
+  background: var(--glass-bg-subtle, rgba(28, 32, 38, 0.45));
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+body[data-theme='dark'] .bill-logo-upload-zone:hover {
+  border-color: #6E5CB6 !important;
+  background: rgba(110, 92, 182, 0.14) !important;
+}
+
+body[data-theme='dark'] select option,
+body[data-theme='dark'] .form-input option,
+body[data-theme='dark'] .invoice-form-select option {
+  background-color: #1e242d !important;
+  color: #f5f6f8 !important;
 }
 
 .item-name-bold {

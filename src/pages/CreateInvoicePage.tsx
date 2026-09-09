@@ -577,18 +577,18 @@ export default function CreateInvoicePage({
               <div className="form-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                   <label className="form-label" style={{ margin: 0 }}>Business Logo</label>
-                  <span style={{ fontSize: '0.73rem', color: '#64748b', fontWeight: 500 }}>
+                  <span style={{ fontSize: '0.73rem', color: 'var(--text-muted, #64748b)', fontWeight: 500 }}>
                     Visible in invoice header (52 × 52px)
                   </span>
                 </div>
                 <div
                   className="bill-logo-upload-zone"
                   style={{
-                    border: isDraggingLogo ? '2px dashed #6E5CB6' : '2px dashed #cbd5e1',
+                    border: isDraggingLogo ? '2px dashed #6E5CB6' : '2px dashed var(--glass-border, #cbd5e1)',
                     borderRadius: '12px',
                     padding: '12px 14px',
                     textAlign: 'center',
-                    background: isDraggingLogo ? '#f5f3ff' : '#f8fafc',
+                    background: isDraggingLogo ? 'rgba(110, 92, 182, 0.15)' : 'var(--glass-bg-subtle, #f8fafc)',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                     boxShadow: isDraggingLogo ? '0 0 0 4px rgba(110,92,182,0.12)' : 'none',
@@ -616,8 +616,8 @@ export default function CreateInvoicePage({
                             width: 52,
                             height: 52,
                             borderRadius: 10,
-                            background: '#ffffff',
-                            border: '1.5px solid #e2e8f0',
+                            background: 'var(--glass-bg, #ffffff)',
+                            border: '1.5px solid var(--glass-border-subtle, #e2e8f0)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -633,7 +633,7 @@ export default function CreateInvoicePage({
                           />
                         </div>
                         <div style={{ textAlign: 'left' }}>
-                          <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e293b' }}>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary, #1e293b)' }}>
                             Business Logo
                           </div>
                           <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>
@@ -673,7 +673,7 @@ export default function CreateInvoicePage({
                           width: 42,
                           height: 42,
                           borderRadius: '50%',
-                          background: '#ede9fe',
+                          background: 'rgba(110, 92, 182, 0.15)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -682,10 +682,10 @@ export default function CreateInvoicePage({
                       >
                         <Upload size={18} />
                       </div>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1e293b' }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary, #1e293b)' }}>
                         Click to upload or drag &amp; drop logo
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted, #64748b)' }}>
                         Auto-scaled to 52 × 52px slot · PNG, JPG, SVG, WEBP
                       </div>
                     </div>
@@ -758,7 +758,7 @@ export default function CreateInvoicePage({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
                 <h2 className="section-card-title">3. Itemized Services &amp; Products</h2>
-                <p style={{ fontSize: '0.74rem', color: '#64748b', margin: '3px 0 0' }}>
+                <p style={{ fontSize: '0.74rem', color: 'var(--text-muted, #64748b)', margin: '3px 0 0' }}>
                   Add work deliverables, subscriptions, or goods.
                 </p>
               </div>
@@ -780,17 +780,17 @@ export default function CreateInvoicePage({
                 gridTemplateColumns: 'minmax(140px, 2fr) 80px 95px 85px 36px',
                 gap: '8px',
                 padding: '0 4px 6px',
-                borderBottom: '1px solid #e2e8f0',
+                borderBottom: '1px solid var(--glass-border-subtle, #e2e8f0)',
                 fontSize: '0.68rem',
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--text-muted, #64748b)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
               }}
             >
               <div>
-                <div style={{ color: '#0f172a', fontWeight: 800 }}>ITEM</div>
-                <div style={{ fontSize: '0.60rem', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.3px', marginTop: '1px' }}>
+                <div style={{ color: 'var(--text-primary, #0f172a)', fontWeight: 800 }}>ITEM</div>
+                <div style={{ fontSize: '0.60rem', color: 'var(--text-dim, #94a3b8)', fontWeight: 600, letterSpacing: '0.3px', marginTop: '1px' }}>
                   DESCRIPTION
                 </div>
               </div>
@@ -829,7 +829,7 @@ export default function CreateInvoicePage({
                         value={item.description || ''}
                         onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
                         placeholder="Description (optional)..."
-                        style={{ padding: '0.38rem 0.65rem', fontSize: '0.76rem', color: '#64748b' }}
+                        style={{ padding: '0.38rem 0.65rem', fontSize: '0.76rem', color: 'var(--text-secondary, #64748b)' }}
                       />
                     </div>
 
@@ -857,7 +857,7 @@ export default function CreateInvoicePage({
                           <button
                             type="button"
                             onClick={() => handleStepQty(item.id, 1)}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#64748b' }}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted, #64748b)' }}
                             title="Increase Quantity"
                           >
                             <ChevronUp size={10} strokeWidth={2.5} />
@@ -865,7 +865,7 @@ export default function CreateInvoicePage({
                           <button
                             type="button"
                             onClick={() => handleStepQty(item.id, -1)}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#64748b' }}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted, #64748b)' }}
                             title="Decrease Quantity"
                           >
                             <ChevronDown size={10} strokeWidth={2.5} />
@@ -887,7 +887,7 @@ export default function CreateInvoicePage({
                       />
                     </div>
 
-                    <div style={{ textAlign: 'right', fontWeight: 700, fontSize: '0.82rem', color: '#0f172a' }}>
+                    <div style={{ textAlign: 'right', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-primary, #0f172a)' }}>
                       {formatPrice(itemAmount)}
                     </div>
 
@@ -912,7 +912,7 @@ export default function CreateInvoicePage({
               style={{
                 marginTop: '1.25rem',
                 paddingTop: '0.85rem',
-                borderTop: '1px solid #eef2f6',
+                borderTop: '1px solid var(--glass-border-subtle, #eef2f6)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -927,7 +927,7 @@ export default function CreateInvoicePage({
                   style={{
                     fontSize: '0.78rem',
                     fontWeight: 600,
-                    color: '#334155',
+                    color: 'var(--text-secondary, #334155)',
                     margin: 0,
                     whiteSpace: 'nowrap',
                     cursor: 'pointer',
@@ -951,11 +951,11 @@ export default function CreateInvoicePage({
               </div>
 
               <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                  Subtotal: <strong style={{ color: '#0f172a' }}>{formatPrice(subtotal)}</strong>
+                <div style={{ fontSize: '0.76rem', color: 'var(--text-muted, #64748b)' }}>
+                  Subtotal: <strong style={{ color: 'var(--text-primary, #0f172a)' }}>{formatPrice(subtotal)}</strong>
                 </div>
-                <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                  Tax ({formData.taxRate}%): <strong style={{ color: '#0f172a' }}>{formatPrice(taxAmount)}</strong>
+                <div style={{ fontSize: '0.76rem', color: 'var(--text-muted, #64748b)' }}>
+                  Tax ({formData.taxRate}%): <strong style={{ color: 'var(--text-primary, #0f172a)' }}>{formatPrice(taxAmount)}</strong>
                 </div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#6E5CB6', marginTop: '2px' }}>
                   Total: {formatPrice(totalDue)}
@@ -972,12 +972,12 @@ export default function CreateInvoicePage({
 
             <div className="form-fields-stack">
               <div style={{ marginBottom: '0.85rem' }}>
-                <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700, marginBottom: '6px', display: 'block', color: '#1e293b' }}>
+                <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700, marginBottom: '6px', display: 'block', color: 'var(--text-primary, #1e293b)' }}>
                   Bank &amp; Payment Settlement Details
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" htmlFor="input-bank-name" style={{ fontSize: '0.70rem', color: '#64748b' }}>
+                    <label className="form-label" htmlFor="input-bank-name" style={{ fontSize: '0.70rem', color: 'var(--text-muted, #64748b)' }}>
                       Bank Name
                     </label>
                     <input
@@ -992,7 +992,7 @@ export default function CreateInvoicePage({
                   </div>
 
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" htmlFor="input-acct-number" style={{ fontSize: '0.70rem', color: '#64748b' }}>
+                    <label className="form-label" htmlFor="input-acct-number" style={{ fontSize: '0.70rem', color: 'var(--text-muted, #64748b)' }}>
                       Account Number
                     </label>
                     <input
@@ -1007,7 +1007,7 @@ export default function CreateInvoicePage({
                   </div>
 
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" htmlFor="input-ifsc-code" style={{ fontSize: '0.70rem', color: '#64748b' }}>
+                    <label className="form-label" htmlFor="input-ifsc-code" style={{ fontSize: '0.70rem', color: 'var(--text-muted, #64748b)' }}>
                       IFSC Code / Swift
                     </label>
                     <input
@@ -1022,7 +1022,7 @@ export default function CreateInvoicePage({
                   </div>
 
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" htmlFor="input-upi-id" style={{ fontSize: '0.70rem', color: '#64748b' }}>
+                    <label className="form-label" htmlFor="input-upi-id" style={{ fontSize: '0.70rem', color: 'var(--text-muted, #64748b)' }}>
                       UPI ID
                     </label>
                     <input
@@ -1064,9 +1064,9 @@ export default function CreateInvoicePage({
                           flex: 1,
                           padding: '7px 10px',
                           borderRadius: '8px',
-                          border: isActive ? '2px solid #6E5CB6' : '1px solid #e2e8f0',
-                          background: isActive ? '#f5f3ff' : '#ffffff',
-                          color: isActive ? '#6E5CB6' : '#475569',
+                          border: isActive ? '2px solid #6E5CB6' : '1px solid var(--glass-border-subtle, #e2e8f0)',
+                          background: isActive ? 'rgba(110, 92, 182, 0.15)' : 'var(--glass-bg, #ffffff)',
+                          color: isActive ? '#6E5CB6' : 'var(--text-secondary, #475569)',
                           fontWeight: isActive ? 700 : 500,
                           fontSize: '0.78rem',
                           cursor: 'pointer',
@@ -1089,7 +1089,7 @@ export default function CreateInvoicePage({
                 gap: '0.75rem',
                 marginTop: '1.25rem',
                 paddingTop: '1.15rem',
-                borderTop: '1px solid #eef2f6',
+                borderTop: '1px solid var(--glass-border-subtle, #eef2f6)',
                 flexWrap: 'wrap',
               }}
             >
@@ -1194,13 +1194,13 @@ export default function CreateInvoicePage({
             style={{
               marginTop: '1.5rem',
               paddingTop: '1rem',
-              borderTop: '1px solid #eef2f6',
+              borderTop: '1px solid var(--glass-border-subtle, #eef2f6)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}
           >
-            <span className="a4-format-tag" style={{ fontSize: '0.8rem', color: '#64748b' }}>
+            <span className="a4-format-tag" style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748b)' }}>
               Format: A4 Standard (210 × 297 mm)
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
