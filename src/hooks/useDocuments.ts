@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BillDocument, DocumentType, BusinessProfile, STORAGE_PROFILE_KEY } from '../types';
+import { BillDocument, DocumentType } from '../types';
 import { DEFAULT_BILL, DEFAULT_INVOICE, SAMPLE_DOCUMENTS } from '../data/templates';
+import { applyBusinessProfileToDoc, PROFILE_UPDATED_EVENT } from '../utils/profileSync';
 
 const STORAGE_DOCS_KEY = 'billease_documents_list';
 const STORAGE_DRAFT_KEY = 'billease_active_draft';
@@ -27,13 +28,25 @@ export function useDocuments() {
     try {
       const saved = localStorage.getItem(STORAGE_DRAFT_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        return applyBusinessProfileToDoc(JSON.parse(saved));
       }
     } catch (e) {
       console.error('Failed reading draft from storage:', e);
     }
-    return DEFAULT_BILL;
+    return applyBusinessProfileToDoc(DEFAULT_BILL);
   });
+
+  // Listen for real-time Profile & Settings updates and automatically update draft
+  useEffect(() => {
+    const handleProfileUpdate = (e: any) => {
+      const p = e?.detail || null;
+      setDraft((prev) => applyBusinessProfileToDoc(prev, p, true));
+    };
+    window.addEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdate as EventListener);
+    return () => {
+      window.removeEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdate as EventListener);
+    };
+  }, []);
 
   // Sync documents list to localStorage
   useEffect(() => {
@@ -107,35 +120,18 @@ export function useDocuments() {
   const createNewDraft = useCallback((type: DocumentType = 'bill'): BillDocument => {
     const num = Math.floor(1000 + Math.random() * 9000);
 
-    const applyProfileDefaults = (target: BillDocument) => {
-      try {
-        const saved = localStorage.getItem(STORAGE_PROFILE_KEY);
-        if (saved) {
-          const profile: BusinessProfile = JSON.parse(saved);
-          if (profile.companyName) target.senderName = profile.companyName;
-          if (profile.email) target.senderEmail = profile.email;
-          if (profile.phone) target.senderPhone = profile.phone;
-          if (profile.address) target.senderAddress = profile.address;
-          if (profile.gstPanNumber) target.senderTaxNumber = profile.gstPanNumber;
-          if (profile.bankUpiId) target.upiId = profile.bankUpiId;
-          if (profile.logo) target.senderLogo = profile.logo;
-        }
-      } catch (_) {}
-    };
-
     if (type === 'invoice') {
-      const newInvoice: BillDocument = {
+      const newInvoice: BillDocument = applyBusinessProfileToDoc({
         ...DEFAULT_INVOICE,
         id: `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
         billNumber: `INV-2026-${num}`,
         createdAt: new Date().toISOString(),
-      };
-      applyProfileDefaults(newInvoice);
+      });
       setDraft(newInvoice);
       return newInvoice;
     }
 
-    const newDoc: BillDocument = {
+    const newDoc: BillDocument = applyBusinessProfileToDoc({
       ...DEFAULT_BILL,
       id: `doc-${Date.now()}`,
       type: 'bill',
@@ -145,8 +141,7 @@ export function useDocuments() {
         { id: 'item-1', description: 'Professional Consulting Services', qty: 1, rate: 1000 },
       ],
       createdAt: new Date().toISOString(),
-    };
-    applyProfileDefaults(newDoc);
+    });
     setDraft(newDoc);
     return newDoc;
   }, []);

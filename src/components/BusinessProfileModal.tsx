@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Building2, X, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { BusinessProfile, STORAGE_PROFILE_KEY, DEFAULT_BUSINESS_PROFILE } from '../types';
+import { broadcastProfileUpdate } from '../utils/profileSync';
 
 interface BusinessProfileModalProps {
   isOpen: boolean;
@@ -83,11 +84,7 @@ export default function BusinessProfileModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(profile));
-    } catch (err) {
-      console.error('Failed to save profile defaults:', err);
-    }
+    broadcastProfileUpdate(profile);
     onSave(profile);
     onClose();
   };

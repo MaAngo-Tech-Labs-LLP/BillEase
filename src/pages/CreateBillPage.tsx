@@ -47,6 +47,7 @@ import {
   normalizeTemplateId,
 } from '../data/templates';
 import { calculateBillTotals, formatCurrencyAmount } from '../utils/billCalculations';
+import { applyBusinessProfileToDoc, getSavedBusinessProfile, PROFILE_UPDATED_EVENT } from '../utils/profileSync';
 
 interface CreateBillPageProps {
   initialDocument?: BillDocument;
@@ -87,7 +88,7 @@ export default function CreateBillPage({
         ? undefined
         : doc.senderLogo;
 
-    return {
+    const baseDoc: BillDocument = {
       ...DEFAULT_BILL,
       ...doc,
       senderLogo: cleanSenderLogo,
@@ -95,6 +96,8 @@ export default function CreateBillPage({
       type: 'bill',
       template: normalizeTemplateId(doc.template || 'apex-corporate-bill', 'bill'),
     };
+
+    return applyBusinessProfileToDoc(baseDoc);
   };
 
   const [formData, setFormData] = useState<BillDocument>(() => {
@@ -143,6 +146,22 @@ export default function CreateBillPage({
       localStorage.setItem('billease_bill_draft', JSON.stringify(formData));
     } catch (_) {}
   }, [formData]);
+
+  // Automatically sync with Business Profile Defaults in real-time
+  useEffect(() => {
+    const handleProfileUpdate = (e: any) => {
+      const p = e?.detail || getSavedBusinessProfile();
+      if (p) {
+        setFormData((prev) => applyBusinessProfileToDoc(prev, p, true));
+        onNotify('✨ Business information automatically updated from Profile & Settings!');
+      }
+    };
+
+    window.addEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdate as EventListener);
+    return () => {
+      window.removeEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdate as EventListener);
+    };
+  }, [onNotify]);
 
   const activeAccentHex = ACCENT_COLOR_MAP[formData.accent] || '#1e3a8a';
   const currencySymbol = CURRENCY_SYMBOLS[formData.currency] || '₹';
@@ -272,27 +291,13 @@ export default function CreateBillPage({
   };
 
   const handleAutoFillFromProfile = () => {
-    try {
-      const saved = localStorage.getItem(STORAGE_PROFILE_KEY);
-      if (!saved) {
-        onNotify('No saved profile found. Click "Profile & Settings" in the top bar to set your business defaults!');
-        return;
-      }
-      const profile: BusinessProfile = JSON.parse(saved);
-      setFormData((prev) => ({
-        ...prev,
-        senderLogo: profile.logo || prev.senderLogo,
-        senderName: profile.companyName || prev.senderName,
-        senderEmail: profile.email || prev.senderEmail,
-        senderPhone: profile.phone || prev.senderPhone,
-        senderAddress: profile.address || prev.senderAddress,
-        senderTaxNumber: profile.gstPanNumber || prev.senderTaxNumber,
-        upiId: profile.bankUpiId || prev.upiId,
-      }));
-      onNotify('✨ Auto-filled business details from your saved profile defaults!');
-    } catch (_) {
-      onNotify('Could not load profile defaults.');
+    const profile = getSavedBusinessProfile();
+    if (!profile || (!profile.companyName && !profile.email && !profile.phone && !profile.address && !profile.gstPanNumber && !profile.bankUpiId && !profile.logo)) {
+      onNotify('No saved profile found. Click "Profile & Settings" in the top bar to set your business defaults!');
+      return;
     }
+    setFormData((prev) => applyBusinessProfileToDoc(prev, profile, true));
+    onNotify('✨ Synced business information with your Profile & Settings defaults!');
   };
 
   // Process and downscale logo image from desktop (via canvas) to match the 52px template size perfectly
@@ -1031,15 +1036,23 @@ export default function CreateBillPage({
                   <h2>3. My Business Information (BILL FROM)</h2>
                   <p>Upload your logo and business details appearing on the bill.</p>
                 </div>
-                <button
-                  type="button"
-                  className="btn-autofill-profile"
-                  onClick={handleAutoFillFromProfile}
-                  title="Fill from saved Business Profile Defaults"
-                >
-                  <Sparkles size={13} />
-                  <span>Fill from Profile</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {Boolean(getSavedBusinessProfile()?.companyName) && (
+                    <span className="profile-sync-badge" title="Automatically connected with Profile & Settings in top bar">
+                      <CheckCircle2 size={12} style={{ color: '#10b981' }} />
+                      <span>Connected to Profile</span>
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className="btn-autofill-profile"
+                    onClick={handleAutoFillFromProfile}
+                    title="Sync with saved Business Profile Defaults"
+                  >
+                    <Sparkles size={13} />
+                    <span>Sync Profile</span>
+                  </button>
+                </div>
               </div>
 
               <div className="form-fields-stack">

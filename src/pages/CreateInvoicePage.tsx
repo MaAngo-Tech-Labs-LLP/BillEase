@@ -27,6 +27,7 @@ import {
   normalizeTemplateId,
   getTemplateById,
 } from '../data/templates';
+import { applyBusinessProfileToDoc, getSavedBusinessProfile, PROFILE_UPDATED_EVENT } from '../utils/profileSync';
 
 interface CreateInvoicePageProps {
   initialDocument?: BillDocument;
@@ -72,7 +73,7 @@ export default function CreateInvoicePage({
       }
     }
 
-    return {
+    const baseDoc: BillDocument = {
       ...DEFAULT_INVOICE,
       ...doc,
       bankName: bankName || DEFAULT_INVOICE.bankName,
@@ -84,6 +85,8 @@ export default function CreateInvoicePage({
       type: 'invoice',
       template: normalizeTemplateId(doc.template || 'modern-minimal', 'invoice'),
     };
+
+    return applyBusinessProfileToDoc(baseDoc);
   };
 
   const [formData, setFormData] = useState<BillDocument>(() => {
@@ -127,6 +130,22 @@ export default function CreateInvoicePage({
       localStorage.setItem('billease_invoice_draft', JSON.stringify(formData));
     } catch (_) {}
   }, [formData]);
+
+  // Automatically sync with Business Profile Defaults in real-time
+  useEffect(() => {
+    const handleProfileUpdate = (e: any) => {
+      const p = e?.detail || getSavedBusinessProfile();
+      if (p) {
+        setFormData((prev) => applyBusinessProfileToDoc(prev, p, true));
+        onNotify('✨ Your business details automatically updated from Profile & Settings!');
+      }
+    };
+
+    window.addEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdate as EventListener);
+    return () => {
+      window.removeEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdate as EventListener);
+    };
+  }, [onNotify]);
 
   const currencySymbol = CURRENCY_SYMBOLS[formData.currency] || '₹';
 
@@ -328,27 +347,13 @@ export default function CreateInvoicePage({
   };
 
   const handleAutoFillFromProfile = () => {
-    try {
-      const saved = localStorage.getItem(STORAGE_PROFILE_KEY);
-      if (!saved) {
-        onNotify('No saved profile found. Click "Profile & Settings" in the top bar to set your business defaults!');
-        return;
-      }
-      const profile: BusinessProfile = JSON.parse(saved);
-      setFormData((prev) => ({
-        ...prev,
-        senderLogo: profile.logo || prev.senderLogo,
-        senderName: profile.companyName || prev.senderName,
-        senderEmail: profile.email || prev.senderEmail,
-        senderPhone: profile.phone || prev.senderPhone,
-        senderAddress: profile.address || prev.senderAddress,
-        senderTaxNumber: profile.gstPanNumber || prev.senderTaxNumber,
-        upiId: profile.bankUpiId || prev.upiId,
-      }));
-      onNotify('✨ Auto-filled business details from your saved profile defaults!');
-    } catch (_) {
-      onNotify('Could not load profile defaults.');
+    const profile = getSavedBusinessProfile();
+    if (!profile || (!profile.companyName && !profile.email && !profile.phone && !profile.address && !profile.gstPanNumber && !profile.bankUpiId && !profile.logo)) {
+      onNotify('No saved profile found. Click "Profile & Settings" in the top bar to set your business defaults!');
+      return;
     }
+    setFormData((prev) => applyBusinessProfileToDoc(prev, profile, true));
+    onNotify('✨ Synced your business information with Profile & Settings defaults!');
   };
 
   const handleSaveDraft = () => {
@@ -598,17 +603,25 @@ export default function CreateInvoicePage({
 
           {/* SECTION 2: Your Information (BILL FROM) with 52x52 Logo Arrangement */}
           <section className="invoice-section-card">
-            <div className="section-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="section-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
               <h2 className="section-card-title">2. Your Information (BILL FROM)</h2>
-              <button
-                type="button"
-                className="btn-autofill-profile"
-                onClick={handleAutoFillFromProfile}
-                title="Fill from saved Business Profile Defaults"
-              >
-                <Sparkles size={13} />
-                <span>Fill from Profile</span>
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                {Boolean(getSavedBusinessProfile()?.companyName) && (
+                  <span className="profile-sync-badge" title="Automatically connected with Profile & Settings in top bar">
+                    <CheckCircle2 size={12} style={{ color: '#10b981' }} />
+                    <span>Connected to Profile</span>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="btn-autofill-profile"
+                  onClick={handleAutoFillFromProfile}
+                  title="Sync with saved Business Profile Defaults"
+                >
+                  <Sparkles size={13} />
+                  <span>Sync Profile</span>
+                </button>
+              </div>
             </div>
 
             <div className="form-fields-stack">

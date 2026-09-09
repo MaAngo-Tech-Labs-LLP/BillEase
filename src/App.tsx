@@ -9,6 +9,7 @@ import PreviewPage from './pages/PreviewPage';
 import BusinessProfileModal from './components/BusinessProfileModal';
 import { useDocuments } from './hooks/useDocuments';
 import { BillDocument, TemplateId, BusinessProfile } from './types';
+import { applyBusinessProfileToDoc } from './utils/profileSync';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<string>(() => {
@@ -47,8 +48,9 @@ export default function App() {
   const [lastEditorTab, setLastEditorTab] = useState<'create-bill' | 'create-invoice'>('create-bill');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  const handleSaveProfile = (_profile: BusinessProfile) => {
-    triggerToast('Business Profile Defaults saved! Auto-fills new bills & invoices.');
+  const handleSaveProfile = (profile: BusinessProfile) => {
+    setDraft((prev) => applyBusinessProfileToDoc(prev, profile, true));
+    triggerToast('Business Profile connected! Automatically applied to your bills & invoices.');
   };
 
   // Sync theme attribute on document body and html, and persist to localStorage
