@@ -1106,8 +1106,8 @@ export default function CreateInvoicePage({
               <div className="form-group">
                 <label className="form-label">Invoice Status</label>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  {(['unpaid', 'paid', 'pending', 'draft'] as DocStatus[]).map((st) => {
-                    const isActive = (formData.status || 'unpaid').toLowerCase() === st;
+                  {(['Unpaid', 'Paid', 'Pending', 'Draft'] as DocStatus[]).map((st) => {
+                    const isActive = (formData.status || 'Unpaid').toLowerCase() === st.toLowerCase();
                     return (
                       <button
                         key={st}
