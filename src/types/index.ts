@@ -88,3 +88,26 @@ export interface TemplateDefinition {
   description: string;
   tag: string;
 }
+
+export interface BusinessProfile {
+  logo?: string;
+  companyName: string;
+  email: string;
+  phone: string;
+  address: string;
+  gstPanNumber: string;
+  bankUpiId: string;
+}
+
+export const STORAGE_PROFILE_KEY = 'billease_business_profile';
+
+export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
+  logo: '',
+  companyName: '',
+  email: '',
+  phone: '',
+  address: '',
+  gstPanNumber: '',
+  bankUpiId: '',
+};
+

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BillDocument, DocumentType } from '../types';
+import { BillDocument, DocumentType, BusinessProfile, STORAGE_PROFILE_KEY } from '../types';
 import { DEFAULT_BILL, DEFAULT_INVOICE, SAMPLE_DOCUMENTS } from '../data/templates';
 
 const STORAGE_DOCS_KEY = 'billease_documents_list';
@@ -106,6 +106,23 @@ export function useDocuments() {
   // Create a new blank draft of specified type
   const createNewDraft = useCallback((type: DocumentType = 'bill'): BillDocument => {
     const num = Math.floor(1000 + Math.random() * 9000);
+
+    const applyProfileDefaults = (target: BillDocument) => {
+      try {
+        const saved = localStorage.getItem(STORAGE_PROFILE_KEY);
+        if (saved) {
+          const profile: BusinessProfile = JSON.parse(saved);
+          if (profile.companyName) target.senderName = profile.companyName;
+          if (profile.email) target.senderEmail = profile.email;
+          if (profile.phone) target.senderPhone = profile.phone;
+          if (profile.address) target.senderAddress = profile.address;
+          if (profile.gstPanNumber) target.senderTaxNumber = profile.gstPanNumber;
+          if (profile.bankUpiId) target.upiId = profile.bankUpiId;
+          if (profile.logo) target.senderLogo = profile.logo;
+        }
+      } catch (_) {}
+    };
+
     if (type === 'invoice') {
       const newInvoice: BillDocument = {
         ...DEFAULT_INVOICE,
@@ -113,6 +130,7 @@ export function useDocuments() {
         billNumber: `INV-2026-${num}`,
         createdAt: new Date().toISOString(),
       };
+      applyProfileDefaults(newInvoice);
       setDraft(newInvoice);
       return newInvoice;
     }
@@ -128,6 +146,7 @@ export function useDocuments() {
       ],
       createdAt: new Date().toISOString(),
     };
+    applyProfileDefaults(newDoc);
     setDraft(newDoc);
     return newDoc;
   }, []);

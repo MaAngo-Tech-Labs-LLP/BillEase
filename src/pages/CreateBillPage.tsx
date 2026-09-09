@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 import DocumentRenderer from '../components/DocumentRenderer';
 import DateInputWithPicker from '../components/DateInputWithPicker';
-import { BillDocument, TemplateId, CurrencyCode } from '../types';
+import { BillDocument, TemplateId, CurrencyCode, BusinessProfile, STORAGE_PROFILE_KEY } from '../types';
 import {
   DEFAULT_BILL,
   CURRENCY_SYMBOLS,
@@ -266,6 +266,30 @@ export default function CreateBillPage({
       const nextVal = Math.max(0, Math.round(current + delta));
       return { ...prev, additionalCharges: nextVal };
     });
+  };
+
+  const handleAutoFillFromProfile = () => {
+    try {
+      const saved = localStorage.getItem(STORAGE_PROFILE_KEY);
+      if (!saved) {
+        onNotify('No saved profile found. Click "Profile & Settings" in the top bar to set your business defaults!');
+        return;
+      }
+      const profile: BusinessProfile = JSON.parse(saved);
+      setFormData((prev) => ({
+        ...prev,
+        senderLogo: profile.logo || prev.senderLogo,
+        senderName: profile.companyName || prev.senderName,
+        senderEmail: profile.email || prev.senderEmail,
+        senderPhone: profile.phone || prev.senderPhone,
+        senderAddress: profile.address || prev.senderAddress,
+        senderTaxNumber: profile.gstPanNumber || prev.senderTaxNumber,
+        upiId: profile.bankUpiId || prev.upiId,
+      }));
+      onNotify('✨ Auto-filled business details from your saved profile defaults!');
+    } catch (_) {
+      onNotify('Could not load profile defaults.');
+    }
   };
 
   // Process and downscale logo image from desktop (via canvas) to match the 52px template size perfectly
@@ -999,9 +1023,20 @@ export default function CreateBillPage({
           {/* STEP 3: My Info (BILL FROM) */}
           {currentStep === 3 && (
             <div className="form-step-content">
-              <div className="form-step-header">
-                <h2>3. My Business Information (BILL FROM)</h2>
-                <p>Upload your logo and business details appearing on the bill.</p>
+              <div className="form-step-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <h2>3. My Business Information (BILL FROM)</h2>
+                  <p>Upload your logo and business details appearing on the bill.</p>
+                </div>
+                <button
+                  type="button"
+                  className="btn-autofill-profile"
+                  onClick={handleAutoFillFromProfile}
+                  title="Fill from saved Business Profile Defaults"
+                >
+                  <Sparkles size={13} />
+                  <span>Fill from Profile</span>
+                </button>
               </div>
 
               <div className="form-fields-stack">

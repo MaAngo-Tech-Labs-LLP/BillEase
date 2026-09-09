@@ -6,6 +6,7 @@ interface NavbarProps {
   onSelectTab: (tabId: string) => void;
   isDark: boolean;
   onToggleTheme: () => void;
+  onOpenProfile?: () => void;
 }
 
 export default function Navbar({
@@ -13,6 +14,7 @@ export default function Navbar({
   onSelectTab,
   isDark,
   onToggleTheme,
+  onOpenProfile,
 }: NavbarProps) {
   const [isScrolled, setIsScrolled] = React.useState(false);
 
@@ -90,7 +92,8 @@ export default function Navbar({
 
           <button
             className="glass-action-btn profile-btn"
-            aria-label="User Profile"
+            onClick={onOpenProfile}
+            aria-label="User Profile & Settings"
             title="Profile & Settings"
             type="button"
           >

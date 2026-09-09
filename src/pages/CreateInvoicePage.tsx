@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import DocumentRenderer from '../components/DocumentRenderer';
 import DateInputWithPicker from '../components/DateInputWithPicker';
-import { BillDocument, CurrencyCode, TemplateId, DocStatus } from '../types';
+import { BillDocument, CurrencyCode, TemplateId, DocStatus, BusinessProfile, STORAGE_PROFILE_KEY } from '../types';
 import {
   DEFAULT_INVOICE,
   CURRENCY_SYMBOLS,
@@ -321,6 +321,30 @@ export default function CreateInvoicePage({
     onNotify('✨ Loaded sample SaaS enterprise invoice data!');
   };
 
+  const handleAutoFillFromProfile = () => {
+    try {
+      const saved = localStorage.getItem(STORAGE_PROFILE_KEY);
+      if (!saved) {
+        onNotify('No saved profile found. Click "Profile & Settings" in the top bar to set your business defaults!');
+        return;
+      }
+      const profile: BusinessProfile = JSON.parse(saved);
+      setFormData((prev) => ({
+        ...prev,
+        senderLogo: profile.logo || prev.senderLogo,
+        senderName: profile.companyName || prev.senderName,
+        senderEmail: profile.email || prev.senderEmail,
+        senderPhone: profile.phone || prev.senderPhone,
+        senderAddress: profile.address || prev.senderAddress,
+        senderTaxNumber: profile.gstPanNumber || prev.senderTaxNumber,
+        upiId: profile.bankUpiId || prev.upiId,
+      }));
+      onNotify('✨ Auto-filled business details from your saved profile defaults!');
+    } catch (_) {
+      onNotify('Could not load profile defaults.');
+    }
+  };
+
   const handleSaveDraft = () => {
     const isTemplateDefaultId = !formData.id || formData.id.startsWith('default-');
     const uniqueId = isTemplateDefaultId
@@ -568,8 +592,17 @@ export default function CreateInvoicePage({
 
           {/* SECTION 2: Your Information (BILL FROM) with 52x52 Logo Arrangement */}
           <section className="invoice-section-card">
-            <div className="section-card-header">
+            <div className="section-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 className="section-card-title">2. Your Information (BILL FROM)</h2>
+              <button
+                type="button"
+                className="btn-autofill-profile"
+                onClick={handleAutoFillFromProfile}
+                title="Fill from saved Business Profile Defaults"
+              >
+                <Sparkles size={13} />
+                <span>Fill from Profile</span>
+              </button>
             </div>
 
             <div className="form-fields-stack">

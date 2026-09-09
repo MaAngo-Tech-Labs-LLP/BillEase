@@ -6,8 +6,9 @@ import CreateInvoicePage from './pages/CreateInvoicePage';
 import MyDocumentsPage from './pages/MyDocumentsPage';
 import TemplatesPage from './pages/TemplatesPage';
 import PreviewPage from './pages/PreviewPage';
+import BusinessProfileModal from './components/BusinessProfileModal';
 import { useDocuments } from './hooks/useDocuments';
-import { BillDocument, TemplateId } from './types';
+import { BillDocument, TemplateId, BusinessProfile } from './types';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<string>(() => {
@@ -44,6 +45,11 @@ export default function App() {
   const [previewDoc, setPreviewDoc] = useState<BillDocument | null>(null);
 
   const [lastEditorTab, setLastEditorTab] = useState<'create-bill' | 'create-invoice'>('create-bill');
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  const handleSaveProfile = (_profile: BusinessProfile) => {
+    triggerToast('Business Profile Defaults saved! Auto-fills new bills & invoices.');
+  };
 
   // Sync theme attribute on document body and html, and persist to localStorage
   useEffect(() => {
@@ -143,6 +149,7 @@ export default function App() {
         onSelectTab={handleSelectTab}
         isDark={isDark}
         onToggleTheme={() => setIsDark((prev) => !prev)}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
       />
 
       {/* Main Content View Switcher */}
@@ -200,6 +207,13 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Business Profile Defaults Modal */}
+      <BusinessProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        onSave={handleSaveProfile}
+      />
 
       {/* Interactive feedback toast */}
       {toastMessage && (
