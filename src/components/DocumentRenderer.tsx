@@ -1420,14 +1420,13 @@ export default function DocumentRenderer({
           </div>
         </div>
 
-        {/* Items Table with HSN/SAC Column */}
+        {/* Items Table */}
         <div className="a4-table-wrapper" style={{ margin: 0 }}>
           <table className="a4-items-table gst-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={{ width: '22%', textAlign: 'left', padding: '10px 12px' }}>ITEM</th>
-                <th style={{ width: '26%', textAlign: 'left', padding: '10px 12px' }}>DESCRIPTION OF GOODS / SERVICES</th>
-                <th style={{ width: '12%', textAlign: 'center', padding: '10px 8px' }}>HSN/SAC</th>
+                <th style={{ width: '26%', textAlign: 'left', padding: '10px 12px' }}>ITEM</th>
+                <th style={{ width: '34%', textAlign: 'left', padding: '10px 12px' }}>DESCRIPTION OF GOODS / SERVICES</th>
                 <th style={{ width: '10%', textAlign: 'center', padding: '10px 8px' }}>QTY</th>
                 <th style={{ width: '15%', textAlign: 'right', padding: '10px 12px' }}>RATE</th>
                 <th style={{ width: '15%', textAlign: 'right', padding: '10px 12px' }}>TAXABLE AMT</th>
@@ -1441,9 +1440,6 @@ export default function DocumentRenderer({
                   </td>
                   <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px', color: '#64748b' }}>
                     {item.name ? (item.description || '—') : '—'}
-                  </td>
-                  <td style={{ textAlign: 'center', fontSize: '0.76rem', color: '#64748b', padding: '10px 8px' }}>
-                    {idx % 2 === 0 ? '998314' : '998315'}
                   </td>
                   <td className="cell-qty" style={{ textAlign: 'center', padding: '10px 8px', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
                   <td className="cell-rate" style={{ textAlign: 'right', padding: '10px 12px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(item.rate)}</td>

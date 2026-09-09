@@ -920,13 +920,27 @@ export default function CreateInvoicePage({
                 gap: '0.75rem',
               }}
             >
-              <div style={{ minWidth: '140px' }}>
-                <label className="form-label" style={{ fontSize: '0.74rem' }}>GST / Tax Rate</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label
+                  htmlFor="summary-tax-rate"
+                  className="form-label"
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    color: '#334155',
+                    margin: 0,
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                  }}
+                >
+                  GST / Tax Rate
+                </label>
                 <select
+                  id="summary-tax-rate"
                   className="form-input"
                   value={formData.taxRate}
                   onChange={(e) => handleInputChange('taxRate', parseFloat(e.target.value) || 0)}
-                  style={{ width: '140px', padding: '5px 8px', fontSize: '0.8rem' }}
+                  style={{ width: '130px', padding: '6px 10px', fontSize: '0.82rem', borderRadius: '6px' }}
                 >
                   <option value="0">GST 0%</option>
                   <option value="5">GST 5%</option>
