@@ -16,17 +16,6 @@ export default function Navbar({
   onToggleTheme,
   onOpenProfile,
 }: NavbarProps) {
-  const [isScrolled, setIsScrolled] = React.useState(false);
-
-  React.useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 8);
-    };
-    handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   const navItems = [
     { id: 'home', label: 'Home' },
     { id: 'create-bill', label: 'Create Bill' },
@@ -36,7 +25,7 @@ export default function Navbar({
   ];
 
   return (
-    <header className={`navbar-container ${isScrolled ? 'is-scrolled' : ''}`}>
+    <header className="navbar-container">
       <nav className="navbar-glass">
         {/* Brand Logo matching screenshot */}
         <div

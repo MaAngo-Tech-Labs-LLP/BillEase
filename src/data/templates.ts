@@ -51,9 +51,9 @@ export const DEFAULT_INVOICE: BillDocument = {
   clientPhone: '+91 98765 43210',
   clientAddress: 'Tower 4, Level 11, TechPark SEZ, Outer Ring Road, Bengaluru 560103',
   items: [
-    { id: '1', description: 'SaaS Platform Enterprise License (Annual)', qty: 1, rate: 48000 },
-    { id: '2', description: 'Custom API Gateway Integration & Setup', qty: 5, rate: 2000 },
-    { id: '3', description: '24/7 Dedicated Priority Support SLA', qty: 1, rate: 12000 },
+    { id: '1', name: 'SaaS Platform Enterprise License (Annual)', description: 'Annual tier for 250 users including SSO and SLA guarantee', qty: 1, rate: 48000 },
+    { id: '2', name: 'Custom API Gateway Integration & Setup', description: 'Custom webhook endpoints, rate limiter & auth bridge', qty: 5, rate: 2000 },
+    { id: '3', name: '24/7 Dedicated Priority Support SLA', description: 'Dedicated account manager & 1-hour response time SLA', qty: 1, rate: 12000 },
   ],
   taxRate: 18,
   discount: 0,

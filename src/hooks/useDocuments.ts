@@ -138,7 +138,7 @@ export function useDocuments() {
       title: `New Bill #${num}`,
       billNumber: `BIL-2026-${num}`,
       items: [
-        { id: 'item-1', description: 'Professional Consulting Services', qty: 1, rate: 1000 },
+        { id: 'item-1', name: 'Professional Consulting Services', description: 'System review, architecture analysis and strategic guidance', qty: 1, rate: 1000, taxRate: 18 },
       ],
       createdAt: new Date().toISOString(),
     });

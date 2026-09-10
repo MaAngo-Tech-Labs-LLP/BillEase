@@ -273,36 +273,13 @@ body[data-theme='dark'] .ambient-liquid-background::after {
    Navbar (Exact match with reference screenshot)
    ------------------------------------------------------------ */
 .navbar-container {
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  position: static;
   width: 100%;
   background: rgba(247, 248, 246, 0.65);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.45);
   box-shadow: none;
-  transition: background-color 200ms ease, border-bottom-color 200ms ease, box-shadow 250ms ease;
-}
-
-.navbar-container.is-scrolled {
-  background: rgba(247, 248, 246, 0.82);
-  border-bottom-color: rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 20px rgba(31, 38, 135, 0.08);
-}
-
-@supports (animation-timeline: scroll()) {
-  @keyframes navScrollShadow {
-    to {
-      border-bottom-color: rgba(0, 0, 0, 0.08);
-      box-shadow: 0 4px 20px rgba(31, 38, 135, 0.08);
-    }
-  }
-  .navbar-container {
-    animation: navScrollShadow linear both;
-    animation-timeline: scroll();
-    animation-range: 0px 30px;
-  }
 }
 
 .navbar-glass {
@@ -988,12 +965,6 @@ body[data-theme='dark'] .navbar-container {
   box-shadow: none;
 }
 
-body[data-theme='dark'] .navbar-container.is-scrolled {
-  background: rgba(19, 21, 24, 0.86);
-  border-bottom-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
-}
-
 body[data-theme='dark'] .brand-name {
   color: #f8fafc;
 }
@@ -1277,7 +1248,6 @@ body[data-theme='dark'] .feedback-toast-glass {
 @media (max-width: 580px) {
   .navbar-container {
     padding: 0 12px;
-    top: 10px;
   }
 
   .navbar-glass {
@@ -1882,33 +1852,38 @@ body[data-theme='dark'] .date-picker-icon-box:hover .date-picker-icon-btn {
   display: flex;
   align-items: center;
   width: 100%;
+  min-width: 0;
 }
 
 .number-stepper-input {
   width: 100%;
-  padding-right: 2.85rem !important;
+  min-width: 0;
+  padding-left: 0.65rem !important;
+  padding-right: 1.85rem !important;
+  box-sizing: border-box;
 }
 
-.number-stepper-input::-webkit-outer-spin-button,
-.number-stepper-input::-webkit-inner-spin-button {
+/* Hide native webkit spin-buttons everywhere so unstyled native arrows never appear */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none !important;
   margin: 0 !important;
 }
 
-.number-stepper-input {
+input[type='number'] {
   -moz-appearance: textfield !important;
 }
 
 .number-stepper-btns {
   position: absolute;
-  right: 6px;
+  right: 4px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   gap: 2px;
-  height: 32px;
-  width: 26px;
+  height: 28px;
+  width: 22px;
   z-index: 2;
 }
 
@@ -1917,10 +1892,10 @@ body[data-theme='dark'] .date-picker-icon-box:hover .date-picker-icon-btn {
   align-items: center;
   justify-content: center;
   flex: 1;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  color: #374151;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  color: #1e293b;
   padding: 0;
   cursor: pointer;
   transition: all 120ms ease;
@@ -1928,33 +1903,26 @@ body[data-theme='dark'] .date-picker-icon-box:hover .date-picker-icon-btn {
 }
 
 .number-stepper-btn:hover {
-  background: #e5e7eb;
-  color: #111827;
-  border-color: #d1d5db;
+  background: #e2e8f0;
+  color: #0f172a;
+  border-color: #94a3b8;
 }
 
 .number-stepper-btn:active {
-  background: #d1d5db;
+  background: #cbd5e1;
   transform: scale(0.92);
 }
 
 body[data-theme='dark'] .number-stepper-btn {
-  background: #2a2f38;
-  border-color: rgba(255, 255, 255, 0.12);
-  color: #cbd5e1;
+  background: #262c36;
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #e2e8f0;
 }
 
 body[data-theme='dark'] .number-stepper-btn:hover {
-  background: #374151;
+  background: #333a46;
   color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Fallback: Ensure any default number input has visible spinners */
-input[type='number']:not(.number-stepper-input):not(.item-qty-input):not(.item-rate-input)::-webkit-inner-spin-button,
-input[type='number']:not(.number-stepper-input):not(.item-qty-input):not(.item-rate-input)::-webkit-outer-spin-button {
-  opacity: 1 !important;
-  cursor: pointer;
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 /* ---------------- Line Items Section ---------------- */
@@ -1962,17 +1930,20 @@ input[type='number']:not(.number-stepper-input):not(.item-qty-input):not(.item-r
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  width: 100%;
 }
 
 .item-row-card {
   background: #f9fafb;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 0.85rem;
-  display: grid;
-  grid-template-columns: minmax(130px, 1fr) 75px 110px 38px;
-  gap: 0.65rem;
-  align-items: flex-end;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
   transition: all 150ms ease;
 }
 
@@ -1981,12 +1952,41 @@ body[data-theme='dark'] .item-row-card {
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-@media (max-width: 520px) {
-  .item-row-card {
-    grid-template-columns: minmax(90px, 1fr) 68px 96px 34px;
-    gap: 0.45rem;
-    padding: 0.75rem 0.55rem;
+.item-inputs-grid {
+  display: grid;
+  grid-template-columns: 0.9fr 1.6fr 1fr 1.4fr;
+  gap: 10px;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.item-inputs-grid .form-group {
+  min-width: 0;
+}
+
+@media (max-width: 540px) {
+  .item-inputs-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
+}
+
+.item-line-total-value {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  min-height: 42px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+body[data-theme='dark'] .item-line-total-value {
+  color: #f8fafc;
 }
 
 .item-qty-input {
@@ -2151,7 +2151,7 @@ body[data-theme='dark'] .btn-wizard-next:hover {
   padding: 30px 34px 44px 34px;
   box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.03);
   position: sticky;
-  top: 5rem;
+  top: 1.5rem;
 }
 
 body[data-theme='dark'] .live-layout-architecture-card {
@@ -3564,7 +3564,7 @@ body[data-theme='dark'] .invoice-item-input {
 
 .sticky-preview-wrapper {
   position: sticky;
-  top: 90px;
+  top: 24px;
 }
 
 .invoice-preview-outer-card {

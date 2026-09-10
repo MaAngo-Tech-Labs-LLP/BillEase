@@ -225,6 +225,20 @@ export default function CreateInvoicePage({
     }));
   };
 
+  const handleStepRate = (id: string, delta: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.map((it) => {
+        if (it.id === id) {
+          const current = Number(it.rate) || 0;
+          const next = Math.max(0, parseFloat((current + delta).toFixed(2)));
+          return { ...it, rate: next };
+        }
+        return it;
+      }),
+    }));
+  };
+
   const handleAddItem = () => {
     const newItem = {
       id: Date.now().toString(),
@@ -234,6 +248,7 @@ export default function CreateInvoicePage({
       rate: '' as any,
     };
     setFormData((prev) => ({ ...prev, items: [...prev.items, newItem] }));
+    onNotify('✨ Added new line item');
   };
 
   const handleRemoveItem = (id: string) => {
@@ -886,58 +901,69 @@ export default function CreateInvoicePage({
                     </div>
 
                     <div>
-                      <div className="number-stepper-wrapper" style={{ width: '100%', position: 'relative' }}>
+                      <div className="number-stepper-wrapper">
                         <input
                           type="number"
                           min="1"
                           step="1"
-                          className="form-input"
+                          className="form-input number-stepper-input"
                           value={item.qty ?? ''}
                           onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
                           placeholder="1"
-                          style={{ textAlign: 'center', padding: '0.5rem 24px 0.5rem 0.5rem', fontSize: '0.83rem' }}
+                          style={{ textAlign: 'center', fontSize: '0.83rem' }}
                         />
-                        <div
-                          style={{
-                            position: 'absolute',
-                            right: '3px',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                          }}
-                        >
+                        <div className="number-stepper-btns">
                           <button
                             type="button"
+                            className="number-stepper-btn up"
                             onClick={() => handleStepQty(item.id, 1)}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted, #64748b)' }}
                             title="Increase Quantity"
                           >
-                            <ChevronUp size={10} strokeWidth={2.5} />
+                            <ChevronUp size={11} strokeWidth={2.6} />
                           </button>
                           <button
                             type="button"
+                            className="number-stepper-btn down"
                             onClick={() => handleStepQty(item.id, -1)}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted, #64748b)' }}
                             title="Decrease Quantity"
                           >
-                            <ChevronDown size={10} strokeWidth={2.5} />
+                            <ChevronDown size={11} strokeWidth={2.6} />
                           </button>
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        className="form-input"
-                        value={item.rate ?? ''}
-                        onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)}
-                        placeholder="0.00"
-                        style={{ textAlign: 'right', padding: '0.5rem 0.65rem', fontSize: '0.83rem' }}
-                      />
+                      <div className="number-stepper-wrapper">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          className="form-input number-stepper-input"
+                          value={item.rate ?? ''}
+                          onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)}
+                          placeholder="0.00"
+                          style={{ textAlign: 'right', fontSize: '0.83rem' }}
+                        />
+                        <div className="number-stepper-btns">
+                          <button
+                            type="button"
+                            className="number-stepper-btn up"
+                            onClick={() => handleStepRate(item.id, 1)}
+                            title="Increase Rate"
+                          >
+                            <ChevronUp size={11} strokeWidth={2.6} />
+                          </button>
+                          <button
+                            type="button"
+                            className="number-stepper-btn down"
+                            onClick={() => handleStepRate(item.id, -1)}
+                            title="Decrease Rate"
+                          >
+                            <ChevronDown size={11} strokeWidth={2.6} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
                     <div style={{ textAlign: 'right', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-primary, #0f172a)' }}>

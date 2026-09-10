@@ -232,6 +232,34 @@ export default function CreateBillPage({
     }));
   };
 
+  const handleStepRate = (id: string, delta: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.map((it) => {
+        if (it.id === id) {
+          const current = Number(it.rate) || 0;
+          const next = Math.max(0, parseFloat((current + delta).toFixed(2)));
+          return { ...it, rate: next };
+        }
+        return it;
+      }),
+    }));
+  };
+
+  const handleStepItemTax = (id: string, delta: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.map((it) => {
+        if (it.id === id) {
+          const current = Number(it.taxRate ?? prev.taxRate ?? 18) || 0;
+          const next = Math.min(100, Math.max(0, current + delta));
+          return { ...it, taxRate: next };
+        }
+        return it;
+      }),
+    }));
+  };
+
   const handleAddItem = () => {
     const newItem = {
       id: Date.now().toString(),
@@ -239,11 +267,11 @@ export default function CreateBillPage({
       description: '',
       qty: '' as any,
       rate: '' as any,
-      taxRate: formData.taxRate !== undefined ? formData.taxRate : 18,
+      taxRate: '' as any,
       discount: 0,
     };
     setFormData((prev) => ({ ...prev, items: [...prev.items, newItem] }));
-    onNotify('Added new line item.');
+    onNotify('✨ Added new line item');
   };
 
   const handleRemoveItem = (id: string) => {
@@ -288,6 +316,62 @@ export default function CreateBillPage({
       const nextVal = Math.max(0, Math.round(current + delta));
       return { ...prev, additionalCharges: nextVal };
     });
+  };
+
+  const handleStepAmountPaid = (delta: number) => {
+    setFormData((prev) => {
+      const current = Number(prev.amountPaid) || 0;
+      const nextVal = Math.max(0, parseFloat((current + delta).toFixed(2)));
+      return { ...prev, amountPaid: nextVal };
+    });
+  };
+
+  const handleLoadSampleData = () => {
+    const num = Math.floor(1000 + Math.random() * 9000);
+    const freshSample: BillDocument = {
+      ...DEFAULT_BILL,
+      id: `bill-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      billNumber: `BIL-2026-${num}`,
+      template: normalizeTemplateId(formData.template || 'apex-corporate-bill', 'bill'),
+      items: [
+        {
+          id: 'item-1',
+          name: 'Enterprise Architecture Consulting',
+          description: 'System design, microservices analysis & blueprinting',
+          qty: 22,
+          rate: 2500,
+          taxRate: 18,
+          discount: 0,
+        },
+        {
+          id: 'item-2',
+          name: 'Cloud Infrastructure Audit & Hardening',
+          description: 'Security audit, cost optimization & VPC hardening',
+          qty: 10,
+          rate: 3500,
+          taxRate: 18,
+          discount: 0,
+        },
+        {
+          id: 'item-3',
+          name: 'Executive Stakeholder Presentation',
+          description: 'C-level architecture review & executive roadmap sign-off',
+          qty: 3,
+          rate: 1500,
+          taxRate: 18,
+          discount: 0,
+        },
+      ],
+      taxRate: 18,
+      discount: 250,
+      additionalCharges: 50,
+      amountPaid: 20000,
+    };
+    setFormData(freshSample);
+    try {
+      localStorage.setItem('billease_bill_draft', JSON.stringify(freshSample));
+    } catch (_) {}
+    onNotify('✨ Loaded full sample bill with items & calculations!');
   };
 
   const handleAutoFillFromProfile = () => {
@@ -1339,8 +1423,8 @@ export default function CreateBillPage({
                   const lineTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0);
 
                   return (
-                    <div key={item.id} className="item-row-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px', background: 'var(--glass-bg-subtle, #f8fafc)', border: '1px solid var(--glass-border-subtle, #e2e8f0)', borderRadius: '12px', marginBottom: '12px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div key={item.id} className="item-row-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', width: '100%', gap: '12px', padding: '14px', background: 'var(--glass-bg-subtle, #f8fafc)', border: '1px solid var(--glass-border-subtle, #e2e8f0)', borderRadius: '12px', marginBottom: '12px', boxSizing: 'border-box' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                         <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase' }}>
                           Item #{idx + 1}
                         </span>
@@ -1378,8 +1462,8 @@ export default function CreateBillPage({
                         </div>
                       </div>
 
-                      <div className="form-grid-2">
-                        <div className="form-group">
+                      <div className="form-grid-2" style={{ gap: '12px', width: '100%' }}>
+                        <div className="form-group" style={{ gap: '6px' }}>
                           <label className="form-label" style={{ fontSize: '0.74rem' }}>
                             Item / Service Name
                           </label>
@@ -1392,7 +1476,7 @@ export default function CreateBillPage({
                           />
                         </div>
 
-                        <div className="form-group">
+                        <div className="form-group" style={{ gap: '6px' }}>
                           <label className="form-label" style={{ fontSize: '0.74rem' }}>
                             Description / Deliverables <span style={{ color: '#94a3b8', fontWeight: 400 }}>(Optional)</span>
                           </label>
@@ -1406,9 +1490,9 @@ export default function CreateBillPage({
                         </div>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr 1fr 1.5fr', gap: '8px', alignItems: 'flex-end' }}>
-                        <div className="form-group">
-                          <label className="form-label" style={{ fontSize: '0.72rem' }}>
+                      <div className="item-inputs-grid" style={{ width: '100%' }}>
+                        <div className="form-group" style={{ gap: '6px' }}>
+                          <label className="form-label" style={{ fontSize: '0.74rem' }}>
                             Qty
                           </label>
                           <div className="number-stepper-wrapper">
@@ -1442,41 +1526,84 @@ export default function CreateBillPage({
                           </div>
                         </div>
 
-                        <div className="form-group">
-                          <label className="form-label" style={{ fontSize: '0.72rem' }}>
+                        <div className="form-group" style={{ gap: '6px' }}>
+                          <label className="form-label" style={{ fontSize: '0.74rem' }}>
                             Rate ({currencySymbol})
                           </label>
-                          <input
-                            className="form-input"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.rate ?? ''}
-                            placeholder="0.00"
-                            onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)}
-                          />
+                          <div className="number-stepper-wrapper">
+                            <input
+                              className="form-input number-stepper-input"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.rate ?? ''}
+                              placeholder="0.00"
+                              onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)}
+                            />
+                            <div className="number-stepper-btns">
+                              <button
+                                type="button"
+                                className="number-stepper-btn up"
+                                onClick={() => handleStepRate(item.id, 1)}
+                                title="Increase Rate"
+                              >
+                                <ChevronUp size={11} strokeWidth={2.6} />
+                              </button>
+                              <button
+                                type="button"
+                                className="number-stepper-btn down"
+                                onClick={() => handleStepRate(item.id, -1)}
+                                title="Decrease Rate"
+                              >
+                                <ChevronDown size={11} strokeWidth={2.6} />
+                              </button>
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="form-group">
-                          <label className="form-label" style={{ fontSize: '0.72rem' }}>
+                        <div className="form-group" style={{ gap: '6px' }}>
+                          <label className="form-label" style={{ fontSize: '0.74rem' }}>
                             Tax (%)
                           </label>
-                          <input
-                            className="form-input"
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="1"
-                            value={item.taxRate ?? formData.taxRate ?? 18}
-                            onChange={(e) => handleItemChange(item.id, 'taxRate', e.target.value)}
-                          />
+                          <div className="number-stepper-wrapper">
+                            <input
+                              className="form-input number-stepper-input"
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="1"
+                              value={item.taxRate ?? ''}
+                              placeholder="0"
+                              onChange={(e) => handleItemChange(item.id, 'taxRate', e.target.value)}
+                            />
+                            <div className="number-stepper-btns">
+                              <button
+                                type="button"
+                                className="number-stepper-btn up"
+                                onClick={() => handleStepItemTax(item.id, 1)}
+                                title="Increase Tax Rate"
+                              >
+                                <ChevronUp size={11} strokeWidth={2.6} />
+                              </button>
+                              <button
+                                type="button"
+                                className="number-stepper-btn down"
+                                onClick={() => handleStepItemTax(item.id, -1)}
+                                title="Decrease Tax Rate"
+                              >
+                                <ChevronDown size={11} strokeWidth={2.6} />
+                              </button>
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="form-group" style={{ textAlign: 'right' }}>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, #64748b)', display: 'block' }}>Line Total</span>
-                          <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary, #0f172a)' }}>
+                        <div className="form-group" style={{ textAlign: 'right', gap: '6px' }}>
+                          <label className="form-label" style={{ fontSize: '0.74rem', textAlign: 'right', display: 'block' }}>
+                            Line Total
+                          </label>
+                          <div className="item-line-total-value">
                             {currencySymbol}{formatAmount(lineTotal)}
-                          </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1768,16 +1895,36 @@ export default function CreateBillPage({
                     <label className="form-label" htmlFor="input-amt-paid">
                       Amount Paid ({currencySymbol})
                     </label>
-                    <input
-                      id="input-amt-paid"
-                      className={`form-input ${validationErrors.amountPaid ? 'input-error' : ''}`}
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.amountPaid || 0}
-                      onChange={(e) => handleInputChange('amountPaid', parseFloat(e.target.value) || 0)}
-                      placeholder="0.00"
-                    />
+                    <div className="number-stepper-wrapper">
+                      <input
+                        id="input-amt-paid"
+                        className={`form-input number-stepper-input ${validationErrors.amountPaid ? 'input-error' : ''}`}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.amountPaid || 0}
+                        onChange={(e) => handleInputChange('amountPaid', parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
+                      />
+                      <div className="number-stepper-btns">
+                        <button
+                          type="button"
+                          className="number-stepper-btn up"
+                          onClick={() => handleStepAmountPaid(100)}
+                          title="Increase Amount Paid (+100)"
+                        >
+                          <ChevronUp size={12} strokeWidth={2.6} />
+                        </button>
+                        <button
+                          type="button"
+                          className="number-stepper-btn down"
+                          onClick={() => handleStepAmountPaid(-100)}
+                          title="Decrease Amount Paid (-100)"
+                        >
+                          <ChevronDown size={12} strokeWidth={2.6} />
+                        </button>
+                      </div>
+                    </div>
                     {validationErrors.amountPaid && (
                       <span className="field-error-text">{validationErrors.amountPaid}</span>
                     )}
@@ -2255,7 +2402,7 @@ export default function CreateBillPage({
                   <span>Save &amp; Download PDF</span>
                 </>
               )}
-            </button>
+              </button>
           </div>
         </aside>
       </div>
