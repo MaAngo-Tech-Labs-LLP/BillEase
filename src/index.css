@@ -273,13 +273,22 @@ body[data-theme='dark'] .ambient-liquid-background::after {
    Navbar (Exact match with reference screenshot)
    ------------------------------------------------------------ */
 .navbar-container {
-  position: static;
+  position: sticky;
+  top: 0;
+  z-index: 100;
   width: 100%;
   background: rgba(247, 248, 246, 0.65);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.45);
   box-shadow: none;
+  transition: background-color 200ms ease, border-bottom-color 200ms ease, box-shadow 250ms ease;
+}
+
+.navbar-container.is-scrolled {
+  background: rgba(247, 248, 246, 0.85);
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(31, 38, 135, 0.08);
 }
 
 .navbar-glass {
@@ -963,6 +972,12 @@ body[data-theme='dark'] .navbar-container {
   background: rgba(19, 21, 24, 0.65);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: none;
+}
+
+body[data-theme='dark'] .navbar-container.is-scrolled {
+  background: rgba(19, 21, 24, 0.86);
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
 }
 
 body[data-theme='dark'] .brand-name {
@@ -2151,7 +2166,7 @@ body[data-theme='dark'] .btn-wizard-next:hover {
   padding: 30px 34px 44px 34px;
   box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.03);
   position: sticky;
-  top: 1.5rem;
+  top: 5rem;
 }
 
 body[data-theme='dark'] .live-layout-architecture-card {
@@ -3564,7 +3579,7 @@ body[data-theme='dark'] .invoice-item-input {
 
 .sticky-preview-wrapper {
   position: sticky;
-  top: 24px;
+  top: 90px;
 }
 
 .invoice-preview-outer-card {
