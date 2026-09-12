@@ -373,6 +373,7 @@ export default function CreateInvoicePage({
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsDraggingLogo(false); // never leave the drag-hover highlight stuck on
     const file = e.target.files?.[0];
     if (file) {
       processLogoFile(file);
@@ -853,6 +854,7 @@ export default function CreateInvoicePage({
                     setIsDraggingLogo(true);
                   }}
                   onDragLeave={() => setIsDraggingLogo(false)}
+                  onDragEnd={() => setIsDraggingLogo(false)}
                   onDrop={handleLogoDrop}
                 >
                   <input
