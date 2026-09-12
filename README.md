@@ -7,7 +7,7 @@
 
 ## 🌟 Overview
 
-**BillEase** is a production-grade web application tailored for freelancers, agencies, consultants, small businesses, and enterprises. It provides dual creation workflows—a step-by-step wizard for detailed bills and a single-page rapid generator for invoices—backed by 11 curated templates (6 for Bills, 5 for Invoices), central business profile auto-sync, dark mode, unsaved-changes protection, and local draft persistence.
+**BillEase** is a production-grade web application tailored for freelancers, agencies, consultants, small businesses, and enterprises. It provides dual creation workflows—a step-by-step wizard for detailed bills and a single-page rapid generator for invoices—backed by 12 curated templates (6 for Bills, 6 for Invoices), central business profile auto-sync, dark mode, unsaved-changes protection, and local draft persistence.
 
 ---
 
@@ -27,7 +27,7 @@
 
 ---
 
-### 2. 🎨 11 Curated Document Templates
+### 2. 🎨 12 Curated Document Templates
 Templates are strictly scoped to their document type — the Bill editor only ever offers Bill templates, and the Invoice editor only ever offers Invoice templates.
 
 **Bill Templates**
@@ -47,7 +47,8 @@ Templates are strictly scoped to their document type — the Bill editor only ev
 | **Modern Minimal Invoice** | Clean asymmetric whitespace, pill badges | Tech startups, SaaS, modern agencies |
 | **Creative Studio Sidebar Invoice** | Left brand & payment sidebar, right-side charges | Creative agencies, design studios |
 | **Executive Legal & Advisory Invoice** | Serif typography, matter reference, retainer ledger | Legal firms, accounting, advisory |
-| **Indian GST Tax Invoice** | Indian GST layout, HSN/SAC codes, CGST/SGST split, amount in words | Indian GST registered businesses |
+| **EU Business Invoice** | Dense Nordic/European metadata block, Unit Price/Qty/VAT% table, BIC/SWIFT + IBAN bank footer | International billing, EU/Nordic clients |
+| **GST Tax Invoice — Detailed** | Full statutory Indian GST invoice: PAN + GSTIN, Challan/E-Way Bill/Transport block, per-line HSN/SAC codes, HSN-grouped IGST summary table, amount in words, UPI QR code, signature stamp | Indian GST-registered businesses shipping goods |
 
 ---
 
@@ -114,7 +115,8 @@ BillEase/
 │   │   ├── ConfirmDeleteModal.tsx   # Delete confirmation popup dialog
 │   │   ├── DateInputWithPicker.tsx  # Date input with calendar picker + ISO normalization
 │   │   ├── DocumentRenderer.tsx     # A4 live canvas renderer for Invoice templates
-│   │   └── Navbar.tsx               # Top navigation bar
+│   │   ├── Navbar.tsx               # Top navigation bar
+│   │   └── UnsavedChangesModal.tsx  # "Unsaved changes" confirmation dialog
 │   ├── data/
 │   │   ├── templates.ts        # Default data models, sample docs & currency tokens
 │   │   └── templateStyles.ts   # Template style configurations
@@ -136,7 +138,8 @@ BillEase/
 │   ├── App.tsx                 # Root application container & tab router
 │   ├── index.css               # Global styling, themes & utility classes
 │   └── main.tsx                # Application entry point
-├── package.json
+├── package.json                # Source of truth for dependencies
+├── requirements.txt            # Plain-text dependency reference (see below)
 ├── tsconfig.json
 └── vite.config.ts
 ```
@@ -161,6 +164,11 @@ BillEase/
    ```bash
    npm install
    ```
+   `package.json` (and its lockfile, `package-lock.json`) is the actual
+   source of truth for dependencies — that's what `npm install` reads. A
+   plain-text `requirements.txt` is also included at the project root as a
+   quick human-readable reference of the same packages; it isn't read by
+   any installer.
 
 3. **Start development server**:
    ```bash
