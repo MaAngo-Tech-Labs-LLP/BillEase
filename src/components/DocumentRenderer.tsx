@@ -1627,6 +1627,591 @@ export default function DocumentRenderer({
   }
 
   // =========================================================================
+  // 6b. EU BUSINESS INVOICE (layout === 'eu-business', id: 'eu-business')
+  // Dense Nordic/European corporate layout: logo top-left, a compact
+  // right-aligned metadata block (invoice #, dates, payment terms, buyer
+  // reference), an itemized Unit Price / Qty / VAT% / Total table, and a
+  // bank settlement footer labeled BIC/SWIFT + IBAN (reusing the existing
+  // ifscCode/accountNumber fields under region-appropriate labels rather
+  // than adding new schema fields).
+  // =========================================================================
+  if (layout === 'eu-business') {
+    return (
+      <div
+        className={`a4-paper-sheet tpl-eu-business ${className}`}
+        id="printable-bill-canvas"
+        style={{
+          transform: scale !== 1 ? `scale(${scale})` : undefined,
+          transformOrigin: 'top center',
+          '--builder-accent': accentHex,
+        } as React.CSSProperties}
+      >
+        {/* Header: Logo + Sender block on the left, dense metadata on the right */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: 20,
+            padding: '18px 20px 14px',
+            borderBottom: `2px solid ${accentHex}`,
+            width: '100%',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flex: 1, minWidth: 0 }}>
+            <div style={{ flexShrink: 0, marginTop: 2 }}>
+              {renderBusinessLogo(senderLogo, senderName, false)}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#0f172a', wordBreak: 'break-word' }}>
+                {senderName || senderPlaceholder}
+              </h2>
+              {senderTagline && (
+                <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: 2 }}>{senderTagline}</div>
+              )}
+              <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 4, whiteSpace: 'pre-line' }}>
+                {senderAddress}
+              </div>
+              {(senderEmail || senderPhone) && (
+                <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 2 }}>
+                  {[senderEmail, senderPhone].filter(Boolean).join(' · ')}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 200 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: '1.3rem', fontWeight: 800, letterSpacing: '0.04em', color: '#0f172a' }}>
+                {docHeading}
+              </span>
+              {renderStatusBadge(document.status)}
+            </div>
+            <table style={{ borderCollapse: 'collapse', marginLeft: 'auto', fontSize: '0.74rem' }}>
+              <tbody>
+                <tr>
+                  <td style={{ color: '#64748b', textAlign: 'right', padding: '1.5px 8px 1.5px 0' }}>Invoice number</td>
+                  <td style={{ color: '#0f172a', fontWeight: 700, textAlign: 'right' }}>{document.billNumber || 'INV-2026-1817'}</td>
+                </tr>
+                <tr>
+                  <td style={{ color: '#64748b', textAlign: 'right', padding: '1.5px 8px 1.5px 0' }}>Invoice date</td>
+                  <td style={{ color: '#0f172a', fontWeight: 700, textAlign: 'right' }}>{formatHeaderDate(document.issueDate)}</td>
+                </tr>
+                {document.dueDate && (
+                  <tr>
+                    <td style={{ color: '#64748b', textAlign: 'right', padding: '1.5px 8px 1.5px 0' }}>Due date</td>
+                    <td style={{ color: accentHex, fontWeight: 700, textAlign: 'right' }}>{formatHeaderDate(document.dueDate)}</td>
+                  </tr>
+                )}
+                {hasPaymentTerms && (
+                  <tr>
+                    <td style={{ color: '#64748b', textAlign: 'right', padding: '1.5px 8px 1.5px 0' }}>Payment terms</td>
+                    <td style={{ color: '#0f172a', fontWeight: 700, textAlign: 'right' }}>{paymentTerms}</td>
+                  </tr>
+                )}
+                {hasPoNumber && (
+                  <tr>
+                    <td style={{ color: '#64748b', textAlign: 'right', padding: '1.5px 8px 1.5px 0' }}>Buyer's reference</td>
+                    <td style={{ color: '#0f172a', fontWeight: 700, textAlign: 'right' }}>{poNumberValue}</td>
+                  </tr>
+                )}
+                {hasSenderTax && (
+                  <tr>
+                    <td style={{ color: '#64748b', textAlign: 'right', padding: '1.5px 8px 1.5px 0' }}>Business ID</td>
+                    <td style={{ color: '#0f172a', fontWeight: 700, textAlign: 'right' }}>{senderTaxNumber}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Bill To */}
+        <div style={{ padding: '14px 20px 0' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>
+            Bill To
+          </div>
+          <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>{clientName || clientPlaceholder}</div>
+          <div style={{ color: '#475569', fontSize: '0.76rem', whiteSpace: 'pre-line', marginTop: 2 }}>{clientAddress}</div>
+          <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {[clientEmail, clientPhone].filter(Boolean).join(' · ')}
+            {hasClientTax && <span>Customer ID: <strong>{clientTaxNumber}</strong></span>}
+          </div>
+        </div>
+
+        {/* Items Table */}
+        <div className="a4-table-wrapper" style={{ margin: '14px 0 0' }}>
+          <table className="a4-items-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={{ width: '10%', textAlign: 'left', padding: '9px 12px' }}>#</th>
+                <th style={{ width: '34%', textAlign: 'left', padding: '9px 12px' }}>Description</th>
+                <th style={{ width: '13%', textAlign: 'right', padding: '9px 12px' }}>Unit Price</th>
+                <th style={{ width: '11%', textAlign: 'center', padding: '9px 8px' }}>Qty</th>
+                <th style={{ width: '12%', textAlign: 'center', padding: '9px 8px' }}>VAT %</th>
+                <th style={{ width: '20%', textAlign: 'right', padding: '9px 12px' }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {document.items.map((item, idx) => {
+                const lineTaxRate = item.taxRate ?? document.taxRate ?? 0;
+                const lineTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+                return (
+                  <tr key={item.id}>
+                    <td style={{ textAlign: 'left', padding: '9px 12px', color: '#94a3b8', fontVariantNumeric: 'tabular-nums' }}>{idx + 1}</td>
+                    <td style={{ textAlign: 'left', padding: '9px 12px' }}>
+                      <div style={{ fontWeight: 600, color: '#0f172a' }}>{item.name || itemPlaceholder}</div>
+                      {item.name && item.description && (
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 1 }}>{item.description}</div>
+                      )}
+                    </td>
+                    <td className="cell-rate" style={{ textAlign: 'right', padding: '9px 12px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(item.rate)}</td>
+                    <td className="cell-qty" style={{ textAlign: 'center', padding: '9px 8px', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
+                    <td style={{ textAlign: 'center', padding: '9px 8px', fontVariantNumeric: 'tabular-nums', color: '#64748b' }}>{lineTaxRate}%</td>
+                    <td className="cell-amount" style={{ textAlign: 'right', padding: '9px 12px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#0f172a' }}>{currencySymbol}{formatAmount(lineTotal)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Totals */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10, padding: '0 20px' }}>
+          <div style={{ width: 260, fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
+              <span>Total excl. VAT</span>
+              <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(subtotal - discountAmount)}</strong>
+            </div>
+            {discountAmount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
+                <span>Discount</span>
+                <strong style={{ fontVariantNumeric: 'tabular-nums' }}>-{currencySymbol}{formatAmount(discountAmount)}</strong>
+              </div>
+            )}
+            {taxAmount > 0 && hasAnyTax && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
+                <span>VAT total</span>
+                <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(taxAmount)}</strong>
+              </div>
+            )}
+            <div style={{ borderTop: `1.5px solid ${accentHex}`, margin: '4px 0' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '1.05rem', fontWeight: 800, color: accentHex }}>
+              <span style={{ fontSize: '0.78rem', color: '#0f172a' }}>Total to pay</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(totalAmount)}</span>
+            </div>
+          </div>
+        </div>
+
+        {(document.notes || document.termsAndConditions) && (
+          <div style={{ margin: '14px 20px 0', fontSize: '0.74rem', color: '#64748b', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px' }}>
+            {document.notes && <div>{document.notes}</div>}
+            {document.termsAndConditions && <div style={{ marginTop: document.notes ? 4 : 0 }}>{document.termsAndConditions}</div>}
+          </div>
+        )}
+
+        {/* Bank settlement footer */}
+        <div
+          style={{
+            marginTop: 'auto',
+            borderTop: '1px solid #e2e8f0',
+            padding: '12px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 16,
+            fontSize: '0.72rem',
+          }}
+        >
+          <div>
+            {document.dueDate && (
+              <>
+                <div style={{ color: '#64748b', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Due date</div>
+                <div style={{ fontWeight: 700, color: accentHex, fontSize: '0.92rem' }}>{formatHeaderDate(document.dueDate)}</div>
+              </>
+            )}
+          </div>
+          {document.ifscCode && (
+            <div>
+              <div style={{ color: '#64748b', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.4px' }}>BIC / SWIFT</div>
+              <div style={{ fontWeight: 700, color: '#0f172a' }}>{document.ifscCode}</div>
+            </div>
+          )}
+          {document.accountNumber && (
+            <div>
+              <div style={{ color: '#64748b', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Account Number / IBAN</div>
+              <div style={{ fontWeight: 700, color: '#0f172a' }}>{document.accountNumber}</div>
+            </div>
+          )}
+          {document.bankName && (
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontWeight: 700, color: '#0f172a' }}>{document.bankName}</div>
+              <div style={{ color: '#64748b' }}>
+                {[senderEmail, senderPhone].filter(Boolean).join(' · ')}
+              </div>
+            </div>
+          )}
+          <div style={{ textAlign: 'right', marginLeft: 'auto' }}>
+            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>
+              Total <span style={{ color: accentHex }}>{currencySymbol}{formatAmount(totalAmount)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 6c. GST TAX INVOICE — DETAILED (layout === 'gst-detailed', id: 'gst-detailed')
+  // Full statutory Indian GST invoice: PAN + GSTIN shown separately, a
+  // Customer Detail block paired with Challan/E-Way Bill/Transport
+  // metadata, per-line HSN/SAC codes, a tax summary table grouped by HSN
+  // code, amount in words, bank details with a UPI QR code, and a
+  // signature stamp area.
+  // =========================================================================
+  if (layout === 'gst-detailed') {
+    const taxableValue = subtotal - discountAmount;
+    const BORDER = '#000000'; // statutory printed-invoice look: solid black rules throughout, not soft accent-colored ones
+    const tealBar = '#0F9E8E';
+    const navy = '#26206B';
+
+    // Group items by HSN/SAC code for the statutory tax summary table —
+    // each distinct code gets one row totalling its taxable value and tax.
+    // Computed as a plain local (not useMemo) since this whole branch is
+    // itself behind a conditional — a hook here would violate the Rules
+    // of Hooks.
+    const hsnGroups: { hsnSac: string; taxableValue: number; taxRate: number }[] = (() => {
+      const map = new Map<string, { hsnSac: string; taxableValue: number; taxRate: number }>();
+      document.items.forEach((item) => {
+        const code = item.hsnSac?.trim() || '—';
+        const lineTaxable = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+        const lineTaxRate = item.taxRate ?? document.taxRate ?? 0;
+        const existing = map.get(code);
+        if (existing) {
+          existing.taxableValue += lineTaxable;
+        } else {
+          map.set(code, { hsnSac: code, taxableValue: lineTaxable, taxRate: lineTaxRate });
+        }
+      });
+      return Array.from(map.values());
+    })();
+
+    const rowLabelStyle: React.CSSProperties = { color: '#111827', fontWeight: 700, padding: '3px 10px 3px 0', verticalAlign: 'top', whiteSpace: 'nowrap', fontSize: '0.8rem' };
+    const rowValueStyle: React.CSSProperties = { color: '#111827', padding: '3px 0', fontSize: '0.8rem' };
+
+    return (
+      <div
+        className={`a4-paper-sheet tpl-gst-detailed ${className}`}
+        id="printable-bill-canvas"
+        style={{
+          transform: scale !== 1 ? `scale(${scale})` : undefined,
+          transformOrigin: 'top center',
+          '--builder-accent': accentHex,
+          border: `1.5px solid ${BORDER}`,
+          color: '#111827',
+        } as React.CSSProperties}
+      >
+        {/* Header: bold navy brand name, teal tagline bar, address left / contact right, logo far right */}
+        <div style={{ padding: '18px 20px 0', width: '100%', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+            <h2 style={{ fontSize: '1.7rem', fontWeight: 900, margin: 0, color: navy, wordBreak: 'break-word', textTransform: 'uppercase', letterSpacing: '0.01em', fontFamily: 'Georgia, "Times New Roman", serif' }}>
+              {senderName || senderPlaceholder}
+            </h2>
+            {senderLogo && (
+              <div style={{ flexShrink: 0 }}>
+                {renderBusinessLogo(senderLogo, senderName, false)}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {senderTagline && (
+          <div style={{ background: tealBar, color: '#fff', fontWeight: 800, fontSize: '0.92rem', padding: '7px 20px', margin: '10px 0 0' }}>
+            {senderTagline}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 20px', gap: 16, fontSize: '0.78rem', color: '#111827' }}>
+          {senderAddress && <div style={{ whiteSpace: 'pre-line', lineHeight: 1.5 }}>{senderAddress}</div>}
+          <div style={{ textAlign: 'right', flexShrink: 0, lineHeight: 1.5 }}>
+            {senderPhone && <div>Tel : {senderPhone}</div>}
+            {document.senderWebsite && <div>Web : {document.senderWebsite}</div>}
+            {senderEmail && <div>Web : {senderEmail}</div>}
+          </div>
+        </div>
+
+        {/* PAN + Tax Invoice banner */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: `1.5px solid ${BORDER}`, borderBottom: `1.5px solid ${BORDER}`, padding: '8px 20px', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.92rem', fontWeight: 800 }}>
+            {document.senderPanNumber ? <>PAN : {document.senderPanNumber}</> : <>&nbsp;</>}
+          </span>
+          <span style={{ fontSize: '1.35rem', fontWeight: 900, letterSpacing: '0.02em' }}>TAX INVOICE</span>
+          <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>ORIGINAL FOR RECIPIENT</span>
+        </div>
+
+        {/* Customer Detail + Invoice Metadata */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', borderBottom: `1.5px solid ${BORDER}` }}>
+          <div style={{ padding: '8px 12px', borderRight: `1.5px solid ${BORDER}` }}>
+            <div style={{ fontWeight: 800, textAlign: 'center', marginBottom: 4, fontSize: '0.82rem', borderBottom: `1px solid ${BORDER}`, paddingBottom: 4 }}>Customer Detail</div>
+            <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+              <tbody>
+                <tr>
+                  <td style={rowLabelStyle}>M/S</td>
+                  <td style={rowValueStyle}>{clientName || clientPlaceholder}</td>
+                </tr>
+                <tr>
+                  <td style={rowLabelStyle}>Address</td>
+                  <td style={{ ...rowValueStyle, whiteSpace: 'pre-line' }}>{clientAddress || '—'}</td>
+                </tr>
+                {clientPhone && (
+                  <tr>
+                    <td style={rowLabelStyle}>Phone</td>
+                    <td style={rowValueStyle}>{clientPhone}</td>
+                  </tr>
+                )}
+                {hasClientTax && (
+                  <tr>
+                    <td style={rowLabelStyle}>GSTIN</td>
+                    <td style={rowValueStyle}>{clientTaxNumber}</td>
+                  </tr>
+                )}
+                {document.placeOfSupply && (
+                  <tr>
+                    <td style={rowLabelStyle}>Place of Supply</td>
+                    <td style={rowValueStyle}>{document.placeOfSupply}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ padding: '8px 12px' }}>
+            <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+              <tbody>
+                <tr>
+                  <td style={rowLabelStyle}>Invoice No.</td>
+                  <td style={{ ...rowValueStyle, fontWeight: 800 }}>{document.billNumber || 'INV-2026-1817'}</td>
+                </tr>
+                <tr>
+                  <td style={rowLabelStyle}>Invoice Date</td>
+                  <td style={rowValueStyle}>{formatHeaderDate(document.issueDate)}</td>
+                </tr>
+                {document.challanNumber && (
+                  <tr>
+                    <td style={rowLabelStyle}>Challan No</td>
+                    <td style={rowValueStyle}>{document.challanNumber}</td>
+                  </tr>
+                )}
+                {document.challanDate && (
+                  <tr>
+                    <td style={rowLabelStyle}>Challan Date</td>
+                    <td style={rowValueStyle}>{formatHeaderDate(document.challanDate)}</td>
+                  </tr>
+                )}
+                {document.ewayBillNumber && (
+                  <tr>
+                    <td style={rowLabelStyle}>E-Way Bill No.</td>
+                    <td style={rowValueStyle}>{document.ewayBillNumber}</td>
+                  </tr>
+                )}
+                {document.transportName && (
+                  <tr>
+                    <td style={rowLabelStyle}>Transport</td>
+                    <td style={rowValueStyle}>{document.transportName}</td>
+                  </tr>
+                )}
+                {document.transportId && (
+                  <tr>
+                    <td style={rowLabelStyle}>Transport ID</td>
+                    <td style={rowValueStyle}>{document.transportId}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Items Table */}
+        <table className="gst-detailed-items-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', flex: 1 }}>
+          <thead>
+            <tr style={{ borderBottom: `1.5px solid ${BORDER}` }}>
+              <th style={{ width: '7%', textAlign: 'left', padding: '7px 10px', fontWeight: 800 }}>Sr. No.</th>
+              <th style={{ width: '33%', textAlign: 'left', padding: '7px 10px', fontWeight: 800, borderLeft: `1.5px solid ${BORDER}` }}>Name of Product / Service</th>
+              <th style={{ width: '12%', textAlign: 'center', padding: '7px 10px', fontWeight: 800, borderLeft: `1.5px solid ${BORDER}` }}>HSN / SAC</th>
+              <th style={{ width: '9%', textAlign: 'center', padding: '7px 10px', fontWeight: 800, borderLeft: `1.5px solid ${BORDER}` }}>Qty</th>
+              <th style={{ width: '17%', textAlign: 'right', padding: '7px 10px', fontWeight: 800, borderLeft: `1.5px solid ${BORDER}` }}>Rate</th>
+              <th style={{ width: '22%', textAlign: 'right', padding: '7px 10px', fontWeight: 800, borderLeft: `1.5px solid ${BORDER}` }}>Taxable Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {document.items.map((item, idx) => (
+              <tr key={item.id}>
+                <td style={{ textAlign: 'left', padding: '5px 10px', fontVariantNumeric: 'tabular-nums' }}>{idx + 1}</td>
+                <td style={{ textAlign: 'left', padding: '5px 10px', borderLeft: `1.5px solid ${BORDER}`, fontWeight: 700 }}>
+                  {item.name || itemPlaceholder}
+                  {item.name && item.description && (
+                    <div style={{ fontSize: '0.72rem', color: '#4b5563', fontWeight: 400, marginTop: 1 }}>{item.description}</div>
+                  )}
+                </td>
+                <td style={{ textAlign: 'center', padding: '5px 10px', borderLeft: `1.5px solid ${BORDER}`, fontVariantNumeric: 'tabular-nums' }}>{item.hsnSac || '—'}</td>
+                <td style={{ textAlign: 'center', padding: '5px 10px', borderLeft: `1.5px solid ${BORDER}`, fontVariantNumeric: 'tabular-nums' }}>{item.qty} NOS</td>
+                <td style={{ textAlign: 'right', padding: '5px 10px', borderLeft: `1.5px solid ${BORDER}`, fontVariantNumeric: 'tabular-nums' }}>{formatAmount(item.rate)}</td>
+                <td style={{ textAlign: 'right', padding: '5px 10px', borderLeft: `1.5px solid ${BORDER}`, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
+              </tr>
+            ))}
+            {taxAmount > 0 && hasAnyTax && (
+              <tr>
+                <td colSpan={5} style={{ textAlign: 'right', padding: '4px 10px', borderLeft: `1.5px solid ${BORDER}` }}>
+                  IGST ({(Number(document.taxRate) || 0).toFixed(2)} %)
+                </td>
+                <td style={{ textAlign: 'right', padding: '4px 10px', borderLeft: `1.5px solid ${BORDER}`, fontVariantNumeric: 'tabular-nums' }}>
+                  {formatAmount(taxAmount)}
+                </td>
+              </tr>
+            )}
+            <tr style={{ height: '100%' }}>
+              <td colSpan={6} style={{ borderLeft: `1.5px solid ${BORDER}`, padding: 0 }}>&nbsp;</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr style={{ borderTop: `1.5px solid ${BORDER}` }}>
+              <td colSpan={3} style={{ padding: '8px 10px', fontWeight: 800 }}>Total</td>
+              <td style={{ textAlign: 'center', padding: '8px 10px', borderLeft: `1.5px solid ${BORDER}`, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
+                {document.items.reduce((s, it) => s + (Number(it.qty) || 0), 0)} NOS
+              </td>
+              <td style={{ borderLeft: `1.5px solid ${BORDER}` }} />
+              <td style={{ textAlign: 'right', padding: '8px 10px', borderLeft: `1.5px solid ${BORDER}`, fontWeight: 900, fontVariantNumeric: 'tabular-nums', fontSize: '1rem' }}>
+                {currencySymbol} {formatAmount(totalAmount)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+
+        {/* Total in words */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '8px 20px', gap: 12, fontSize: '0.8rem', borderTop: `1.5px solid ${BORDER}` }}>
+          <div>
+            <span>Total in words</span>
+            <div style={{ fontWeight: 800, textTransform: 'uppercase', marginTop: 2 }}>{convertNumberToWords(totalAmount)}</div>
+          </div>
+          <span style={{ fontSize: '0.72rem', flexShrink: 0 }}>(E &amp; O.E.)</span>
+        </div>
+
+        {/* HSN/SAC Tax Summary Table */}
+        {hsnGroups.length > 0 && hasAnyTax && (
+          <div style={{ borderTop: `1.5px solid ${BORDER}` }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+              <thead>
+                <tr>
+                  <th rowSpan={2} style={{ textAlign: 'left', padding: '5px 10px', fontWeight: 800, borderRight: `1.5px solid ${BORDER}`, borderBottom: `1.5px solid ${BORDER}` }}>HSN / SAC</th>
+                  <th rowSpan={2} style={{ textAlign: 'right', padding: '5px 10px', fontWeight: 800, borderRight: `1.5px solid ${BORDER}`, borderBottom: `1.5px solid ${BORDER}` }}>Taxable Value</th>
+                  <th colSpan={2} style={{ textAlign: 'center', padding: '3px 10px', fontWeight: 800, borderBottom: `1px solid ${BORDER}` }}>IGST</th>
+                  <th rowSpan={2} style={{ textAlign: 'right', padding: '5px 10px', fontWeight: 800, borderLeft: `1.5px solid ${BORDER}`, borderBottom: `1.5px solid ${BORDER}` }}>Total</th>
+                </tr>
+                <tr>
+                  <th style={{ textAlign: 'right', padding: '3px 10px', fontWeight: 700, borderRight: `1px solid ${BORDER}`, borderBottom: `1.5px solid ${BORDER}` }}>%</th>
+                  <th style={{ textAlign: 'right', padding: '3px 10px', fontWeight: 700, borderBottom: `1.5px solid ${BORDER}` }}>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hsnGroups.map((g, i) => {
+                  const gTax = g.taxableValue * (g.taxRate / 100);
+                  return (
+                    <tr key={i}>
+                      <td style={{ padding: '4px 10px', borderRight: `1.5px solid ${BORDER}` }}>{g.hsnSac}</td>
+                      <td style={{ textAlign: 'right', padding: '4px 10px', borderRight: `1.5px solid ${BORDER}`, fontVariantNumeric: 'tabular-nums' }}>{formatAmount(g.taxableValue)}</td>
+                      <td style={{ textAlign: 'right', padding: '4px 10px', fontVariantNumeric: 'tabular-nums' }}>{g.taxRate.toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '4px 10px', fontVariantNumeric: 'tabular-nums' }}>{formatAmount(gTax)}</td>
+                      <td style={{ textAlign: 'right', padding: '4px 10px', borderLeft: `1.5px solid ${BORDER}`, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{formatAmount(gTax)}</td>
+                    </tr>
+                  );
+                })}
+                <tr style={{ borderTop: `1.5px solid ${BORDER}`, fontWeight: 800 }}>
+                  <td style={{ padding: '4px 10px', borderRight: `1.5px solid ${BORDER}` }}>Total</td>
+                  <td style={{ textAlign: 'right', padding: '4px 10px', borderRight: `1.5px solid ${BORDER}`, fontVariantNumeric: 'tabular-nums' }}>{formatAmount(taxableValue)}</td>
+                  <td />
+                  <td style={{ textAlign: 'right', padding: '4px 10px', fontVariantNumeric: 'tabular-nums' }}>{formatAmount(taxAmount)}</td>
+                  <td style={{ textAlign: 'right', padding: '4px 10px', borderLeft: `1.5px solid ${BORDER}`, fontVariantNumeric: 'tabular-nums' }}>{formatAmount(taxAmount)}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div style={{ fontSize: '0.78rem', padding: '6px 10px' }}>
+              Total Tax in words: <strong style={{ textTransform: 'uppercase' }}>{convertNumberToWords(taxAmount)}</strong>
+            </div>
+          </div>
+        )}
+
+        {/* Bank Details + QR + Signature */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderTop: `1.5px solid ${BORDER}` }}>
+          <div style={{ borderRight: `1.5px solid ${BORDER}` }}>
+            {bankRows.length > 0 && (
+              <>
+                <div style={{ fontWeight: 800, textAlign: 'center', fontSize: '0.82rem', padding: '5px 0', borderBottom: `1px solid ${BORDER}` }}>Bank Details</div>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '8px 14px' }}>
+                  <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem', flex: 1 }}>
+                    <tbody>
+                      {bankRows.map((r, i) => (
+                        <tr key={i}>
+                          <td style={{ padding: '2px 10px 2px 0', fontWeight: 700, whiteSpace: 'nowrap' }}>{r.label || 'Bank'}</td>
+                          <td style={{ padding: '2px 0' }}>{r.value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {document.paymentQrCode && (
+                    <div style={{ textAlign: 'center', flexShrink: 0 }}>
+                      <img
+                        src={document.paymentQrCode}
+                        alt="Payment QR code"
+                        style={{ width: 74, height: 74, objectFit: 'contain' }}
+                      />
+                      <div style={{ fontSize: '0.68rem', fontWeight: 700, marginTop: 2 }}>Pay using UPI</div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '8px 14px' }}>
+            <div style={{ fontSize: '0.74rem', textAlign: 'center' }}>
+              Certified that the particulars given above are true and correct.
+              <div style={{ fontWeight: 800, marginTop: 4 }}>For {senderName || senderPlaceholder}</div>
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 20 }}>
+              {document.signature ? (
+                <img src={document.signature} alt="Authorized signature" style={{ maxHeight: 44, maxWidth: 140, objectFit: 'contain', margin: '0 auto' }} />
+              ) : (
+                <div style={{ fontSize: '0.68rem', color: '#4b5563', fontStyle: 'italic', transform: 'rotate(-4deg)' }}>
+                  This is a computer generated<br />invoice, no signature required.
+                </div>
+              )}
+              <div style={{ borderTop: `1px solid ${BORDER}`, marginTop: 8, paddingTop: 3, fontSize: '0.74rem', fontWeight: 700 }}>
+                Authorised Signatory
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Terms & Customer Signature */}
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', borderTop: `1.5px solid ${BORDER}` }}>
+          <div style={{ fontSize: '0.76rem', borderRight: `1.5px solid ${BORDER}` }}>
+            <div style={{ fontWeight: 800, padding: '5px 14px', borderBottom: `1px solid ${BORDER}` }}>Terms and Conditions</div>
+            <div style={{ padding: '6px 14px', whiteSpace: 'pre-line', lineHeight: 1.5 }}>
+              {document.termsAndConditions || ' '}
+            </div>
+          </div>
+          <div style={{ fontWeight: 800, fontSize: '0.76rem', padding: '5px 14px' }}>
+            Customer Signature
+          </div>
+        </div>
+
+        <div style={{ marginTop: 'auto', padding: '10px 20px 14px', fontSize: '0.8rem' }}>
+          Thank you for shopping with us!
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
   // 7. MODERN MINIMAL (layout === 'minimal', id: 'modern-minimal')
   // =========================================================================
   if (layout === 'minimal') {

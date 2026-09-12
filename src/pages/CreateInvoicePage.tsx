@@ -243,7 +243,7 @@ export default function CreateInvoicePage({
     });
   };
 
-  const handleItemChange = (id: string, field: 'name' | 'description' | 'qty' | 'rate', value: string) => {
+  const handleItemChange = (id: string, field: 'name' | 'description' | 'qty' | 'rate' | 'hsnSac', value: string) => {
     setFormData((prev) => ({
       ...prev,
       items: prev.items.map((it) => {
@@ -314,9 +314,18 @@ export default function CreateInvoicePage({
   };
 
   // Client-side logo processing & auto-downscale, matching CreateBillPage
-  const processLogoFile = (file: File) => {
+  // Reads an image file, downsizes it to MAX_DIM (SVGs are kept as-is,
+  // vector art doesn't need rasterizing), and writes the resulting data URL
+  // into the given document field. Shared by the business logo upload and
+  // the GST payment QR code upload so both get the same size/format
+  // handling instead of duplicating the resize logic per field.
+  const processImageFileInto = (
+    file: File,
+    field: keyof BillDocument,
+    labels: { vector: string; raster: string; invalid: string }
+  ) => {
     if (!file.type.startsWith('image/')) {
-      onNotify('Please select a valid image file (PNG, JPG, SVG, WEBP).');
+      onNotify(labels.invalid);
       return;
     }
 
@@ -324,8 +333,8 @@ export default function CreateInvoicePage({
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === 'string') {
-          handleInputChange('senderLogo', reader.result);
-          onNotify('Vector logo uploaded!');
+          handleInputChange(field, reader.result);
+          onNotify(labels.vector);
         }
       };
       reader.readAsDataURL(file);
@@ -357,8 +366,8 @@ export default function CreateInvoicePage({
         canvas.height = Math.max(1, height);
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          handleInputChange('senderLogo', rawDataUrl);
-          onNotify('Business logo applied to template.');
+          handleInputChange(field, rawDataUrl);
+          onNotify(labels.raster);
           return;
         }
 
@@ -366,9 +375,9 @@ export default function CreateInvoicePage({
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
 
-        const optimizedLogo = canvas.toDataURL('image/png', 0.92);
-        handleInputChange('senderLogo', optimizedLogo);
-        onNotify('Desktop image uploaded!');
+        const optimized = canvas.toDataURL('image/png', 0.92);
+        handleInputChange(field, optimized);
+        onNotify(labels.raster);
       };
       img.onerror = () => {
         onNotify('Could not decode the selected image. Please try another file.');
@@ -377,6 +386,13 @@ export default function CreateInvoicePage({
     };
     reader.readAsDataURL(file);
   };
+
+  const processLogoFile = (file: File) =>
+    processImageFileInto(file, 'senderLogo', {
+      vector: 'Vector logo uploaded!',
+      raster: 'Desktop image uploaded!',
+      invalid: 'Please select a valid image file (PNG, JPG, SVG, WEBP).',
+    });
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsDraggingLogo(false); // never leave the drag-hover highlight stuck on
@@ -398,6 +414,24 @@ export default function CreateInvoicePage({
   const handleRemoveLogo = () => {
     handleInputChange('senderLogo', '');
     onNotify('Logo removed from invoice.');
+  };
+
+  const handlePaymentQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processImageFileInto(file, 'paymentQrCode', {
+        vector: 'Payment QR code uploaded!',
+        raster: 'Payment QR code uploaded!',
+        invalid: 'Please select a valid image file (PNG, JPG, SVG, WEBP).',
+      });
+    }
+    // Allow re-selecting the same file later (e.g. after Remove)
+    e.target.value = '';
+  };
+
+  const handleRemovePaymentQr = () => {
+    handleInputChange('paymentQrCode', '');
+    onNotify('Payment QR code removed.');
   };
 
   // Sample data is a PREVIEW ONLY — it is never written to formData or
@@ -971,6 +1005,29 @@ export default function CreateInvoicePage({
 
               <div className="form-grid-2">
                 <div className="form-group">
+                  <label className="form-label">PAN Number (optional)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.senderPanNumber || ''}
+                    onChange={(e) => handleInputChange('senderPanNumber', e.target.value)}
+                    placeholder="26CORPP3939N1"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Place of Supply (optional)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.placeOfSupply || ''}
+                    onChange={(e) => handleInputChange('placeOfSupply', e.target.value)}
+                    placeholder="Kerala (32)"
+                  />
+                </div>
+              </div>
+
+              <div className="form-grid-2">
+                <div className="form-group">
                   <label className="form-label">Your Email</label>
                   <input
                     type="email"
@@ -1065,6 +1122,14 @@ export default function CreateInvoicePage({
                         onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
                         placeholder="Description (optional)..."
                         style={{ padding: '0.42rem 0.7rem', fontSize: '0.78rem', color: 'var(--text-secondary, #64748b)', width: '100%' }}
+                      />
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={item.hsnSac || ''}
+                        onChange={(e) => handleItemChange(item.id, 'hsnSac', e.target.value)}
+                        placeholder="HSN / SAC code (optional)..."
+                        style={{ padding: '0.38rem 0.7rem', fontSize: '0.74rem', color: 'var(--text-secondary, #64748b)', width: '100%', maxWidth: 220 }}
                       />
                     </div>
 
@@ -1206,10 +1271,118 @@ export default function CreateInvoicePage({
             </div>
           </section>
 
-          {/* SECTION 4: Notes & Payment Details */}
+          {/* SECTION 4: GST Dispatch & E-Way Details (optional — only used
+              by GST-oriented templates like 'GST Tax Invoice — Detailed';
+              other templates simply ignore these fields when blank). */}
+          <section className="invoice-section-card">
+            <div>
+              <h2 className="section-card-title">4. GST Dispatch &amp; E-Way Details</h2>
+              <p style={{ fontSize: '0.74rem', color: 'var(--text-muted, #64748b)', margin: '3px 0 0' }}>
+                Optional — fill in for statutory Indian GST invoices with a challan / e-way bill.
+              </p>
+            </div>
+
+            <div className="form-fields-stack" style={{ marginTop: '1rem' }}>
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Challan Number</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.challanNumber || ''}
+                    onChange={(e) => handleInputChange('challanNumber', e.target.value)}
+                    placeholder="e.g. 33"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Challan Date</label>
+                  <DateInputWithPicker
+                    value={formData.challanDate || ''}
+                    onChange={(v) => handleInputChange('challanDate', v)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">E-Way Bill Number</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.ewayBillNumber || ''}
+                    onChange={(e) => handleInputChange('ewayBillNumber', e.target.value)}
+                    placeholder="e.g. 78456378"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Transport / Carrier Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.transportName || ''}
+                    onChange={(e) => handleInputChange('transportName', e.target.value)}
+                    placeholder="e.g. Silver Roadlines"
+                  />
+                </div>
+              </div>
+
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Transport ID (GSTIN)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.transportId || ''}
+                    onChange={(e) => handleInputChange('transportId', e.target.value)}
+                    placeholder="e.g. 24AABFS0321B1ZL"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Payment QR Code</label>
+                  {formData.paymentQrCode ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <img
+                        src={formData.paymentQrCode}
+                        alt="Payment QR code preview"
+                        style={{ width: 56, height: 56, objectFit: 'contain', border: '1px solid var(--glass-border, #e5e7eb)', borderRadius: 8, background: '#fff' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemovePaymentQr}
+                        className="invoice-item-delete-btn"
+                        style={{ height: '32px', padding: '0 10px', fontSize: '0.76rem', width: 'auto' }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '0.6rem 0.75rem',
+                        border: '1.5px dashed var(--glass-border, #cbd5e1)',
+                        borderRadius: 10,
+                        cursor: 'pointer',
+                        fontSize: '0.78rem',
+                        color: 'var(--text-muted, #64748b)',
+                      }}
+                    >
+                      <Upload size={15} />
+                      <span>Upload UPI / payment QR image</span>
+                      <input type="file" accept="image/*" onChange={handlePaymentQrUpload} style={{ display: 'none' }} />
+                    </label>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* SECTION 5: Notes & Payment Details */}
           <section className="invoice-section-card">
             <div className="section-card-header">
-              <h2 className="section-card-title">4. Notes &amp; Payment Details</h2>
+              <h2 className="section-card-title">5. Notes &amp; Payment Details</h2>
             </div>
 
             <div className="form-fields-stack">

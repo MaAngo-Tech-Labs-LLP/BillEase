@@ -8,7 +8,9 @@ export type LayoutType =
   | 'clinical'     // Medical & Clinical (Rx symbol, Doctor reg, Patient age/gender, medical fee table)
   | 'editorial'    // Corporate Navy (Serif typography, Law & Advisory matter ref, retainer reconciliation)
   | 'academic'     // Academia Blue (Tuition receipt, student roll no, semester schedule, registrar sign)
-  | 'gst';         // GST Tax Invoice (Official Indian GST layout, HSN/SAC table, CGST/SGST split, amount in words)
+  | 'gst'          // GST Tax Invoice (Official Indian GST layout, HSN/SAC table, CGST/SGST split, amount in words)
+  | 'eu-business'  // EU/Nordic Business Invoice (dense metadata block, Unit Price/Qty/VAT% table, BIC/IBAN bank footer)
+  | 'gst-detailed'; // GST Tax Invoice — Detailed (PAN, Challan/E-Way Bill/Transport block, per-HSN IGST summary table, UPI QR, signature stamp)
 
 export type TemplateId = 'classic' | 'modern' | 'minimal' | 'bold' | LayoutType | string;
 
@@ -28,6 +30,7 @@ export interface DocumentItem {
   rate: number;
   taxRate?: number; // Item-level tax rate (%)
   discount?: number; // Item-level discount amount
+  hsnSac?: string; // HSN (goods) / SAC (services) classification code, for GST invoices
 }
 
 export interface BillDocument {
@@ -50,6 +53,7 @@ export interface BillDocument {
   senderAddress?: string;
   senderWebsite?: string;
   senderTaxNumber?: string; // GST / Tax Number
+  senderPanNumber?: string; // PAN (India), shown separately from GSTIN on statutory GST invoices
   // Client / Customer Info (BILL TO)
   clientName: string;
   clientCompany?: string;
@@ -59,6 +63,16 @@ export interface BillDocument {
   shippingAddress?: string; // Shipping Address
   shippingSameAsBilling?: boolean;
   clientTaxNumber?: string; // GST / Tax Number
+  // Dispatch / GST E-Way Details (India) — all optional, shown only on
+  // GST-oriented templates (e.g. 'gst-detailed') when filled in.
+  placeOfSupply?: string;
+  challanNumber?: string;
+  challanDate?: string;
+  ewayBillNumber?: string;
+  transportName?: string;
+  transportId?: string;
+  /** Base64 image data URL of a UPI/payment QR code, shown on the document when set. */
+  paymentQrCode?: string;
   // Items
   items: DocumentItem[];
   // Calculations

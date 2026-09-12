@@ -6,7 +6,9 @@ export type LayoutType =
   | 'clinical'     // Medical & Clinical (Rx symbol, Doctor reg, Patient age/gender, medical fee table)
   | 'editorial'    // Corporate Navy (Serif typography, Law & Advisory matter ref, retainer reconciliation)
   | 'academic'     // Academia Blue (Tuition receipt, student roll no, semester schedule, registrar sign)
-  | 'gst';         // GST Tax Invoice (Official Indian GST layout, HSN/SAC table, CGST/SGST split, amount in words)
+  | 'gst'          // GST Tax Invoice (Official Indian GST layout, HSN/SAC table, CGST/SGST split, amount in words)
+  | 'eu-business'  // EU/Nordic Business Invoice (dense metadata block, Unit Price/Qty/VAT% table, BIC/IBAN bank footer)
+  | 'gst-detailed'; // GST Tax Invoice — Detailed (PAN, Challan/E-Way Bill/Transport block, per-HSN IGST summary table, UPI QR, signature stamp)
 
 export interface TemplateStyle {
   id: string;
@@ -299,30 +301,61 @@ export const TEMPLATES: TemplateStyle[] = [
       { desc: '24/7 Dedicated Priority Support SLA', qty: 1, rate: 12000 },
     ],
   },
+  // NOTE: The 'Indian GST Tax Invoice' template card (id: 'gst-tax-invoice')
+  // was removed from the picker on 2026-09-12 — it looked too similar to
+  // 'Classic Professional Invoice' to justify being a separate option. Its
+  // rendering code (DocumentRenderer.tsx, search "layout === 'gst'") and the
+  // 'gst' layoutType/normalizeTemplateId alias were deliberately left in
+  // place in case it's useful again later.
   {
-    id: 'gst-tax-invoice',
-    name: 'Indian GST Tax Invoice',
+    id: 'eu-business',
+    name: 'EU Business Invoice',
+    category: 'Professional Services',
+    categoryTag: 'International',
+    docType: 'invoice',
+    badge: 'New',
+    description: 'Dense European/Nordic business layout: logo with a compact metadata block (invoice #, due date, payment terms, buyer reference), Unit Price/Qty/VAT% item table, and a bank BIC/IBAN settlement footer.',
+    tags: ['International', 'VAT', 'IBAN', 'Corporate'],
+    layoutType: 'eu-business',
+    accentColor: '#1F2933',
+    headerBg: '#FFFFFF',
+    headerText: '#1F2933',
+    tableHeaderBg: '#F5F6F7',
+    tableHeaderText: '#1F2933',
+    totalColor: '#1F2933',
+    borderColor: '#D3D8DD',
+    logoText: 'Studio Pulse',
+    docLabel: 'INVOICE',
+    sampleClient: 'NovaTech AI Solutions Inc.',
+    sampleItems: [
+      { desc: 'SaaS Platform Enterprise License (Annual)', qty: 1, rate: 48000 },
+      { desc: 'Custom API Gateway Integration & Setup', qty: 5, rate: 2000 },
+      { desc: '24/7 Dedicated Priority Support SLA', qty: 1, rate: 12000 },
+    ],
+  },
+  {
+    id: 'gst-detailed',
+    name: 'GST Tax Invoice — Detailed',
     category: 'Technology & SaaS',
     categoryTag: 'GST Compliant',
     docType: 'invoice',
     badge: 'GST Ready',
-    description: 'Fully compliant statutory Indian Tax Invoice layout with GSTIN, State Codes, HSN/SAC codes column, CGST & SGST split, Amount in Words, and Seal.',
-    tags: ['GST', 'CGST+SGST', 'HSN Code', 'Compliant'],
-    layoutType: 'gst',
-    accentColor: '#880E4F',
-    headerBg: '#880E4F',
+    description: 'Full statutory Indian GST invoice: PAN, GSTIN, Challan No/Date, E-Way Bill & Transport block, per-line HSN/SAC codes, an IGST/CGST+SGST summary table by HSN code, amount in words, bank details with a UPI QR code, and a signature stamp.',
+    tags: ['GST', 'HSN/SAC', 'E-Way Bill', 'PAN', 'Compliant'],
+    layoutType: 'gst-detailed',
+    accentColor: '#26206B',
+    headerBg: '#26206B',
     headerText: '#FFFFFF',
-    tableHeaderBg: '#FCE4EC',
-    tableHeaderText: '#880E4F',
-    totalColor: '#880E4F',
-    borderColor: '#F48FB1',
-    logoText: 'Studio Pulse',
-    docLabel: 'TAX INVOICE (GST)',
-    sampleClient: 'NovaTech AI Solutions Inc. GSTIN: 29AAAAA0000A1Z5',
+    tableHeaderBg: '#F1F0F9',
+    tableHeaderText: '#26206B',
+    totalColor: '#26206B',
+    borderColor: '#000000',
+    logoText: 'Gujarat Freight Tools',
+    docLabel: 'TAX INVOICE',
+    sampleClient: 'Shiv Engineering, Kerala GSTIN: 32AABBA7890B1ZB',
     sampleItems: [
-      { desc: 'SaaS Platform Enterprise License (Annual) (SAC: 998314)', qty: 1, rate: 48000 },
-      { desc: 'Custom API Gateway Integration & Setup (SAC: 998315)', qty: 5, rate: 2000 },
-      { desc: '24/7 Dedicated Priority Support SLA (SAC: 998316)', qty: 1, rate: 12000 },
+      { desc: 'Bosch All-in-One Metal Hand Tool Kit (HSN: 8302)', qty: 1, rate: 2535 },
+      { desc: 'Taparia Universal Tool Kit (HSN: 8302)', qty: 1, rate: 1270 },
     ],
   },
 ];
@@ -372,6 +405,8 @@ export function normalizeTemplateId(id?: string, docType?: 'bill' | 'invoice'): 
   if (id === 'editorial') return 'corporate-navy';
   if (id === 'academic') return 'academia-blue';
   if (id === 'gst') return 'gst-tax-invoice';
+  if (id === 'eu-business') return 'eu-business';
+  if (id === 'gst-detailed') return 'gst-detailed';
   // `id` matched a real template, just for the wrong docType (e.g. an invoice
   // template id left over from the shared "last used template" storage key
   // while on the bill page). Fall back to the sensible default for this
