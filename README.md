@@ -7,7 +7,7 @@
 
 ## 🌟 Overview
 
-**BillEase** is a production-grade web application tailored for freelancers, agencies, consultants, small businesses, and enterprises. It provides dual creation workflows—a step-by-step wizard for detailed bills and a single-page rapid generator for invoices—backed by 8+ curated templates, central business profile auto-sync, dark mode, and local draft persistence.
+**BillEase** is a production-grade web application tailored for freelancers, agencies, consultants, small businesses, and enterprises. It provides dual creation workflows—a step-by-step wizard for detailed bills and a single-page rapid generator for invoices—backed by 11 curated templates (6 for Bills, 5 for Invoices), central business profile auto-sync, dark mode, unsaved-changes protection, and local draft persistence.
 
 ---
 
@@ -27,18 +27,27 @@
 
 ---
 
-### 2. 🎨 8+ Curated Document Templates
-Each template is built with authentic typography and design rules:
+### 2. 🎨 11 Curated Document Templates
+Templates are strictly scoped to their document type — the Bill editor only ever offers Bill templates, and the Invoice editor only ever offers Invoice templates.
+
+**Bill Templates**
 | Template | Key Characteristics | Best For |
 | :--- | :--- | :--- |
-| **Classic Professional** | Dual party cards, formal corporate borders, signature stamp | Corporate, consulting, formal B2B |
-| **Modern Minimal** | Clean asymmetric whitespace, borderless floating table, pill badges | Tech startups, SaaS, modern agencies |
-| **Bold Emerald (Retail/POS)** | Emerald accents, dashed memo lines, centered store logo | Retail, POS memos, fast commerce |
-| **Warm Saffron (Sidebar)** | Left brand & payment sidebar, main right itemization charges | Creative agencies, design studios |
-| **Medical & Clinical** | Rx symbol, Doctor registration, Patient age/gender, fee table | Clinics, healthcare professionals |
-| **Corporate Navy (Editorial)**| Serif typography, Law & Advisory matter ref, retainer ledger | Legal firms, accounting, advisory |
-| **Academia Blue** | Tuition receipt, student roll no, semester schedule | Educational institutions, tutors |
-| **GST Tax Invoice** | Indian GST layout, HSN/SAC codes, CGST/SGST split, amount in words | Indian GST registered businesses |
+| **Apex Corporate Standard Bill** | Dual party cards, item tax column, bank details, balance due highlight | Corporate, consulting, formal B2B |
+| **Retail Store & POS Bill** | Emerald accents, dashed memo lines, store/counter transaction metadata | Retail, POS memos, fast commerce |
+| **Medical & Healthcare Bill** | Clinical header, doctor/patient fields, fee table | Clinics, healthcare professionals |
+| **Academy & Tuition Fee Bill** | Tuition receipt, student roll no, semester schedule | Educational institutions, tutors |
+| **Modern Minimalist Bill** | Clean asymmetric whitespace, borderless floating table | Freelancers, minimalist billing |
+| **Creative Agency Services Bill** | Left brand & payment sidebar, right-side itemization | Creative agencies, design studios |
+
+**Invoice Templates**
+| Template | Key Characteristics | Best For |
+| :--- | :--- | :--- |
+| **Classic Professional Invoice** | Formal corporate borders, signature stamp | Corporate, consulting, formal B2B |
+| **Modern Minimal Invoice** | Clean asymmetric whitespace, pill badges | Tech startups, SaaS, modern agencies |
+| **Creative Studio Sidebar Invoice** | Left brand & payment sidebar, right-side charges | Creative agencies, design studios |
+| **Executive Legal & Advisory Invoice** | Serif typography, matter reference, retainer ledger | Legal firms, accounting, advisory |
+| **Indian GST Tax Invoice** | Indian GST layout, HSN/SAC codes, CGST/SGST split, amount in words | Indian GST registered businesses |
 
 ---
 
@@ -63,11 +72,21 @@ Each template is built with authentic typography and design rules:
 - **Status Filtering**: Filter your documents by status (`Paid`, `Sent`, `Pending`, `Draft`) or type (`Bills`, `Invoices`).
 - **Instant Search**: Real-time search across client names, bill numbers, and document titles.
 - **Delete Confirmation Pop-Up**: Safe deletion dialog featuring a document summary card to prevent accidental removal of important records.
+- **Clear All**: Bulk-delete every saved document in one confirmed action, for a full reset.
 - **One-Click Preview & PDF Export**: Instant print formatting via standard browser PDF generation.
 
 ---
 
-### 6. 💱 Multi-Currency & Calculation Engine
+### 6. 🛡️ Draft Safety & Unsaved-Changes Protection
+- **Never lose work switching documents**: each editor tracks whether the form has changes that haven't been committed via Save Draft / Create / Download PDF. Switching between Create Bill, Create Invoice, or any other tab while dirty prompts a confirmation — mirroring the "unsaved changes" warning in Word/Office.
+- **Browser close/refresh protection**: closing the tab or refreshing with unsaved changes triggers the browser's native "leave site?" prompt.
+- **Reset Form**: instantly wipes the current draft back to blank, with a confirmation step.
+- **Sample Data (preview-only)**: fills the live preview with example content to show what a finished document looks like — never written to your real form data or saved anywhere, and clearly banner-marked while active. Toggle it off and your actual entries are exactly as you left them.
+- **"No due date" toggle**: mark a bill or invoice as not having a due date (e.g. a walk-in receipt) instead of leaving the field ambiguously blank.
+
+---
+
+### 7. 💱 Multi-Currency & Calculation Engine
 - Multi-currency support: **INR (₹)**, **USD ($)**, **EUR (€)**, **GBP (£)**, and **CAD ($)** with locale-aware number formatting.
 - Standalone calculation engine handling subtotal, multi-tier tax rates (0%, 5%, 12%, 18%, 28%), itemized discounts, additional fees, and balances due.
 
@@ -90,13 +109,14 @@ BillEase/
 ├── public/                     # Static assets
 ├── src/
 │   ├── components/             # Reusable UI components
+│   │   ├── BillDocumentRenderer.tsx # A4 live canvas renderer for Bill templates
 │   │   ├── BusinessProfileModal.tsx # Profile defaults modal
 │   │   ├── ConfirmDeleteModal.tsx   # Delete confirmation popup dialog
-│   │   ├── DateInputWithPicker.tsx  # Custom calendar picker input
-│   │   ├── DocumentRenderer.tsx     # A4 live document canvas renderer
+│   │   ├── DateInputWithPicker.tsx  # Date input with calendar picker + ISO normalization
+│   │   ├── DocumentRenderer.tsx     # A4 live canvas renderer for Invoice templates
 │   │   └── Navbar.tsx               # Top navigation bar
 │   ├── data/
-│   │   ├── templates.ts        # Default data models & currency tokens
+│   │   ├── templates.ts        # Default data models, sample docs & currency tokens
 │   │   └── templateStyles.ts   # Template style configurations
 │   ├── hooks/
 │   │   └── useDocuments.ts     # Document list, drafts & CRUD management
@@ -111,6 +131,7 @@ BillEase/
 │   │   └── index.ts            # TypeScript interfaces & types
 │   ├── utils/
 │   │   ├── billCalculations.ts # Financial calculation engine
+│   │   ├── dates.ts            # Canonical date parsing/formatting (ISO source of truth)
 │   │   └── profileSync.ts      # Profile event broadcasting & document auto-fill
 │   ├── App.tsx                 # Root application container & tab router
 │   ├── index.css               # Global styling, themes & utility classes
