@@ -15,36 +15,50 @@ import {
   CheckCircle2,
   Loader2,
   Upload,
+  RotateCcw,
 } from 'lucide-react';
 import DocumentRenderer from '../components/DocumentRenderer';
 import DateInputWithPicker from '../components/DateInputWithPicker';
 import { BillDocument, CurrencyCode, TemplateId, DocStatus, BusinessProfile, STORAGE_PROFILE_KEY } from '../types';
 import {
   DEFAULT_INVOICE,
+  SAMPLE_INVOICE_DATA,
   CURRENCY_SYMBOLS,
   INVOICE_TEMPLATES,
-  BILL_TEMPLATES,
   normalizeTemplateId,
   getTemplateById,
+  fillSampleIntoEmpty,
+  looksLikeStaleSampleDraft,
+  getTodayIsoDate,
+  getFutureIsoDate,
 } from '../data/templates';
 import { applyBusinessProfileToDoc, getSavedBusinessProfile, PROFILE_UPDATED_EVENT } from '../utils/profileSync';
 
 interface CreateInvoicePageProps {
   initialDocument?: BillDocument;
   onSave: (doc: BillDocument) => void;
+  onPreview?: (doc: BillDocument) => void;
   onNavigate: (tabId: string) => void;
   onNotify: (msg: string) => void;
+  /** Reports whether the form has changes that haven't been committed via
+   * Save Draft / Create Invoice, so the app shell can warn before navigating
+   * away (mirrors the "unsaved changes" prompt in Word/Office). */
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 export default function CreateInvoicePage({
   initialDocument,
   onSave,
+  onPreview,
   onNavigate,
   onNotify,
+  onDirtyChange,
 }: CreateInvoicePageProps) {
   const [showGallery, setShowGallery] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isDraggingLogo, setIsDraggingLogo] = useState(false);
+  const [lastDueDate, setLastDueDate] = useState('');
+  const [showSampleData, setShowSampleData] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const sanitizeInvoiceDoc = (doc: Partial<BillDocument>): BillDocument => {
@@ -76,12 +90,14 @@ export default function CreateInvoicePage({
     const baseDoc: BillDocument = {
       ...DEFAULT_INVOICE,
       ...doc,
-      bankName: bankName || DEFAULT_INVOICE.bankName,
-      accountNumber: accountNumber || DEFAULT_INVOICE.accountNumber,
-      ifscCode: ifscCode || DEFAULT_INVOICE.ifscCode,
-      upiId: upiId || DEFAULT_INVOICE.upiId,
+      title: doc.title || 'INVOICE',
+      poNumber: doc.poNumber !== undefined ? doc.poNumber : (DEFAULT_INVOICE.poNumber || ''),
+      bankName: bankName || doc.bankName || '',
+      accountNumber: accountNumber || doc.accountNumber || '',
+      ifscCode: ifscCode || doc.ifscCode || '',
+      upiId: upiId || doc.upiId || '',
       items,
-      senderLogo: doc.senderLogo || (doc as any)?.logo || DEFAULT_INVOICE.senderLogo,
+      senderLogo: doc.senderLogo !== undefined ? doc.senderLogo : ((doc as any)?.logo || DEFAULT_INVOICE.senderLogo),
       type: 'invoice',
       template: normalizeTemplateId(doc.template || 'modern-minimal', 'invoice'),
     };
@@ -97,7 +113,17 @@ export default function CreateInvoicePage({
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.id !== 'inv-acme-design' && parsed.clientName !== 'Acme Corporation Ltd.' && parsed.clientName !== 'Stellar Innovations Pvt. Ltd.') {
+        // Older builds could persist full sample content into the draft
+        // (before "Sample Data" became preview-only). Discard it rather
+        // than showing leftover example content as if it were real data.
+        const isStale =
+          looksLikeStaleSampleDraft(parsed) ||
+          parsed.id === 'inv-acme-design' ||
+          parsed.clientName === 'Acme Corporation Ltd.' ||
+          parsed.clientName === 'Stellar Innovations Pvt. Ltd.';
+        if (isStale) {
+          localStorage.removeItem('billease_invoice_draft');
+        } else {
           return sanitizeInvoiceDoc(parsed);
         }
       } catch (e) {
@@ -106,13 +132,25 @@ export default function CreateInvoicePage({
     }
     return sanitizeInvoiceDoc({
       template: 'modern-minimal',
+      // DEFAULT_INVOICE.issueDate/dueDate are frozen at app-load time, so a
+      // brand-new document must not fall back to them — compute fresh here.
+      issueDate: getTodayIsoDate(),
+      dueDate: getFutureIsoDate(30),
     });
   });
 
+  // Snapshot of formData as of the last successful Save Draft / Create
+  // Invoice / Download PDF, used to detect unsaved changes. Starts as the
+  // initial load so a freshly opened (unchanged) form is never dirty.
+  const lastSavedSnapshot = useRef<string>(JSON.stringify(formData));
+
   // Sync initialDocument and active template
   useEffect(() => {
+    setShowSampleData(false); // never carry a stale sample preview into a different document
     if (initialDocument) {
-      setFormData(sanitizeInvoiceDoc(initialDocument));
+      const next = sanitizeInvoiceDoc(initialDocument);
+      lastSavedSnapshot.current = JSON.stringify(next); // loading a document is not "dirty"
+      setFormData(next);
     } else {
       const stored = localStorage.getItem('billease_active_template');
       if (stored) {
@@ -130,6 +168,13 @@ export default function CreateInvoicePage({
       localStorage.setItem('billease_invoice_draft', JSON.stringify(formData));
     } catch (_) {}
   }, [formData]);
+
+  // Report unsaved-changes state up to the app shell so it can warn before
+  // navigating away (Save Draft / Create Invoice / Download PDF all update
+  // the snapshot to mark the form as clean again).
+  useEffect(() => {
+    onDirtyChange?.(JSON.stringify(formData) !== lastSavedSnapshot.current);
+  }, [formData, onDirtyChange]);
 
   // Automatically sync with Business Profile Defaults in real-time
   useEffect(() => {
@@ -348,17 +393,43 @@ export default function CreateInvoicePage({
     onNotify('Logo removed from invoice.');
   };
 
-  const handleLoadSampleData = () => {
-    const freshSample: BillDocument = {
+  // Sample data is a PREVIEW ONLY — it is never written to formData or
+  // localStorage, so it can never be confused with, or accidentally saved
+  // as, the user's real data. Toggling it off instantly reverts the preview
+  // to showing only what the user actually entered.
+  const handleToggleSampleData = () => {
+    setShowSampleData((prev) => {
+      const next = !prev;
+      onNotify(next ? '✨ Previewing with sample content — nothing is saved' : 'Cleared sample preview');
+      return next;
+    });
+  };
+
+  const previewDocument = showSampleData
+    ? fillSampleIntoEmpty(formData, SAMPLE_INVOICE_DATA)
+    : formData;
+
+  // Wipes the working draft back to a blank invoice — clears formData AND
+  // the persisted draft/template choice in localStorage. Useful for testing
+  // and for anyone who wants to start completely fresh.
+  const handleResetForm = () => {
+    const blank: BillDocument = {
       ...DEFAULT_INVOICE,
       id: `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      template: normalizeTemplateId(formData.template || 'modern-minimal', 'invoice'),
+      billNumber: `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      // DEFAULT_INVOICE.issueDate/dueDate are frozen at app-load time —
+      // recompute fresh so a reset form always starts on today's date.
+      issueDate: getTodayIsoDate(),
+      dueDate: getFutureIsoDate(30),
+      createdAt: new Date().toISOString(),
     };
-    setFormData(freshSample);
+    setShowSampleData(false);
+    setFormData(blank);
     try {
-      localStorage.setItem('billease_invoice_draft', JSON.stringify(freshSample));
+      localStorage.removeItem('billease_invoice_draft');
+      localStorage.removeItem('billease_active_template');
     } catch (_) {}
-    onNotify('✨ Loaded sample SaaS enterprise invoice data!');
+    onNotify('Form reset — starting with a blank invoice');
   };
 
   const handleAutoFillFromProfile = () => {
@@ -372,7 +443,12 @@ export default function CreateInvoicePage({
   };
 
   const handleSaveDraft = () => {
-    const isTemplateDefaultId = !formData.id || formData.id.startsWith('default-');
+    const isTemplateDefaultId =
+      !formData.id ||
+      formData.id === 'inv-studio-pulse' ||
+      formData.id === 'inv-acme-design' ||
+      formData.id === 'doc-apex-billing' ||
+      formData.id.startsWith('default-');
     const uniqueId = isTemplateDefaultId
       ? `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
       : formData.id;
@@ -389,10 +465,51 @@ export default function CreateInvoicePage({
     try {
       localStorage.setItem('billease_invoice_draft', JSON.stringify(draftDoc));
     } catch (_) {}
+    lastSavedSnapshot.current = JSON.stringify(draftDoc);
+    onDirtyChange?.(false);
     onNotify(`Invoice #${draftDoc.billNumber} draft saved!`);
   };
 
+  const handlePreview = () => {
+    const isTemplateDefaultId =
+      !formData.id ||
+      formData.id === 'inv-studio-pulse' ||
+      formData.id === 'inv-acme-design' ||
+      formData.id === 'doc-apex-billing' ||
+      formData.id.startsWith('default-');
+    const uniqueId = isTemplateDefaultId
+      ? `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+      : formData.id;
+
+    const invoiceToPreview: BillDocument = {
+      ...formData,
+      id: uniqueId,
+      type: 'invoice',
+      status: formData.status || 'Draft',
+      updatedAt: new Date().toISOString(),
+    };
+
+    setFormData(invoiceToPreview);
+    onSave(invoiceToPreview);
+    try {
+      localStorage.setItem('billease_invoice_draft', JSON.stringify(invoiceToPreview));
+    } catch (_) {}
+    lastSavedSnapshot.current = JSON.stringify(invoiceToPreview);
+    onDirtyChange?.(false);
+
+    if (onPreview) {
+      onPreview(invoiceToPreview);
+    } else {
+      onNavigate('preview');
+    }
+  };
+
   const handleCreateInvoiceAndFinish = (destination: 'my-documents' | 'preview' | 'stay' = 'my-documents') => {
+    if (destination === 'preview') {
+      handlePreview();
+      return;
+    }
+
     if (!formData.clientName?.trim()) {
       onNotify('Please enter a Client or Company Name.');
       return;
@@ -402,7 +519,12 @@ export default function CreateInvoicePage({
       return;
     }
 
-    const isTemplateDefaultId = !formData.id || formData.id.startsWith('default-');
+    const isTemplateDefaultId =
+      !formData.id ||
+      formData.id === 'inv-studio-pulse' ||
+      formData.id === 'inv-acme-design' ||
+      formData.id === 'doc-apex-billing' ||
+      formData.id.startsWith('default-');
     const uniqueId = isTemplateDefaultId
       ? `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
       : formData.id;
@@ -417,6 +539,8 @@ export default function CreateInvoicePage({
     };
 
     onSave(finalizedInvoice);
+    lastSavedSnapshot.current = JSON.stringify(finalizedInvoice);
+    onDirtyChange?.(false);
 
     if (destination === 'stay') {
       setFormData(finalizedInvoice);
@@ -425,7 +549,7 @@ export default function CreateInvoicePage({
     }
 
     try {
-      localStorage.removeItem('billease_invoice_draft');
+      localStorage.setItem('billease_invoice_draft', JSON.stringify(finalizedInvoice));
     } catch (_) {}
 
     onNotify(`Invoice #${finalizedInvoice.billNumber} created successfully! Added to My Documents and Home.`);
@@ -439,6 +563,8 @@ export default function CreateInvoicePage({
       updatedAt: new Date().toISOString(),
     };
     onSave(invoiceToSave);
+    lastSavedSnapshot.current = JSON.stringify(invoiceToSave);
+    onDirtyChange?.(false);
     setTimeout(() => {
       setIsGeneratingPdf(false);
       onNotify(`Invoice ${formData.billNumber} ready! Launching print/PDF preview...`);
@@ -465,6 +591,16 @@ export default function CreateInvoicePage({
           </button>
           <button
             type="button"
+            className="btn-draft-preview"
+            onClick={handlePreview}
+            title="Preview full A4 Invoice"
+            style={{ borderColor: '#6E5CB6', color: '#6E5CB6' }}
+          >
+            <Eye size={15} />
+            <span>Preview</span>
+          </button>
+          <button
+            type="button"
             className="btn-download-pdf"
             onClick={() => handleCreateInvoiceAndFinish('my-documents')}
             title="Create and save invoice to My Documents and Home"
@@ -487,6 +623,39 @@ export default function CreateInvoicePage({
             </div>
 
             <div className="form-fields-stack">
+              {/* Row 0: Invoice Title / Type & PO Number */}
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Invoice Title / Type</label>
+                  <select
+                    className="form-input"
+                    value={formData.title || 'INVOICE'}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                  >
+                    <option value="INVOICE">INVOICE (Standard)</option>
+                    <option value="TAX INVOICE">TAX INVOICE</option>
+                    <option value="PROFORMA INVOICE">PROFORMA INVOICE</option>
+                    <option value="COMMERCIAL INVOICE">COMMERCIAL INVOICE</option>
+                    <option value="RETAIL INVOICE">RETAIL INVOICE</option>
+                    <option value="BILL">BILL</option>
+                    <option value="RECEIPT">RECEIPT</option>
+                    {!['INVOICE', 'TAX INVOICE', 'PROFORMA INVOICE', 'COMMERCIAL INVOICE', 'RETAIL INVOICE', 'BILL', 'RECEIPT'].includes(formData.title || 'INVOICE') && (
+                      <option value={formData.title}>{formData.title}</option>
+                    )}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Reference / PO (optional)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.poNumber || ''}
+                    onChange={(e) => handleInputChange('poNumber', e.target.value)}
+                    placeholder="e.g. PO-2026-098"
+                  />
+                </div>
+              </div>
+
               {/* Row 1: Client Name & Email */}
               <div className="form-grid-2">
                 <div className="form-group">
@@ -496,7 +665,7 @@ export default function CreateInvoicePage({
                     className="form-input"
                     value={formData.clientName}
                     onChange={(e) => handleInputChange('clientName', e.target.value)}
-                    placeholder="NovaTech AI Solutions Inc."
+                    placeholder="e.g. Acme Corporation Ltd."
                   />
                 </div>
                 <div className="form-group">
@@ -506,7 +675,7 @@ export default function CreateInvoicePage({
                     className="form-input"
                     value={formData.clientEmail}
                     onChange={(e) => handleInputChange('clientEmail', e.target.value)}
-                    placeholder="finance@novatech-ai.com"
+                    placeholder="e.g. finance@acmecorp.com"
                   />
                 </div>
               </div>
@@ -520,7 +689,7 @@ export default function CreateInvoicePage({
                     className="form-input"
                     value={formData.clientPhone || ''}
                     onChange={(e) => handleInputChange('clientPhone', e.target.value)}
-                    placeholder="+91 98765 43210"
+                    placeholder="e.g. +91 98765 43210"
                   />
                 </div>
                 <div className="form-group">
@@ -528,9 +697,9 @@ export default function CreateInvoicePage({
                   <input
                     type="text"
                     className="form-input"
-                    value={formData.paymentTerms || 'Net 30'}
+                    value={formData.paymentTerms || ''}
                     onChange={(e) => handleInputChange('paymentTerms', e.target.value)}
-                    placeholder="Net 30"
+                    placeholder="e.g. Net 30, Due on Receipt"
                   />
                 </div>
               </div>
@@ -543,7 +712,7 @@ export default function CreateInvoicePage({
                   rows={2}
                   value={formData.clientAddress}
                   onChange={(e) => handleInputChange('clientAddress', e.target.value)}
-                  placeholder="Tower 4, Level 11, TechPark SEZ, Outer Ring Road, Bengaluru 560103"
+                  placeholder="e.g. 101 Tech Avenue, Industrial Area, Bengaluru 560001"
                   style={{ resize: 'vertical' }}
                 />
               </div>
@@ -566,19 +735,37 @@ export default function CreateInvoicePage({
                     id="inv-issue-date"
                     value={formData.issueDate}
                     onChange={(val) => handleInputChange('issueDate', val)}
-                    placeholder="08-09-2026"
+                    placeholder="YYYY-MM-DD"
                     title="Select Issue Date"
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Due Date</label>
+                  <label className="form-label" htmlFor="inv-due-date">Due Date</label>
                   <DateInputWithPicker
                     id="inv-due-date"
                     value={formData.dueDate}
                     onChange={(val) => handleInputChange('dueDate', val)}
-                    placeholder="08-10-2026"
+                    placeholder="YYYY-MM-DD"
                     title="Select Due Date"
+                    disabled={!formData.dueDate}
                   />
+                  <label htmlFor="inv-no-due-date" className="no-due-date-toggle" title="Check this if the document has no due date (e.g. a one-off receipt or cash sale)">
+                    <input
+                      id="inv-no-due-date"
+                      type="checkbox"
+                      checked={!formData.dueDate}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          // Remember the current date so we can restore it if unchecked later
+                          setLastDueDate(formData.dueDate);
+                          handleInputChange('dueDate', '');
+                        } else {
+                          handleInputChange('dueDate', lastDueDate || new Date().toISOString().slice(0, 10));
+                        }
+                      }}
+                    />
+                    <span>No due date</span>
+                  </label>
                 </div>
               </div>
 
@@ -1033,9 +1220,11 @@ export default function CreateInvoicePage({
                 <div style={{ fontSize: '0.76rem', color: 'var(--text-muted, #64748b)' }}>
                   Subtotal: <strong style={{ color: 'var(--text-primary, #0f172a)' }}>{formatPrice(subtotal)}</strong>
                 </div>
-                <div style={{ fontSize: '0.76rem', color: 'var(--text-muted, #64748b)' }}>
-                  Tax ({formData.taxRate}%): <strong style={{ color: 'var(--text-primary, #0f172a)' }}>{formatPrice(taxAmount)}</strong>
-                </div>
+                {taxAmount > 0 && (Number(formData.taxRate) || 0) > 0 && (
+                  <div style={{ fontSize: '0.76rem', color: 'var(--text-muted, #64748b)' }}>
+                    Tax ({formData.taxRate}%): <strong style={{ color: 'var(--text-primary, #0f172a)' }}>{formatPrice(taxAmount)}</strong>
+                  </div>
+                )}
                 <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#6E5CB6', marginTop: '2px' }}>
                   Total: {formatPrice(totalDue)}
                 </div>
@@ -1185,7 +1374,7 @@ export default function CreateInvoicePage({
               <button
                 type="button"
                 className="btn-draft-preview"
-                onClick={() => handleCreateInvoiceAndFinish('preview')}
+                onClick={handlePreview}
                 style={{ flex: '1 1 140px', justifyContent: 'center', borderColor: '#6E5CB6', color: '#6E5CB6' }}
               >
                 <Eye size={15} />
@@ -1239,13 +1428,6 @@ export default function CreateInvoicePage({
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="Bill Templates">
-                    {BILL_TEMPLATES.map((tpl) => (
-                      <option key={tpl.id} value={tpl.id}>
-                        {tpl.name}
-                      </option>
-                    ))}
-                  </optgroup>
                 </select>
               </div>
 
@@ -1262,9 +1444,52 @@ export default function CreateInvoicePage({
             </div>
           </div>
 
+          {/* Sample Data Preview Banner — only shown while previewing, never persisted */}
+          {showSampleData && (
+            <div
+              role="status"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                background: '#fffbeb',
+                border: '1px solid #fde68a',
+                color: '#92400e',
+                borderRadius: 10,
+                padding: '8px 14px',
+                marginBottom: 14,
+                fontSize: '0.78rem',
+                fontWeight: 600,
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={14} />
+                Previewing with sample content — nothing shown here is saved
+              </span>
+              <button
+                type="button"
+                onClick={handleToggleSampleData}
+                style={{
+                  background: 'none',
+                  border: '1px solid #fcd34d',
+                  color: '#92400e',
+                  fontWeight: 700,
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                  padding: '3px 10px',
+                  borderRadius: 6,
+                  flexShrink: 0,
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          )}
+
           {/* The A4 Canvas Rendered Live - Exact same size arrangement as CreateBillPage */}
           <div className="live-arch-paper-container">
-            <DocumentRenderer document={formData} />
+            <DocumentRenderer document={previewDocument} />
           </div>
 
           {/* Bottom Card Footer */}
@@ -1285,11 +1510,11 @@ export default function CreateInvoicePage({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 type="button"
-                onClick={handleLoadSampleData}
+                onClick={handleToggleSampleData}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#6E5CB6',
+                  background: showSampleData ? '#fffbeb' : 'none',
+                  border: showSampleData ? '1px solid #fde68a' : 'none',
+                  color: showSampleData ? '#92400e' : '#6E5CB6',
                   fontWeight: 700,
                   fontSize: '0.76rem',
                   cursor: 'pointer',
@@ -1299,10 +1524,35 @@ export default function CreateInvoicePage({
                   padding: '4px 8px',
                   borderRadius: '6px',
                 }}
-                title="Load full sample SaaS invoice content"
+                title={showSampleData ? 'Stop previewing sample content' : 'Preview the document filled with example content — your real data is never touched or saved'}
               >
                 <Sparkles size={13} />
-                <span>Sample Data</span>
+                <span>{showSampleData ? 'Clear Sample Preview' : 'Sample Data'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Reset the form to blank? This clears everything you\'ve entered on this invoice.')) {
+                    handleResetForm();
+                  }
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted, #94a3b8)',
+                  fontWeight: 700,
+                  fontSize: '0.76rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                }}
+                title="Clear this form and start with a blank invoice"
+              >
+                <RotateCcw size={13} />
+                <span>Reset Form</span>
               </button>
               <button
                 type="button"
@@ -1329,7 +1579,11 @@ export default function CreateInvoicePage({
 
       {/* Gallery Modal */}
       {showGallery && (
-        <div className="gallery-modal-overlay" onClick={() => setShowGallery(false)}>
+        <div
+          className="gallery-modal-overlay"
+          style={{ '--builder-accent': '#6E5CB6' } as React.CSSProperties}
+          onClick={() => setShowGallery(false)}
+        >
           <div className="gallery-modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="gallery-modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -1378,6 +1632,10 @@ export default function CreateInvoicePage({
                   <div
                     key={tpl.id}
                     className={`gallery-card-item ${isSelected ? 'active' : ''}`}
+                    style={{
+                      borderColor: isSelected ? '#6E5CB6' : undefined,
+                      background: isSelected ? 'rgba(110, 92, 182, 0.06)' : undefined,
+                    }}
                     onClick={() => {
                       handleInputChange('template', tpl.id);
                       try {

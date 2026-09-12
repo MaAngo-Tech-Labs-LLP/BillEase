@@ -17,28 +17,29 @@ export default function PreviewPage({
   const [isDownloading, setIsDownloading] = useState(false);
   const [hasDownloaded, setHasDownloaded] = useState(false);
 
+  const isInvoice = document.type === 'invoice';
+  const docNumber = document.billNumber || (isInvoice ? 'INV-2026-1817' : 'BIL-2026-5479');
+
   const handlePrint = () => {
-    const prevTitle = document.title;
-    const docNumber = document.billNumber || 'BIL-2026-5479';
-    document.title = `Bill_${docNumber}`;
+    const prevTitle = window.document.title;
+    window.document.title = isInvoice ? `Invoice_${docNumber}` : `Bill_${docNumber}`;
     window.print();
     setTimeout(() => {
-      document.title = prevTitle;
+      window.document.title = prevTitle;
     }, 1500);
   };
 
   const handleDownload = () => {
     setIsDownloading(true);
-    const prevTitle = document.title;
-    const docNumber = document.billNumber || 'BIL-2026-5479';
-    document.title = `Bill_${docNumber}`;
+    const prevTitle = window.document.title;
+    window.document.title = isInvoice ? `Invoice_${docNumber}` : `Bill_${docNumber}`;
     setTimeout(() => {
       setIsDownloading(false);
       setHasDownloaded(true);
-      onNotify(`Document #${document.billNumber} successfully prepared for download!`);
+      onNotify(`${isInvoice ? 'Invoice #' : 'Document #'}${document.billNumber || docNumber} successfully prepared for download!`);
       window.print();
       setTimeout(() => {
-        document.title = prevTitle;
+        window.document.title = prevTitle;
       }, 1500);
     }, 700);
   };
@@ -91,6 +92,7 @@ export default function PreviewPage({
             className="btn-primary-action"
             onClick={handleDownload}
             disabled={isDownloading}
+            style={isInvoice ? { background: '#6E5CB6', borderColor: '#6E5CB6' } : undefined}
           >
             {isDownloading ? (
               <>
@@ -121,18 +123,29 @@ export default function PreviewPage({
           justifyContent: 'space-between',
           padding: '1rem 1.5rem',
           borderRadius: 'var(--radius-md)',
-          background: 'rgba(16, 185, 129, 0.08)',
-          border: '1px solid rgba(16, 185, 129, 0.2)',
+          background: isInvoice ? 'rgba(110, 92, 182, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+          border: isInvoice ? '1px solid rgba(110, 92, 182, 0.25)' : '1px solid rgba(16, 185, 129, 0.2)',
           marginBottom: '2rem',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: isInvoice ? 'rgba(110, 92, 182, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+              color: isInvoice ? '#6E5CB6' : '#10b981',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             <FileText size={18} />
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>
-              {document.billNumber} • Ready for PDF Export
+              {document.billNumber || docNumber} • Ready for PDF Export
             </div>
             <div style={{ fontSize: '0.78rem', opacity: 0.85 }}>
               Standard ISO A4 Portrait • 300 DPI Vector Ready
@@ -141,7 +154,7 @@ export default function PreviewPage({
         </div>
 
         <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>
-          Client: {document.clientName}
+          Client: {document.clientName || '(Not Specified)'}
         </div>
       </div>
 

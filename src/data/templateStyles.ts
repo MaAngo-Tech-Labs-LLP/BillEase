@@ -349,22 +349,36 @@ export function normalizeTemplateId(id?: string, docType?: 'bill' | 'invoice'): 
   if (!id) {
     return docType === 'invoice' ? 'modern-minimal' : 'apex-corporate-bill';
   }
-  // Check direct match
-  if (TEMPLATES.some((t) => t.id === id)) {
+  // Check direct match — but only accept it if it actually belongs to the
+  // requested docType. Without this guard, a stale/shared template id from
+  // the other document type (e.g. an invoice template id left over in the
+  // shared "last used template" localStorage key) would be accepted as-is
+  // and silently render the wrong layout (invoice sidebar art on a bill, etc).
+  const directMatch = TEMPLATES.find((t) => t.id === id);
+  if (directMatch && (!docType || directMatch.docType === docType)) {
     return id;
   }
   if (id === 'classic' || id === 'classic-bill') {
     return docType === 'invoice' ? 'classic-pro' : 'apex-corporate-bill';
   }
-  if (id === 'minimal' || id === 'modern') {
+  if (id === 'minimal' || id === 'modern' || id === 'modern-minimal' || id === 'modern-minimal-bill') {
     return docType === 'bill' ? 'modern-minimal-bill' : 'modern-minimal';
   }
   if (id === 'bold' || id === 'receipt') return 'bold-emerald';
-  if (id === 'sidebar') return docType === 'bill' ? 'warm-saffron-bill' : 'warm-saffron';
+  if (id === 'sidebar' || id === 'warm-saffron' || id === 'warm-saffron-bill') {
+    return docType === 'bill' ? 'warm-saffron-bill' : 'warm-saffron';
+  }
   if (id === 'clinical') return 'medical-clinical';
   if (id === 'editorial') return 'corporate-navy';
   if (id === 'academic') return 'academia-blue';
   if (id === 'gst') return 'gst-tax-invoice';
+  // `id` matched a real template, just for the wrong docType (e.g. an invoice
+  // template id left over from the shared "last used template" storage key
+  // while on the bill page). Fall back to the sensible default for this
+  // docType instead of rendering the wrong document's layout.
+  if (directMatch) {
+    return docType === 'invoice' ? 'modern-minimal' : 'apex-corporate-bill';
+  }
   return id;
 }
 

@@ -15,6 +15,7 @@ import {
 import { BillDocument, DocumentType } from '../types';
 import { CURRENCY_SYMBOLS } from '../data/templates';
 import { calculateBillTotals, formatCurrencyAmount } from '../utils/billCalculations';
+import { formatDisplayDate } from '../utils/dates';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 
 interface MyDocumentsPageProps {
@@ -22,6 +23,7 @@ interface MyDocumentsPageProps {
   onSelectDocument: (doc: BillDocument) => void;
   onEditDocument: (doc: BillDocument) => void;
   onDeleteDocument: (id: string) => void;
+  onClearAllDocuments?: () => void;
   onNavigate: (tabId: string) => void;
 }
 
@@ -30,6 +32,7 @@ export default function MyDocumentsPage({
   onSelectDocument,
   onEditDocument,
   onDeleteDocument,
+  onClearAllDocuments,
   onNavigate,
 }: MyDocumentsPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -110,6 +113,33 @@ export default function MyDocumentsPage({
             <FileText size={16} />
             <span>+ New Invoice</span>
           </button>
+          {onClearAllDocuments && documents.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm(`Delete all ${documents.length} saved document${documents.length === 1 ? '' : 's'}? This cannot be undone.`)) {
+                  onClearAllDocuments();
+                }
+              }}
+              title="Permanently delete every saved bill and invoice"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '0.6rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid #fecaca',
+                background: 'transparent',
+                color: '#dc2626',
+                fontWeight: 600,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+              }}
+            >
+              <Trash2 size={16} />
+              <span>Clear All</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -238,11 +268,11 @@ export default function MyDocumentsPage({
                 <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                   <div>
                     <span style={{ display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Issue</span>
-                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{doc.issueDate}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formatDisplayDate(doc.issueDate)}</span>
                   </div>
                   <div>
                     <span style={{ display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Due</span>
-                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{doc.dueDate}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{doc.dueDate ? formatDisplayDate(doc.dueDate) : '—'}</span>
                   </div>
                 </div>
 

@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Calendar } from 'lucide-react';
+import { toIsoDate } from '../utils/dates';
 
 interface DateInputWithPickerProps {
   id?: string;
@@ -21,29 +22,6 @@ export default function DateInputWithPicker({
   title = 'Select date',
 }: DateInputWithPickerProps) {
   const pickerRef = useRef<HTMLInputElement>(null);
-
-  // Helper to convert any valid date string to ISO YYYY-MM-DD for the native date input
-  const toIsoDate = (val: string): string => {
-    if (!val) return '';
-    const trimmed = val.trim();
-    // Match YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-      return trimmed;
-    }
-    // Match DD-MM-YYYY or DD/MM/YYYY
-    const dmy = trimmed.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
-    if (dmy) {
-      const [, d, m, y] = dmy;
-      return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-    }
-    // Match YYYY/MM/DD
-    const ymd = trimmed.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
-    if (ymd) {
-      const [, y, m, d] = ymd;
-      return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-    }
-    return '';
-  };
 
   const handleOpenPicker = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -69,8 +47,19 @@ export default function DateInputWithPicker({
         id={id}
         type="text"
         className="form-input date-text-input"
-        value={value}
+        value={value || ''}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={(e) => {
+          // Normalize whatever the user typed to canonical ISO (YYYY-MM-DD)
+          // once they're done editing, so every stored date is unambiguous
+          // regardless of which format (DD-MM-YYYY, DD/MM/YYYY, etc.) they
+          // typed it in. Leave unparseable/partial input alone rather than
+          // silently blanking it.
+          const iso = toIsoDate(e.target.value);
+          if (iso && iso !== e.target.value) {
+            onChange(iso);
+          }
+        }}
         placeholder={placeholder}
         disabled={disabled}
         autoComplete="off"
@@ -93,12 +82,7 @@ export default function DateInputWithPicker({
           value={isoValue}
           onChange={(e) => {
             if (e.target.value) {
-              const parts = e.target.value.split('-');
-              if (parts.length === 3 && parts[0].length === 4) {
-                onChange(`${parts[2]}-${parts[1]}-${parts[0]}`);
-              } else {
-                onChange(e.target.value);
-              }
+              onChange(e.target.value);
             }
           }}
           onClick={(e) => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BillDocument, DocumentType } from '../types';
-import { DEFAULT_BILL, DEFAULT_INVOICE, SAMPLE_DOCUMENTS } from '../data/templates';
+import { DEFAULT_BILL, DEFAULT_INVOICE, SAMPLE_DOCUMENTS, getTodayIsoDate, getFutureIsoDate } from '../data/templates';
 import { applyBusinessProfileToDoc, PROFILE_UPDATED_EVENT } from '../utils/profileSync';
 
 const STORAGE_DOCS_KEY = 'billease_documents_list';
@@ -83,6 +83,16 @@ export function useDocuments() {
       updatedAt: new Date().toISOString(),
     };
 
+    // Keep active draft in sync with saved record
+    setDraft(documentRecord);
+    try {
+      if (documentRecord.type === 'invoice') {
+        localStorage.setItem('billease_invoice_draft', JSON.stringify(documentRecord));
+      } else {
+        localStorage.setItem('billease_bill_draft', JSON.stringify(documentRecord));
+      }
+    } catch (_) {}
+
     setDocuments((prev) => {
       const existingIdx = prev.findIndex((d) => d.id === documentRecord.id);
       let updated: BillDocument[];
@@ -116,6 +126,15 @@ export function useDocuments() {
     });
   }, []);
 
+  // Permanently delete every saved document (My Documents list only — does
+  // not touch the working drafts, business profile, or theme).
+  const clearAllDocuments = useCallback(() => {
+    setDocuments([]);
+    try {
+      localStorage.setItem(STORAGE_DOCS_KEY, JSON.stringify([]));
+    } catch (_) {}
+  }, []);
+
   // Create a new blank draft of specified type
   const createNewDraft = useCallback((type: DocumentType = 'bill'): BillDocument => {
     const num = Math.floor(1000 + Math.random() * 9000);
@@ -124,25 +143,75 @@ export function useDocuments() {
       const newInvoice: BillDocument = applyBusinessProfileToDoc({
         ...DEFAULT_INVOICE,
         id: `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        title: 'INVOICE',
         billNumber: `INV-2026-${num}`,
+        poNumber: '',
+        // DEFAULT_INVOICE.issueDate/dueDate are computed once when the app
+        // loads and never change afterward — recompute fresh here so a new
+        // document always gets today's actual date, not whatever day the
+        // page happened to first load on.
+        issueDate: getTodayIsoDate(),
+        dueDate: getFutureIsoDate(30),
+        clientName: '',
+        clientEmail: '',
+        clientPhone: '',
+        clientAddress: '',
+        items: [
+          { id: 'item-1', name: '', description: '', qty: 1, rate: 0, taxRate: 0 },
+        ],
+        taxRate: 0,
+        discount: 0,
+        paymentNotes: '',
+        notes: '',
+        paymentTerms: '',
+        termsAndConditions: '',
         createdAt: new Date().toISOString(),
       });
       setDraft(newInvoice);
+      try {
+        localStorage.setItem('billease_invoice_draft', JSON.stringify(newInvoice));
+      } catch (_) {}
       return newInvoice;
     }
 
     const newDoc: BillDocument = applyBusinessProfileToDoc({
       ...DEFAULT_BILL,
-      id: `doc-${Date.now()}`,
+      id: `bill-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       type: 'bill',
-      title: `New Bill #${num}`,
+      title: 'BILL',
       billNumber: `BIL-2026-${num}`,
+      poNumber: '',
+      // DEFAULT_BILL.issueDate/dueDate are computed once when the app loads
+      // and never change afterward — recompute fresh here so a new document
+      // always gets today's actual date, not whatever day the page happened
+      // to first load on.
+      issueDate: getTodayIsoDate(),
+      dueDate: getFutureIsoDate(30),
+      clientName: '',
+      clientCompany: '',
+      clientEmail: '',
+      clientPhone: '',
+      clientAddress: '',
+      shippingAddress: '',
+      shippingSameAsBilling: true,
+      clientTaxNumber: '',
       items: [
-        { id: 'item-1', name: 'Professional Consulting Services', description: 'System review, architecture analysis and strategic guidance', qty: 1, rate: 1000, taxRate: 18 },
+        { id: 'item-1', name: '', description: '', qty: 1, rate: 0, taxRate: 0, discount: 0 },
       ],
+      taxRate: 0,
+      discount: 0,
+      additionalCharges: 0,
+      amountPaid: 0,
+      paymentNotes: '',
+      notes: '',
+      paymentTerms: '',
+      termsAndConditions: '',
       createdAt: new Date().toISOString(),
     });
     setDraft(newDoc);
+    try {
+      localStorage.setItem('billease_bill_draft', JSON.stringify(newDoc));
+    } catch (_) {}
     return newDoc;
   }, []);
 
@@ -158,6 +227,7 @@ export function useDocuments() {
     updateDraft,
     saveDocument,
     deleteDocument,
+    clearAllDocuments,
     createNewDraft,
   };
 }

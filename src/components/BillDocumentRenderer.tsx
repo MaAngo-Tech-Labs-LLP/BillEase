@@ -36,6 +36,7 @@ import {
   getTemplateById,
 } from '../data/templates';
 import { calculateBillTotals, formatCurrencyAmount } from '../utils/billCalculations';
+import { formatHeaderDate } from '../utils/dates';
 
 interface BillDocumentRendererProps {
   document: BillDocument;
@@ -55,15 +56,6 @@ export default function BillDocumentRenderer({
 
   const formatAmount = (val: number) => {
     return formatCurrencyAmount(val, document.currency);
-  };
-
-  const formatHeaderDate = (d?: string) => {
-    if (!d) return '2026-09-06';
-    const match = d.match(/^(\d{2})[-/.](\d{2})[-/.](\d{4})$/);
-    if (match) {
-      return `${match[3]}-${match[2]}-${match[1]}`;
-    }
-    return d;
   };
 
   const rawBillNum = document.billNumber || 'BILL-2026-5479';
@@ -91,8 +83,9 @@ export default function BillDocumentRenderer({
   };
 
   // 1. Business Details (BILL FROM)
-  const senderName = document.senderName || 'Apex Corporate';
-  const senderTagline = document.senderTagline || 'Corporate Billing Services';
+  const senderName = document.senderName ? document.senderName.trim() : '';
+  const senderPlaceholder = <span className="preview-placeholder">[Your Business Name]</span>;
+  const senderTagline = document.senderTagline || '';
   const senderAddress = document.senderAddress || '';
   const senderPhone = document.senderPhone || '';
   const senderEmail = document.senderEmail || '';
@@ -100,8 +93,10 @@ export default function BillDocumentRenderer({
   const senderTaxNumber = document.senderTaxNumber || '';
   const senderLogo = document.senderLogo || (document as any).logo || '';
 
-  // 2. Customer Details (BILL TO)
-  const clientName = document.clientName || 'Stellar Innovations Pvt. Ltd.';
+  // 2. Customer Details (BILL TO) - clean empty fallbacks
+  const clientName = document.clientName ? document.clientName.trim() : '';
+  const clientPlaceholder = <span className="preview-placeholder">[Client / Customer Name]</span>;
+  const itemPlaceholder = <span className="preview-placeholder">Item / service description</span>;
   const clientCompany = document.clientCompany || '';
   const clientAddress = document.clientAddress || '';
   const shippingAddress =
@@ -109,6 +104,28 @@ export default function BillDocumentRenderer({
   const clientPhone = document.clientPhone || '';
   const clientEmail = document.clientEmail || '';
   const clientTaxNumber = document.clientTaxNumber || '';
+
+  // PO & Tax helpers
+  const hasPoNumber = Boolean(
+    document.poNumber &&
+    document.poNumber.trim() &&
+    document.poNumber.trim().toLowerCase() !== 'none' &&
+    document.poNumber.trim() !== '-'
+  );
+  const poNumberValue = hasPoNumber ? document.poNumber!.trim() : '';
+  const hasSenderTax = Boolean(
+    senderTaxNumber &&
+    senderTaxNumber.trim() &&
+    senderTaxNumber.trim().toLowerCase() !== 'none' &&
+    senderTaxNumber.trim() !== '-'
+  );
+  const hasClientTax = Boolean(
+    clientTaxNumber &&
+    clientTaxNumber.trim() &&
+    clientTaxNumber.trim().toLowerCase() !== 'none' &&
+    clientTaxNumber.trim() !== '-'
+  );
+  const hasAnyTax = billTaxRate > 0 || calc.taxAmount > 0;
 
   // 3. Payment & Bank Information
   const hasBankDetails = Boolean(
@@ -217,34 +234,19 @@ export default function BillDocumentRenderer({
           {/* Left: Shopping Cart Logo with Green Leaves + Titles */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             {senderLogo ? (
-              <div
+              <img
+                src={senderLogo}
+                alt={senderName}
                 style={{
-                  width: 52,
-                  height: 52,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  maxWidth: 130,
+                  maxHeight: 52,
+                  width: 'auto',
+                  height: 'auto',
+                  objectFit: 'contain',
+                  display: 'block',
                   flexShrink: 0,
-                  borderRadius: 10,
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  overflow: 'hidden',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                 }}
-              >
-                <img
-                  src={senderLogo}
-                  alt={senderName}
-                  style={{
-                    maxWidth: 52,
-                    maxHeight: 52,
-                    width: 'auto',
-                    height: 'auto',
-                    objectFit: 'contain',
-                    display: 'block',
-                  }}
-                />
-              </div>
+              />
             ) : (
               <div
                 style={{
@@ -278,35 +280,42 @@ export default function BillDocumentRenderer({
             )}
             <div>
               <h1 style={{ color: '#1e293b', fontSize: '1.65rem', fontWeight: 900, margin: 0, letterSpacing: '0.02em', lineHeight: 1.15 }}>
-                {senderName || 'APEX CORPORATE'}
+                {senderName || senderPlaceholder}
               </h1>
-              <div style={{ color: '#1b4332', fontSize: '0.84rem', fontWeight: 800, letterSpacing: '0.14em', marginTop: 4 }}>
-                {senderTagline ? senderTagline.toUpperCase() : 'RETAIL & WHOLESALE'}
-              </div>
-              <div style={{ color: '#64748b', fontSize: '0.76rem', marginTop: 3, fontWeight: 500 }}>
-                Quality Products &nbsp;|&nbsp; Better Everyday
-              </div>
+              {senderTagline && (
+                <div style={{ color: '#1b4332', fontSize: '0.84rem', fontWeight: 800, letterSpacing: '0.14em', marginTop: 4 }}>
+                  {senderTagline.toUpperCase()}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Right: Contact Information */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, textAlign: 'right', fontSize: '0.76rem', color: '#334155' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end' }}>
-              <MapPin size={13} color="#1b4332" />
-              <span>{senderAddress || '101 Cyber Towers, BKC, Mumbai 400051'}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end' }}>
-              <Phone size={13} color="#1b4332" />
-              <span>{senderPhone || '+91 98765 43210'}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end' }}>
-              <Mail size={13} color="#1b4332" />
-              <span>{senderEmail || 'billing@apexcorp.com'}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end' }}>
-              <Globe size={13} color="#1b4332" />
-              <span>{senderWebsite || 'www.apexcorp.com'}</span>
-            </div>
+            {senderAddress && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end' }}>
+                <MapPin size={13} color="#1b4332" />
+                <span>{senderAddress}</span>
+              </div>
+            )}
+            {senderPhone && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end' }}>
+                <Phone size={13} color="#1b4332" />
+                <span>{senderPhone}</span>
+              </div>
+            )}
+            {senderEmail && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end' }}>
+                <Mail size={13} color="#1b4332" />
+                <span>{senderEmail}</span>
+              </div>
+            )}
+            {senderWebsite && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end' }}>
+                <Globe size={13} color="#1b4332" />
+                <span>{senderWebsite}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -317,24 +326,32 @@ export default function BillDocumentRenderer({
             <div style={{ background: '#f2f7f4', borderBottom: '1px solid #d1e7dd', padding: '9px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Store size={15} color="#1b4332" />
               <span style={{ color: '#1b4332', fontWeight: 800, fontSize: '0.72rem', letterSpacing: '0.06em' }}>
-                STORE OUTLET / ISSUED BY
+                ISSUED BY
               </span>
             </div>
             <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 5, fontSize: '0.76rem', flex: 1 }}>
-              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.92rem', marginBottom: 2 }}>{senderName || 'Apex Corporate'}</div>
-              <div style={{ color: '#334155', lineHeight: 1.45 }}>{senderAddress || '101 Cyber Towers, BKC, Mumbai 400051'}</div>
-              <div style={{ color: '#334155', display: 'flex', alignItems: 'center', gap: 7 }}>
-                <Phone size={12} color="#1b4332" /> {senderPhone || '+91 98765 43210'}
-              </div>
-              <div style={{ color: '#334155', display: 'flex', alignItems: 'center', gap: 7 }}>
-                <Mail size={12} color="#1b4332" /> {senderEmail || 'billing@apexcorp.com'}
-              </div>
-              <div style={{ color: '#334155', display: 'flex', alignItems: 'center', gap: 7 }}>
-                <Globe size={12} color="#1b4332" /> {senderWebsite || 'www.apexcorp.com'}
-              </div>
-              <div style={{ fontWeight: 700, fontSize: '0.76rem', marginTop: 4, color: '#0f172a' }}>
-                GSTIN / Tax: <span style={{ color: '#1d4ed8', fontWeight: 800 }}>{senderTaxNumber || '27AABCA1234F1Z9'}</span>
-              </div>
+              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.92rem', marginBottom: 2 }}>{senderName || senderPlaceholder}</div>
+              {senderAddress && <div style={{ color: '#334155', lineHeight: 1.45 }}>{senderAddress}</div>}
+              {senderPhone && (
+                <div style={{ color: '#334155', display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <Phone size={12} color="#1b4332" /> {senderPhone}
+                </div>
+              )}
+              {senderEmail && (
+                <div style={{ color: '#334155', display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <Mail size={12} color="#1b4332" /> {senderEmail}
+                </div>
+              )}
+              {senderWebsite && (
+                <div style={{ color: '#334155', display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <Globe size={12} color="#1b4332" /> {senderWebsite}
+                </div>
+              )}
+              {hasSenderTax && (
+                <div style={{ fontWeight: 700, fontSize: '0.76rem', marginTop: 4, color: '#0f172a' }}>
+                  GSTIN / Tax: <span style={{ color: '#1d4ed8', fontWeight: 800 }}>{senderTaxNumber}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -347,19 +364,32 @@ export default function BillDocumentRenderer({
               </span>
             </div>
             <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 5, fontSize: '0.76rem', flex: 1 }}>
-              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.92rem', marginBottom: 2 }}>{clientName || 'Stellar Innovations Pvt. Ltd.'}</div>
-              <div style={{ color: '#334155', lineHeight: 1.45 }}>
-                {clientAddress || '45 Innovation Way, Tech Corridor, Bangalore 560100'}
+              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.92rem', marginBottom: 2 }}>
+                {clientName || clientPlaceholder}
               </div>
-              <div style={{ color: '#334155', display: 'flex', alignItems: 'center', gap: 7 }}>
-                <Mail size={12} color="#1b4332" /> {clientEmail || 'accounts@stellarinnovations.com'}
-              </div>
-              <div style={{ color: '#334155', display: 'flex', alignItems: 'center', gap: 7 }}>
-                <Phone size={12} color="#1b4332" /> {clientPhone || '+91 98111 22334'}
-              </div>
-              <div style={{ fontWeight: 700, fontSize: '0.76rem', marginTop: 4, color: '#0f172a' }}>
-                GSTIN / Tax: <span style={{ color: '#0f172a', fontWeight: 800 }}>{clientTaxNumber || '29AABCS5678G1Z2'}</span>
-              </div>
+              {clientCompany && clientCompany !== clientName && (
+                <div style={{ color: '#475569', fontSize: '0.74rem' }}>{clientCompany}</div>
+              )}
+              {clientAddress && (
+                <div style={{ color: '#334155', lineHeight: 1.45 }}>
+                  {clientAddress}
+                </div>
+              )}
+              {clientEmail && (
+                <div style={{ color: '#334155', display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <Mail size={12} color="#1b4332" /> {clientEmail}
+                </div>
+              )}
+              {clientPhone && (
+                <div style={{ color: '#334155', display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <Phone size={12} color="#1b4332" /> {clientPhone}
+                </div>
+              )}
+              {hasClientTax && (
+                <div style={{ fontWeight: 700, fontSize: '0.76rem', marginTop: 4, color: '#0f172a' }}>
+                  GSTIN / Tax: <span style={{ color: '#0f172a', fontWeight: 800 }}>{clientTaxNumber}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -371,48 +401,44 @@ export default function BillDocumentRenderer({
             border: '1px solid #d1e7dd',
             borderRadius: 8,
             padding: '10px 16px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
+            display: 'flex',
             alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 16,
             position: 'relative',
             zIndex: 1,
           }}
         >
           {/* 1. BILL # */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderRight: '1px solid #d1e7dd', paddingRight: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderRight: '1px solid #d1e7dd', paddingRight: 14 }}>
             <FileText size={16} color="#1b4332" />
             <div>
-              <div style={{ fontSize: '0.64rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.04em', textTransform: 'uppercase' }}>BILL #</div>
+              <div style={{ fontSize: '0.64rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                {document.title || 'BILL'} #
+              </div>
               <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginTop: 1 }}>#{cleanBillNum}</div>
             </div>
           </div>
 
           {/* 2. DATE */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderRight: '1px solid #d1e7dd', paddingLeft: 14, paddingRight: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderRight: hasPoNumber ? '1px solid #d1e7dd' : 'none', paddingLeft: 4, paddingRight: 14 }}>
             <Calendar size={16} color="#1b4332" />
             <div>
               <div style={{ fontSize: '0.64rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.04em', textTransform: 'uppercase' }}>DATE</div>
-              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginTop: 1 }}>{formatHeaderDate(document.issueDate)}</div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginTop: 1 }}>{formatHeaderDate(document.issueDate) || '-'}</div>
             </div>
           </div>
 
           {/* 3. REF / PO */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderRight: '1px solid #d1e7dd', paddingLeft: 14, paddingRight: 12 }}>
-            <Receipt size={16} color="#1b4332" />
-            <div>
-              <div style={{ fontSize: '0.64rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.04em', textTransform: 'uppercase' }}>REF / PO</div>
-              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginTop: 1 }}>{document.poNumber || 'PO-12345'}</div>
+          {hasPoNumber && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 4 }}>
+              <Receipt size={16} color="#1b4332" />
+              <div>
+                <div style={{ fontSize: '0.64rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.04em', textTransform: 'uppercase' }}>REF / PO</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginTop: 1 }}>{poNumberValue}</div>
+              </div>
             </div>
-          </div>
-
-          {/* 4. CASHIER */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 14 }}>
-            <UserCheck size={16} color="#1b4332" />
-            <div>
-              <div style={{ fontSize: '0.64rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.04em', textTransform: 'uppercase' }}>CASHIER</div>
-              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginTop: 1 }}>STAFF #03</div>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* 4. ITEMS TABLE */}
@@ -423,7 +449,7 @@ export default function BillDocumentRenderer({
                 <th style={{ width: '6%', textAlign: 'center', padding: '10px 8px', fontSize: '0.74rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em' }}>
                   #
                 </th>
-                <th style={{ width: '44%', textAlign: 'left', padding: '10px 14px', fontSize: '0.74rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em' }}>
+                <th style={{ width: hasAnyTax ? '44%' : '54%', textAlign: 'left', padding: '10px 14px', fontSize: '0.74rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em' }}>
                   PARTICULARS / ITEM DESCRIPTION
                 </th>
                 <th style={{ width: '10%', textAlign: 'center', padding: '10px 8px', fontSize: '0.74rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em' }}>
@@ -432,9 +458,11 @@ export default function BillDocumentRenderer({
                 <th style={{ width: '14%', textAlign: 'center', padding: '10px 8px', fontSize: '0.74rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em' }}>
                   RATE ({currencySymbol})
                 </th>
-                <th style={{ width: '10%', textAlign: 'center', padding: '10px 8px', fontSize: '0.74rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em' }}>
-                  TAX (%)
-                </th>
+                {hasAnyTax && (
+                  <th style={{ width: '10%', textAlign: 'center', padding: '10px 8px', fontSize: '0.74rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em' }}>
+                    TAX (%)
+                  </th>
+                )}
                 <th style={{ width: '16%', textAlign: 'right', padding: '10px 14px', fontSize: '0.74rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em' }}>
                   AMOUNT ({currencySymbol})
                 </th>
@@ -450,7 +478,7 @@ export default function BillDocumentRenderer({
                       {idx + 1}
                     </td>
                     <td style={{ textAlign: 'left', padding: '12px 14px', fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>
-                      {item.name || item.description || 'Untitled Item'}
+                      {item.name || item.description || <span className="preview-placeholder">Item description</span>}
                     </td>
                     <td style={{ textAlign: 'center', padding: '12px 8px', fontSize: '0.78rem', fontWeight: 600, color: '#0f172a' }}>
                       {item.qty}
@@ -458,9 +486,11 @@ export default function BillDocumentRenderer({
                     <td style={{ textAlign: 'center', padding: '12px 8px', fontSize: '0.78rem', fontWeight: 600, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
                       {currencySymbol}{formatAmount(item.rate)}
                     </td>
-                    <td style={{ textAlign: 'center', padding: '12px 8px', fontSize: '0.76rem', color: '#0f172a' }}>
-                      {getItemTaxDisplay(item)}
-                    </td>
+                    {hasAnyTax && (
+                      <td style={{ textAlign: 'center', padding: '12px 8px', fontSize: '0.76rem', color: '#0f172a' }}>
+                        {getItemTaxDisplay(item)}
+                      </td>
+                    )}
                     <td style={{ textAlign: 'right', padding: '12px 14px', fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
                       {currencySymbol}{formatAmount(itemAmt)}
                     </td>
@@ -473,7 +503,7 @@ export default function BillDocumentRenderer({
 
         {/* 5. PAYMENT INFORMATION & TOTALS */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.18fr 1fr', gap: 16, alignItems: 'stretch', position: 'relative', zIndex: 1 }}>
-          {/* Left: Payment Information */}
+          {/* Left: Payment Information / Notes */}
           <div style={{ border: '1px solid #d1e7dd', borderRadius: 8, background: '#ffffff', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <div style={{ background: '#f2f7f4', borderBottom: '1px solid #d1e7dd', padding: '9px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <CreditCard size={15} color="#1b4332" />
@@ -482,31 +512,49 @@ export default function BillDocumentRenderer({
               </span>
             </div>
             <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.76rem', flex: 1, justifyContent: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ width: 120, color: '#475569', flexShrink: 0, fontWeight: 500 }}>Bank Name</span>
-                <span style={{ width: 18, color: '#64748b', textAlign: 'center' }}>:</span>
-                <span style={{ color: '#0f172a', fontWeight: 600 }}>{document.bankName || 'HDFC Bank Ltd.'}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ width: 120, color: '#475569', flexShrink: 0, fontWeight: 500 }}>Account Number</span>
-                <span style={{ width: 18, color: '#64748b', textAlign: 'center' }}>:</span>
-                <span style={{ color: '#0f172a', fontWeight: 700 }}>{document.accountNumber || '50200084920194'}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ width: 120, color: '#475569', flexShrink: 0, fontWeight: 500 }}>IFSC Code</span>
-                <span style={{ width: 18, color: '#64748b', textAlign: 'center' }}>:</span>
-                <span style={{ color: '#0f172a', fontWeight: 700 }}>{document.ifscCode || 'HDFC0001234'}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ width: 120, color: '#475569', flexShrink: 0, fontWeight: 500 }}>Branch</span>
-                <span style={{ width: 18, color: '#64748b', textAlign: 'center' }}>:</span>
-                <span style={{ color: '#0f172a', fontWeight: 500 }}>{document.branch || 'BKC Premier Mumbai'}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ width: 120, color: '#475569', flexShrink: 0, fontWeight: 500 }}>UPI ID</span>
-                <span style={{ width: 18, color: '#64748b', textAlign: 'center' }}>:</span>
-                <span style={{ color: '#1b4332', fontWeight: 800 }}>{document.upiId || 'apexcorp@hdfcbank'}</span>
-              </div>
+              {hasBankDetails ? (
+                <>
+                  {document.bankName && (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ width: 120, color: '#475569', flexShrink: 0, fontWeight: 500 }}>Bank Name</span>
+                      <span style={{ width: 18, color: '#64748b', textAlign: 'center' }}>:</span>
+                      <span style={{ color: '#0f172a', fontWeight: 600 }}>{document.bankName}</span>
+                    </div>
+                  )}
+                  {document.accountNumber && (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ width: 120, color: '#475569', flexShrink: 0, fontWeight: 500 }}>Account Number</span>
+                      <span style={{ width: 18, color: '#64748b', textAlign: 'center' }}>:</span>
+                      <span style={{ color: '#0f172a', fontWeight: 700 }}>{document.accountNumber}</span>
+                    </div>
+                  )}
+                  {document.ifscCode && (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ width: 120, color: '#475569', flexShrink: 0, fontWeight: 500 }}>IFSC Code</span>
+                      <span style={{ width: 18, color: '#64748b', textAlign: 'center' }}>:</span>
+                      <span style={{ color: '#0f172a', fontWeight: 700 }}>{document.ifscCode}</span>
+                    </div>
+                  )}
+                  {document.branch && (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ width: 120, color: '#475569', flexShrink: 0, fontWeight: 500 }}>Branch</span>
+                      <span style={{ width: 18, color: '#64748b', textAlign: 'center' }}>:</span>
+                      <span style={{ color: '#0f172a', fontWeight: 500 }}>{document.branch}</span>
+                    </div>
+                  )}
+                  {document.upiId && (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ width: 120, color: '#475569', flexShrink: 0, fontWeight: 500 }}>UPI ID</span>
+                      <span style={{ width: 18, color: '#64748b', textAlign: 'center' }}>:</span>
+                      <span style={{ color: '#1b4332', fontWeight: 800 }}>{document.upiId}</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ color: '#64748b', fontStyle: 'italic', lineHeight: 1.5 }}>
+                  {cleanPaymentInstructions || document.notes || 'Payment terms as per agreed schedule.'}
+                </div>
+              )}
             </div>
           </div>
 
@@ -607,10 +655,15 @@ export default function BillDocumentRenderer({
               </span>
             </div>
             <div style={{ fontSize: '0.74rem', color: '#334155', lineHeight: 1.45 }}>
-              <div style={{ fontWeight: 600 }}>{document.notes || 'Thank you for your business.'}</div>
-              <div style={{ color: '#64748b', marginTop: 2 }}>
-                Terms: {document.termsAndConditions || 'Goods/services are subject to the agreed terms.'}
-              </div>
+              {document.notes && <div style={{ fontWeight: 600 }}>{document.notes}</div>}
+              {document.termsAndConditions && (
+                <div style={{ color: '#64748b', marginTop: 2 }}>
+                  Terms: {document.termsAndConditions}
+                </div>
+              )}
+              {!document.notes && !document.termsAndConditions && (
+                <div className="preview-placeholder">No additional notes or terms specified.</div>
+              )}
             </div>
           </div>
 
@@ -677,7 +730,7 @@ export default function BillDocumentRenderer({
                 <img src={document.signature} alt="Sign" style={{ maxHeight: 32, maxWidth: 110, objectFit: 'contain', marginBottom: 2 }} />
               )}
               <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a' }}>Authorized Signatory</div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 2 }}>{senderName || 'Apex Corporate'}</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 2 }}>{senderName || senderPlaceholder}</div>
             </div>
           </div>
 
@@ -781,33 +834,19 @@ export default function BillDocumentRenderer({
           {/* Left: 4-Quadrant Clinical Cross Logo + Brand Name */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             {senderLogo ? (
-              <div
+              <img
+                src={senderLogo}
+                alt={senderName}
                 style={{
-                  width: 50,
-                  height: 50,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  maxWidth: 130,
+                  maxHeight: 50,
+                  width: 'auto',
+                  height: 'auto',
+                  objectFit: 'contain',
+                  display: 'block',
                   flexShrink: 0,
-                  borderRadius: 10,
-                  background: '#f8fafc',
-                  border: '1px solid #cbd5e1',
-                  overflow: 'hidden',
                 }}
-              >
-                <img
-                  src={senderLogo}
-                  alt={senderName}
-                  style={{
-                    maxWidth: 50,
-                    maxHeight: 50,
-                    width: 'auto',
-                    height: 'auto',
-                    objectFit: 'contain',
-                    display: 'block',
-                  }}
-                />
-              </div>
+              />
             ) : (
               <div style={{ flexShrink: 0 }}>
                 <svg width="50" height="50" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -846,20 +885,22 @@ export default function BillDocumentRenderer({
                   textTransform: 'uppercase',
                 }}
               >
-                {senderName === 'Apex Corporate' ? 'APEX HOSPITAL' : senderName.toUpperCase()}
+                {senderName || senderPlaceholder}
               </h1>
-              <div
-                style={{
-                  fontSize: '0.74rem',
-                  fontWeight: 600,
-                  letterSpacing: '0.24em',
-                  color: '#475569',
-                  marginTop: 4,
-                  textTransform: 'uppercase',
-                }}
-              >
-                HEALTH &nbsp;•&nbsp; CARE &nbsp;•&nbsp; TRUST
-              </div>
+              {senderTagline && (
+                <div
+                  style={{
+                    fontSize: '0.74rem',
+                    fontWeight: 600,
+                    letterSpacing: '0.12em',
+                    color: '#475569',
+                    marginTop: 4,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {senderTagline}
+                </div>
+              )}
             </div>
           </div>
 
@@ -875,22 +916,30 @@ export default function BillDocumentRenderer({
               flexShrink: 0,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <MapPin size={13} color="#475569" style={{ flexShrink: 0 }} />
-              <span>{senderAddress || '101 Cyber Towers, BKC, Mumbai 400051'}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Phone size={13} color="#475569" style={{ flexShrink: 0 }} />
-              <span>{senderPhone || '+91 98765 43210'}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Mail size={13} color="#475569" style={{ flexShrink: 0 }} />
-              <span>{senderEmail || 'billing@apexcorp.com'}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Globe size={13} color="#475569" style={{ flexShrink: 0 }} />
-              <span>{senderWebsite || 'www.apexcorp.com'}</span>
-            </div>
+            {senderAddress && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <MapPin size={13} color="#475569" style={{ flexShrink: 0 }} />
+                <span>{senderAddress}</span>
+              </div>
+            )}
+            {senderPhone && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Phone size={13} color="#475569" style={{ flexShrink: 0 }} />
+                <span>{senderPhone}</span>
+              </div>
+            )}
+            {senderEmail && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Mail size={13} color="#475569" style={{ flexShrink: 0 }} />
+                <span>{senderEmail}</span>
+              </div>
+            )}
+            {senderWebsite && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Globe size={13} color="#475569" style={{ flexShrink: 0 }} />
+                <span>{senderWebsite}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -906,7 +955,7 @@ export default function BillDocumentRenderer({
             zIndex: 1,
           }}
         >
-          {/* Left Card: Provider / Corporate Billing Service */}
+          {/* Left Card: Provider / Issued By */}
           <div
             style={{
               background: '#fcfbf9',
@@ -937,30 +986,38 @@ export default function BillDocumentRenderer({
                 </div>
                 <div>
                   <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.96rem', lineHeight: 1.2 }}>
-                    {senderName || 'Apex Corporate'}
+                    {senderName || senderPlaceholder}
                   </div>
-                  <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: 2 }}>
-                    {senderTagline || 'Corporate Billing Services'}
-                  </div>
+                  {senderTagline && (
+                    <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: 2 }}>
+                      {senderTagline}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 10, lineHeight: 1.45 }}>
-                {senderAddress || '101 Cyber Towers, BKC, Mumbai 400051'} &nbsp;|&nbsp; Offc. Dept. - {senderPhone || '+91 98765 43210'}
-              </div>
+              {(senderAddress || senderPhone) && (
+                <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 10, lineHeight: 1.45 }}>
+                  {[senderAddress, senderPhone && `Tel: ${senderPhone}`].filter(Boolean).join('  •  ')}
+                </div>
+              )}
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: '#475569', marginTop: 5 }}>
-                <Mail size={12} color="#475569" style={{ flexShrink: 0 }} />
-                <span>{senderEmail || 'billing@apexcorp.com'}</span>
-              </div>
+              {senderEmail && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: '#475569', marginTop: 5 }}>
+                  <Mail size={12} color="#475569" style={{ flexShrink: 0 }} />
+                  <span>{senderEmail}</span>
+                </div>
+              )}
             </div>
 
-            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#1e293b', marginTop: 8, paddingTop: 2 }}>
-              GSTIN / Tax: {senderTaxNumber || '27AABCA1234F1Z9'}
-            </div>
+            {hasSenderTax && (
+              <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#1e293b', marginTop: 8, paddingTop: 2 }}>
+                GSTIN / Tax: {senderTaxNumber}
+              </div>
+            )}
           </div>
 
-          {/* Right Card: Bill Identification & Case Particulars */}
+          {/* Right Card: Bill Identification & Particulars */}
           <div
             style={{
               background: '#fcfbf9',
@@ -984,87 +1041,79 @@ export default function BillDocumentRenderer({
                   lineHeight: 1.2,
                 }}
               >
-                OPD / IPD BILL # BL-{cleanBillId}
+                {document.title || 'BILL'} # BL-{cleanBillId}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8, fontSize: '0.74rem', color: '#475569' }}>
-                <div>Date: {formatHeaderDate(document.issueDate) || '2026-09-06'}</div>
-                <div>Time: 10:45 AM</div>
+                <div><span style={{ fontWeight: 600 }}>Billed To:</span> {clientName || clientPlaceholder}</div>
+                <div>Date: {formatHeaderDate(document.issueDate) || '-'}</div>
+                {document.dueDate && <div>Due Date: {formatHeaderDate(document.dueDate)}</div>}
               </div>
             </div>
 
-            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#1e293b', marginTop: 8, paddingTop: 2 }}>
-              CASE/S / UID: {document.poNumber || 'PO-12345'}
-            </div>
+            {hasPoNumber && (
+              <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#1e293b', marginTop: 8, paddingTop: 2 }}>
+                REF / PO: {poNumberValue}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* 3. 4-Segment Transaction Meta Strip */}
+        {/* 3. Transaction Meta Strip */}
         <div
           style={{
             background: '#fcfbf9',
             border: '1px solid #e2e8f0',
             borderRadius: 8,
             padding: '12px 20px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 16,
+            display: 'flex',
             alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 20,
             position: 'relative',
             zIndex: 1,
           }}
         >
           {/* Segment 1: Bill # */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderRight: '1px solid #e2e8f0', paddingRight: 16 }}>
             <FileText size={18} color="#64748b" style={{ flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748b', letterSpacing: '0.08em' }}>
-                BILL #
+                {document.title || 'BILL'} #
               </div>
               <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#1e293b', marginTop: 2 }}>
-                BILL-{cleanBillId}
+                BL-{cleanBillId}
               </div>
             </div>
           </div>
 
           {/* Segment 2: Date */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderRight: hasPoNumber ? '1px solid #e2e8f0' : 'none', paddingRight: 16 }}>
             <Calendar size={18} color="#64748b" style={{ flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748b', letterSpacing: '0.08em' }}>
                 DATE
               </div>
               <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#1e293b', marginTop: 2 }}>
-                {formatHeaderDate(document.issueDate) || '2026-09-06'}
+                {formatHeaderDate(document.issueDate) || '-'}
               </div>
             </div>
           </div>
 
           {/* Segment 3: Ref / PO */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <FileText size={18} color="#64748b" style={{ flexShrink: 0 }} />
-            <div>
-              <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748b', letterSpacing: '0.08em' }}>
-                REF. / PO
-              </div>
-              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#1e293b', marginTop: 2 }}>
-                {document.poNumber || 'PO-12345'}
-              </div>
-            </div>
-          </div>
-
-          {/* Segment 4: Cashier */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <User size={18} color="#64748b" style={{ flexShrink: 0 }} />
-            <div>
-              <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748b', letterSpacing: '0.08em' }}>
-                CASHIER
-              </div>
-              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#1e293b', marginTop: 2 }}>
-                STAFF #03
+          {hasPoNumber && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <FileText size={18} color="#64748b" style={{ flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748b', letterSpacing: '0.08em' }}>
+                  REF. / PO
+                </div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#1e293b', marginTop: 2 }}>
+                  {poNumberValue}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* 4. Table of Particulars / Procedures */}
@@ -1085,101 +1134,103 @@ export default function BillDocumentRenderer({
                   style={{
                     width: '6%',
                     textAlign: 'center',
-                    padding: '11px 8px',
+                    padding: '10px 8px',
                     fontSize: '0.74rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.05em',
-                    borderRight: '1px solid rgba(255,255,255,0.2)',
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    borderRight: '1px solid #64748b',
                   }}
                 >
                   #
                 </th>
                 <th
                   style={{
-                    width: '44%',
+                    width: hasAnyTax ? '44%' : '54%',
                     textAlign: 'left',
-                    padding: '11px 16px',
+                    padding: '10px 16px',
                     fontSize: '0.74rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.05em',
-                    borderRight: '1px solid rgba(255,255,255,0.2)',
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    borderRight: '1px solid #64748b',
                   }}
                 >
-                  PARTICULARS / ITEM DESCRIPTION
+                  PARTICULARS / DESCRIPTION
                 </th>
                 <th
                   style={{
                     width: '10%',
                     textAlign: 'center',
-                    padding: '11px 8px',
+                    padding: '10px 8px',
                     fontSize: '0.74rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.05em',
-                    borderRight: '1px solid rgba(255,255,255,0.2)',
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    borderRight: '1px solid #64748b',
                   }}
                 >
-                  UNITS
+                  QTY
                 </th>
                 <th
                   style={{
                     width: '14%',
                     textAlign: 'center',
-                    padding: '11px 10px',
+                    padding: '10px 10px',
                     fontSize: '0.74rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.05em',
-                    borderRight: '1px solid rgba(255,255,255,0.2)',
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    borderRight: '1px solid #64748b',
                   }}
                 >
-                  TARIFF
+                  RATE ({currencySymbol})
                 </th>
-                <th
-                  style={{
-                    width: '10%',
-                    textAlign: 'center',
-                    padding: '11px 8px',
-                    fontSize: '0.74rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.05em',
-                    borderRight: '1px solid rgba(255,255,255,0.2)',
-                  }}
-                >
-                  TAX
-                </th>
+                {hasAnyTax && (
+                  <th
+                    style={{
+                      width: '10%',
+                      textAlign: 'center',
+                      padding: '10px 8px',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      borderRight: '1px solid #64748b',
+                    }}
+                  >
+                    TAX (%)
+                  </th>
+                )}
                 <th
                   style={{
                     width: '16%',
                     textAlign: 'right',
-                    padding: '11px 16px',
+                    padding: '10px 16px',
                     fontSize: '0.74rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.05em',
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
                   }}
                 >
-                  NET CHARGES
+                  AMOUNT ({currencySymbol})
                 </th>
               </tr>
             </thead>
             <tbody>
-              {clinicalItems.map((item, idx) => {
+              {document.items.map((item, idx) => {
                 const itemQty = Number(item.qty) || 0;
                 const itemRate = Number(item.rate) || 0;
                 const itemAmt = itemQty * itemRate;
-                const isLast = idx === clinicalItems.length - 1;
+                const isLast = idx === document.items.length - 1;
 
                 return (
                   <tr
-                    key={item.id || idx}
+                    key={item.id}
                     style={{
                       borderBottom: isLast ? 'none' : '1px solid #e2e8f0',
-                      background: '#ffffff',
+                      background: idx % 2 === 0 ? '#ffffff' : '#fafafa',
                     }}
                   >
                     <td
                       style={{
                         textAlign: 'center',
                         padding: '12px 8px',
-                        fontSize: '0.78rem',
+                        fontSize: '0.8rem',
                         color: '#475569',
                         fontWeight: 600,
                         borderRight: '1px solid #e2e8f0',
@@ -1197,7 +1248,7 @@ export default function BillDocumentRenderer({
                         borderRight: '1px solid #e2e8f0',
                       }}
                     >
-                      <div>{item.name || item.description || 'Enterprise Consulting'}</div>
+                      <div>{item.name || item.description || itemPlaceholder}</div>
                       {item.name && item.description && item.description !== item.name && (
                         <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 400, marginTop: 2 }}>
                           {item.description}
@@ -1229,18 +1280,20 @@ export default function BillDocumentRenderer({
                     >
                       {currencySymbol}{formatAmount(itemRate)}
                     </td>
-                    <td
-                      style={{
-                        textAlign: 'center',
-                        padding: '12px 8px',
-                        fontSize: '0.78rem',
-                        color: '#475569',
-                        fontWeight: 600,
-                        borderRight: '1px solid #e2e8f0',
-                      }}
-                    >
-                      {getItemTaxDisplay(item)}
-                    </td>
+                    {hasAnyTax && (
+                      <td
+                        style={{
+                          textAlign: 'center',
+                          padding: '12px 8px',
+                          fontSize: '0.78rem',
+                          color: '#475569',
+                          fontWeight: 600,
+                          borderRight: '1px solid #e2e8f0',
+                        }}
+                      >
+                        {getItemTaxDisplay(item)}
+                      </td>
+                    )}
                     <td
                       style={{
                         textAlign: 'right',
@@ -1305,31 +1358,49 @@ export default function BillDocumentRenderer({
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7, fontSize: '0.76rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ width: 116, color: '#475569' }}>Bank Name</span>
-                <span style={{ width: 16, color: '#64748b', textAlign: 'center' }}>:</span>
-                <span style={{ color: '#1e293b', fontWeight: 600 }}>{document.bankName || 'HDFC Bank Ltd.'}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ width: 116, color: '#475569' }}>Account Number</span>
-                <span style={{ width: 16, color: '#64748b', textAlign: 'center' }}>:</span>
-                <span style={{ color: '#1e293b', fontWeight: 600 }}>{document.accountNumber || '502000486720194'}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ width: 116, color: '#475569' }}>IFSC Code</span>
-                <span style={{ width: 16, color: '#64748b', textAlign: 'center' }}>:</span>
-                <span style={{ color: '#1e293b', fontWeight: 600 }}>{document.ifscCode || 'HDFC0001234'}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ width: 116, color: '#475569' }}>Branch</span>
-                <span style={{ width: 16, color: '#64748b', textAlign: 'center' }}>:</span>
-                <span style={{ color: '#1e293b', fontWeight: 600 }}>{document.branch || 'BKC Premier Mumbai'}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ width: 116, color: '#475569' }}>UPI ID</span>
-                <span style={{ width: 16, color: '#64748b', textAlign: 'center' }}>:</span>
-                <span style={{ color: '#1e293b', fontWeight: 600 }}>{document.upiId || 'apexcorp@hdfcbank'}</span>
-              </div>
+              {hasBankDetails ? (
+                <>
+                  {document.bankName && (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ width: 116, color: '#475569' }}>Bank Name</span>
+                      <span style={{ width: 16, color: '#64748b', textAlign: 'center' }}>:</span>
+                      <span style={{ color: '#1e293b', fontWeight: 600 }}>{document.bankName}</span>
+                    </div>
+                  )}
+                  {document.accountNumber && (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ width: 116, color: '#475569' }}>Account Number</span>
+                      <span style={{ width: 16, color: '#64748b', textAlign: 'center' }}>:</span>
+                      <span style={{ color: '#1e293b', fontWeight: 600 }}>{document.accountNumber}</span>
+                    </div>
+                  )}
+                  {document.ifscCode && (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ width: 116, color: '#475569' }}>IFSC Code</span>
+                      <span style={{ width: 16, color: '#64748b', textAlign: 'center' }}>:</span>
+                      <span style={{ color: '#1e293b', fontWeight: 600 }}>{document.ifscCode}</span>
+                    </div>
+                  )}
+                  {document.branch && (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ width: 116, color: '#475569' }}>Branch</span>
+                      <span style={{ width: 16, color: '#64748b', textAlign: 'center' }}>:</span>
+                      <span style={{ color: '#1e293b', fontWeight: 600 }}>{document.branch}</span>
+                    </div>
+                  )}
+                  {document.upiId && (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ width: 116, color: '#475569' }}>UPI ID</span>
+                      <span style={{ width: 16, color: '#64748b', textAlign: 'center' }}>:</span>
+                      <span style={{ color: '#1e293b', fontWeight: 600 }}>{document.upiId}</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ color: '#64748b', fontStyle: 'italic', lineHeight: 1.5 }}>
+                  {cleanPaymentInstructions || document.notes || 'Please settle payment as per agreed terms.'}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1441,10 +1512,16 @@ export default function BillDocumentRenderer({
               </span>
             </div>
             <div style={{ fontSize: '0.74rem', color: '#334155', lineHeight: 1.45 }}>
-              <div style={{ fontWeight: 600 }}>{document.notes || 'Thank you for your business.'}</div>
-              <div style={{ color: '#64748b', marginTop: 2 }}>
-                Terms: {document.termsAndConditions || 'Goods/services are subject to the agreed terms.'}
-              </div>
+              {document.notes ? (
+                <div style={{ fontWeight: 600 }}>{document.notes}</div>
+              ) : (
+                <div className="preview-placeholder">Consultation &amp; service notes</div>
+              )}
+              {document.termsAndConditions ? (
+                <div style={{ color: '#64748b', marginTop: 2 }}>Terms: {document.termsAndConditions}</div>
+              ) : (
+                <div className="preview-placeholder" style={{ marginTop: 2 }}>Terms: Standard clinical billing terms apply</div>
+              )}
             </div>
           </div>
 
@@ -1513,10 +1590,10 @@ export default function BillDocumentRenderer({
             />
             <div>
               <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.88rem' }}>
-                {senderName === 'Apex Corporate' ? 'Apex Hospital' : senderName}
+                {senderName || senderPlaceholder}
               </div>
               <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: 2 }}>
-                {senderTagline || 'Trusted Healthcare Partner'}
+                {senderTagline || <span className="preview-placeholder">Trusted Healthcare Partner</span>}
               </div>
             </div>
           </div>
@@ -1534,7 +1611,7 @@ export default function BillDocumentRenderer({
                   Authorized Signature
                 </div>
                 <div style={{ fontSize: '0.66rem', color: '#64748b' }}>
-                  {senderName === 'Apex Corporate' ? 'Apex Hospital' : senderName}
+                  {senderName || senderPlaceholder}
                 </div>
               </div>
             </div>
@@ -1637,10 +1714,11 @@ export default function BillDocumentRenderer({
                 style={{
                   maxHeight: 48,
                   maxWidth: 120,
+                  width: 'auto',
+                  height: 'auto',
                   objectFit: 'contain',
-                  borderRadius: 6,
-                  background: '#ffffff',
-                  padding: '3px 6px',
+                  display: 'block',
+                  flexShrink: 0,
                 }}
               />
             ) : (
@@ -1663,13 +1741,15 @@ export default function BillDocumentRenderer({
             )}
             <div>
               <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '0.02em', lineHeight: 1.2 }}>
-                {senderName || 'Cambridge Global Academy'}
+                {senderName || senderPlaceholder}
               </h2>
-              <div style={{ fontSize: '0.74rem', color: '#FCD34D', fontWeight: 700, fontStyle: 'italic', marginTop: 3 }}>
-                {senderTagline || 'Excellence in Higher Education & Research'}
-              </div>
+              {senderTagline && (
+                <div style={{ fontSize: '0.74rem', color: '#FCD34D', fontWeight: 700, fontStyle: 'italic', marginTop: 3 }}>
+                  {senderTagline}
+                </div>
+              )}
               <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.85)', marginTop: 4, lineHeight: 1.4 }}>
-                {[senderAddress || '101 University Boulevard, Knowledge Park, Bangalore 560001', senderPhone && `Bursar Ph: ${senderPhone}`, senderEmail].filter(Boolean).join('  •  ')}
+                {[senderAddress, senderPhone && `Ph: ${senderPhone}`, senderEmail].filter(Boolean).join('  •  ')}
               </div>
             </div>
           </div>
@@ -1689,28 +1769,30 @@ export default function BillDocumentRenderer({
                 boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
               }}
             >
-              AUTUMN SEMESTER 2026-27
+              {document.title || 'BILL'}
             </div>
             <div style={{ fontSize: '0.94rem', fontWeight: 900, letterSpacing: '0.02em', color: '#FFFFFF', marginTop: 5, whiteSpace: 'nowrap' }}>
-              OFFICIAL TUITION VOUCHER #BL-{cleanBillId}
+              #{cleanBillId}
             </div>
             <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', marginTop: 3 }}>
-              Issue Date: <strong>{formatHeaderDate(document.issueDate) || '2026-09-06'}</strong>
+              Issue Date: <strong>{formatHeaderDate(document.issueDate) || '-'}</strong>
             </div>
             {document.dueDate && (
               <div style={{ fontSize: '0.70rem', color: '#FCA5A5', fontWeight: 600, marginTop: 1 }}>
-                Late Fee Due: {formatHeaderDate(document.dueDate)}
+                Due Date: {formatHeaderDate(document.dueDate)}
               </div>
             )}
-            <div style={{ fontSize: '0.70rem', color: '#FCD34D', fontWeight: 700, marginTop: 3, letterSpacing: '0.02em' }}>
-              ROLL / ENROLMENT: {document.poNumber || 'CGA-2026-089'}
-            </div>
+            {hasPoNumber && (
+              <div style={{ fontSize: '0.70rem', color: '#FCD34D', fontWeight: 700, marginTop: 3, letterSpacing: '0.02em' }}>
+                REF / PO: {poNumberValue}
+              </div>
+            )}
           </div>
         </div>
 
         {/* 2. Symmetrical Collegiate Dual Information Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'stretch' }}>
-          {/* Card 1: Institution / Bursar Particulars */}
+          {/* Card 1: Institution / Issued By */}
           <div
             style={{
               background: '#F8FAFC',
@@ -1726,28 +1808,29 @@ export default function BillDocumentRenderer({
             <div>
               <div style={{ color: '#283593', fontWeight: 800, fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Building2 size={13} color="#283593" />
-                <span>ACADEMIC INSTITUTION / BURSAR</span>
+                <span>ISSUED BY</span>
               </div>
               <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.94rem', marginTop: 4, lineHeight: 1.2 }}>
-                {senderName || 'Cambridge Global Academy'}
+                {senderName || senderPlaceholder}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#283593', fontWeight: 600, marginTop: 2 }}>
-                Affiliation: UGC / AICTE Recognized • Inst ID: #AC-9428
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 6, lineHeight: 1.4 }}>
-                {senderAddress || '101 University Boulevard, Knowledge Park, Bangalore 560001'}
-              </div>
+              {senderAddress && (
+                <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 6, lineHeight: 1.4 }}>
+                  {senderAddress}
+                </div>
+              )}
               <div style={{ fontSize: '0.70rem', color: '#64748B', marginTop: 4 }}>
                 {[senderPhone && `Ph: ${senderPhone}`, senderEmail].filter(Boolean).join('  •  ')}
               </div>
             </div>
 
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1E293B', marginTop: 10, paddingTop: 4, borderTop: '1px solid #E2E8F0' }}>
-              INST REG / TAX: {senderTaxNumber || '27AABCA1234F1Z9'}
-            </div>
+            {hasSenderTax && (
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1E293B', marginTop: 10, paddingTop: 4, borderTop: '1px solid #E2E8F0' }}>
+                GSTIN / Tax: {senderTaxNumber}
+              </div>
+            )}
           </div>
 
-          {/* Card 2: Student / Payee Particulars */}
+          {/* Card 2: Customer / Payee Particulars */}
           <div
             style={{
               background: '#F8FAFC',
@@ -1763,47 +1846,55 @@ export default function BillDocumentRenderer({
             <div>
               <div style={{ color: '#283593', fontWeight: 800, fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <User size={13} color="#283593" />
-                <span>STUDENT &amp; ENROLMENT PARTICULARS</span>
+                <span>BILLED TO</span>
               </div>
               <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.94rem', marginTop: 4, lineHeight: 1.2 }}>
-                {clientName || 'Rahul Sharma'}
+                {clientName || clientPlaceholder}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#283593', fontWeight: 600, marginTop: 2 }}>
-                {clientCompany && clientCompany !== clientName ? clientCompany : 'Bachelor of Technology (Computer Science) • Batch 2026-30'}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 6, lineHeight: 1.4 }}>
-                {clientAddress || 'Flat 402, Greenfield Residency, Metro Station Road'}
-              </div>
+              {clientCompany && clientCompany !== clientName && (
+                <div style={{ fontSize: '0.72rem', color: '#283593', fontWeight: 600, marginTop: 2 }}>
+                  {clientCompany}
+                </div>
+              )}
+              {clientAddress && (
+                <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 6, lineHeight: 1.4 }}>
+                  {clientAddress}
+                </div>
+              )}
               <div style={{ fontSize: '0.70rem', color: '#64748B', marginTop: 4 }}>
                 {[clientPhone && `Ph: ${clientPhone}`, clientEmail].filter(Boolean).join('  •  ')}
               </div>
             </div>
 
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1E293B', marginTop: 10, paddingTop: 4, borderTop: '1px solid #E2E8F0' }}>
-              ROLL NO / UID: {document.poNumber || 'CGA-2026-089'}
-            </div>
+            {hasPoNumber && (
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1E293B', marginTop: 10, paddingTop: 4, borderTop: '1px solid #E2E8F0' }}>
+                REF / PO: {poNumberValue}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* 3. Tuition & Curricular Fee Table */}
+        {/* 3. Tuition & Fee Table */}
         <div style={{ border: '1.5px solid #283593', borderRadius: 8, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#283593', color: '#FFFFFF' }}>
-                <th style={{ width: '46%', textAlign: 'left', padding: '11px 14px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
-                  FEE PARTICULARS / COURSE MODULES / LAB SESSIONS
+                <th style={{ width: hasAnyTax ? '46%' : '58%', textAlign: 'left', padding: '11px 14px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
+                  PARTICULARS / DESCRIPTION
                 </th>
                 <th style={{ width: '12%', textAlign: 'center', padding: '11px 8px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
-                  CREDITS / QTY
+                  QTY
                 </th>
                 <th style={{ width: '14%', textAlign: 'right', padding: '11px 10px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
-                  RATE / FEE
+                  RATE ({currencySymbol})
                 </th>
-                <th style={{ width: '12%', textAlign: 'center', padding: '11px 8px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
-                  TAX / CESS
-                </th>
+                {hasAnyTax && (
+                  <th style={{ width: '12%', textAlign: 'center', padding: '11px 8px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
+                    TAX (%)
+                  </th>
+                )}
                 <th style={{ width: '16%', textAlign: 'right', padding: '11px 14px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
-                  NET AMOUNT
+                  AMOUNT ({currencySymbol})
                 </th>
               </tr>
             </thead>
@@ -1812,25 +1903,22 @@ export default function BillDocumentRenderer({
                 const itemAmt = (Number(item.qty) || 0) * (Number(item.rate) || 0);
                 const isEven = idx % 2 === 1;
                 return (
-                  <tr key={item.id} style={{ borderBottom: '1px solid #E2E8F0', background: isEven ? '#F8FAFC' : '#FFFFFF' }}>
-                    <td style={{ textAlign: 'left', padding: '11px 14px' }}>
-                      <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.82rem' }}>
-                        {item.name || item.description || 'Academic Tuition Particular'}
-                      </div>
-                      {item.name && item.description && item.description !== item.name && (
-                        <div style={{ fontSize: '0.70rem', color: '#64748B', marginTop: 2 }}>{item.description}</div>
-                      )}
+                  <tr key={item.id || idx} style={{ background: isEven ? '#F8FAFC' : '#FFFFFF', borderBottom: '1px solid #E2E8F0' }}>
+                    <td style={{ padding: '11px 14px', fontSize: '0.78rem', fontWeight: 600, color: '#0F172A' }}>
+                      {item.name || item.description || itemPlaceholder}
                     </td>
-                    <td style={{ textAlign: 'center', padding: '11px 8px', fontWeight: 600, fontSize: '0.80rem', color: '#334155' }}>
+                    <td style={{ textAlign: 'center', padding: '11px 8px', fontSize: '0.76rem', color: '#334155' }}>
                       {item.qty}
                     </td>
-                    <td style={{ textAlign: 'right', padding: '11px 10px', fontVariantNumeric: 'tabular-nums', fontSize: '0.80rem', color: '#334155' }}>
+                    <td style={{ textAlign: 'right', padding: '11px 10px', fontSize: '0.76rem', color: '#334155', fontVariantNumeric: 'tabular-nums' }}>
                       {currencySymbol}{formatAmount(item.rate)}
                     </td>
-                    <td style={{ textAlign: 'center', fontSize: '0.74rem', color: '#64748B', padding: '11px 8px' }}>
-                      {getItemTaxDisplay(item)}
-                    </td>
-                    <td style={{ textAlign: 'right', padding: '11px 14px', fontWeight: 800, color: '#283593', fontVariantNumeric: 'tabular-nums', fontSize: '0.84rem' }}>
+                    {hasAnyTax && (
+                      <td style={{ textAlign: 'center', padding: '11px 8px', fontSize: '0.76rem', color: '#334155' }}>
+                        {getItemTaxDisplay(item)}
+                      </td>
+                    )}
+                    <td style={{ textAlign: 'right', padding: '11px 14px', fontSize: '0.78rem', fontWeight: 700, color: '#0F172A', fontVariantNumeric: 'tabular-nums' }}>
                       {currencySymbol}{formatAmount(itemAmt)}
                     </td>
                   </tr>
@@ -1840,9 +1928,9 @@ export default function BillDocumentRenderer({
           </table>
         </div>
 
-        {/* 4. Split Section: Seal & Remittance (Left) vs Fee Totals & Due Banner (Right) */}
+        {/* 4. Settlement & Totals Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 16, alignItems: 'stretch' }}>
-          {/* Left: Official Seal & Bursar Remittance */}
+          {/* Left: Remittance & Notes */}
           <div
             style={{
               background: '#F8FAFC',
@@ -1856,44 +1944,24 @@ export default function BillDocumentRenderer({
             }}
           >
             <div>
-              <div
-                style={{
-                  background: '#283593',
-                  color: '#E2B93B',
-                  padding: '5px 12px',
-                  borderRadius: 4,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontWeight: 800,
-                  fontSize: '0.70rem',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                <Award size={15} color="#E2B93B" />
-                <span>★ OFFICIAL UNIVERSITY SEAL: VERIFIED &amp; AUDITED ★</span>
-              </div>
-
-              {hasBankDetails ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 8, fontSize: '0.74rem', color: '#475569' }}>
-                  <div>Bank: <strong style={{ color: '#0F172A' }}>{document.bankName}</strong></div>
-                  <div>Account No: <strong style={{ color: '#0F172A' }}>{document.accountNumber}</strong></div>
-                  <div>IFSC Code: <strong style={{ color: '#0F172A' }}>{document.ifscCode}</strong> {document.branch && `(${document.branch})`}</div>
+              {hasBankDetails && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: '0.74rem', color: '#475569' }}>
+                  {document.bankName && <div>Bank: <strong style={{ color: '#0F172A' }}>{document.bankName}</strong></div>}
+                  {document.accountNumber && <div>Account No: <strong style={{ color: '#0F172A' }}>{document.accountNumber}</strong></div>}
+                  {document.ifscCode && <div>IFSC Code: <strong style={{ color: '#0F172A' }}>{document.ifscCode}</strong> {document.branch && `(${document.branch})`}</div>}
                   {document.upiId && <div>UPI ID: <strong style={{ color: '#283593' }}>{document.upiId}</strong></div>}
-                  <div style={{ fontSize: '0.68rem', color: '#283593', fontStyle: 'italic', marginTop: 2 }}>
-                    Quote Student Enrolment Ref: <strong>{document.poNumber || 'CGA-2026-089'}</strong> in payment remarks.
-                  </div>
-                </div>
-              ) : (
-                <div style={{ fontSize: '0.74rem', color: '#64748B', fontStyle: 'italic', marginTop: 8 }}>
-                  Please remit tuition fees according to the official academic schedule via NEFT / RTGS / Online Portal.
+                  {hasPoNumber && (
+                    <div style={{ fontSize: '0.68rem', color: '#283593', fontStyle: 'italic', marginTop: 2 }}>
+                      Quote Ref: <strong>{poNumberValue}</strong> in payment remarks.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
             <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: 8, marginTop: 10 }}>
               <div style={{ fontWeight: 800, color: '#283593', textTransform: 'uppercase', fontSize: '0.68rem', letterSpacing: '0.03em' }}>
-                ACADEMIC REGULATIONS &amp; TERMS:
+                REGULATIONS &amp; TERMS:
               </div>
               {document.notes && (
                 <div style={{ fontSize: '0.70rem', color: '#475569', marginTop: 2 }}>
@@ -1905,10 +1973,16 @@ export default function BillDocumentRenderer({
                   {cleanPaymentInstructions}
                 </div>
               )}
-              <div style={{ fontSize: '0.66rem', color: '#64748B', marginTop: 3, lineHeight: 1.4 }}>
-                1. Tuition fees once remitted are subject to institutional academic refund regulations.<br />
-                2. Official fee voucher eligible for educational tax benefits under applicable laws.
-              </div>
+              {document.termsAndConditions ? (
+                <div style={{ fontSize: '0.68rem', color: '#475569', marginTop: 3, lineHeight: 1.4 }}>
+                  {document.termsAndConditions}
+                </div>
+              ) : (
+                <div className="preview-placeholder" style={{ fontSize: '0.66rem', color: '#64748B', marginTop: 3, lineHeight: 1.4 }}>
+                  1. Tuition fees once remitted are subject to institutional academic refund regulations.<br />
+                  2. Official fee voucher eligible for educational tax benefits under applicable laws.
+                </div>
+              )}
             </div>
           </div>
 
@@ -1999,7 +2073,7 @@ export default function BillDocumentRenderer({
                   Registrar / Finance Bursar
                 </div>
                 <div style={{ fontSize: '0.64rem', color: '#64748B', marginTop: 1 }}>
-                  {senderName || 'Authorized Signatory'}
+                  {senderName || senderPlaceholder}
                 </div>
               </div>
             </div>
@@ -2082,25 +2156,26 @@ export default function BillDocumentRenderer({
                 <div style={{ marginBottom: 8 }}>
                   <img
                     src={activeLogo}
-                    alt={senderName}
+                    alt={senderName || 'Logo'}
                     style={{
                       maxHeight: 46,
                       maxWidth: 150,
+                      width: 'auto',
+                      height: 'auto',
                       objectFit: 'contain',
-                      background: '#FFFFFF',
-                      borderRadius: 6,
-                      padding: '4px 8px',
                       display: 'block',
                     }}
                   />
                 </div>
               ) : null}
               <div style={{ fontWeight: 900, fontSize: '1.38rem', color: '#FFFFFF', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-                {senderName || 'Apex Corporate'}
+                {senderName || senderPlaceholder}
               </div>
-              <div style={{ fontSize: '0.74rem', color: '#FED7AA', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 4 }}>
-                {senderTagline || 'Corporate Billing Services'}
-              </div>
+              {senderTagline && (
+                <div style={{ fontSize: '0.74rem', color: '#FED7AA', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 4 }}>
+                  {senderTagline}
+                </div>
+              )}
               <div
                 style={{
                   display: 'inline-flex',
@@ -2122,85 +2197,85 @@ export default function BillDocumentRenderer({
             </div>
 
             {/* Sidebar Contact Details in Frosted Glass Card */}
-            <div
-              style={{
-                fontSize: '0.72rem',
-                color: '#FFFFFF',
-                background: 'rgba(255,255,255,0.14)',
-                border: '1px solid rgba(255,255,255,0.22)',
-                padding: '14px 14px',
-                borderRadius: 8,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 5,
-              }}
-            >
-              <div style={{ fontWeight: 800, fontSize: '0.68rem', color: '#FED7AA', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                STUDIO HEADQUARTERS
+            {(senderAddress || senderPhone || senderEmail || document.senderWebsite || hasSenderTax) && (
+              <div
+                style={{
+                  fontSize: '0.72rem',
+                  color: '#FFFFFF',
+                  background: 'rgba(255,255,255,0.14)',
+                  border: '1px solid rgba(255,255,255,0.22)',
+                  padding: '14px 14px',
+                  borderRadius: 8,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 5,
+                }}
+              >
+                <div style={{ fontWeight: 800, fontSize: '0.68rem', color: '#FED7AA', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  STUDIO HEADQUARTERS
+                </div>
+                {senderAddress && <div style={{ lineHeight: 1.45 }}>{senderAddress}</div>}
+                {senderPhone && <div>Ph: {senderPhone}</div>}
+                {senderEmail && <div style={{ wordBreak: 'break-all' }}>{senderEmail}</div>}
+                {document.senderWebsite && <div>{document.senderWebsite}</div>}
+                {hasSenderTax && (
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.22)', paddingTop: 6, marginTop: 4, fontWeight: 700, color: '#FED7AA', fontSize: '0.70rem' }}>
+                    GSTIN: {senderTaxNumber}
+                  </div>
+                )}
               </div>
-              <div style={{ lineHeight: 1.45 }}>{senderAddress || '101 Cyber Towers, BKC, Mumbai 400051'}</div>
-              {senderPhone && <div>Ph: {senderPhone}</div>}
-              {senderEmail && <div style={{ wordBreak: 'break-all' }}>{senderEmail}</div>}
-              {document.senderWebsite && <div>{document.senderWebsite}</div>}
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.22)', paddingTop: 6, marginTop: 4, fontWeight: 700, color: '#FED7AA', fontSize: '0.70rem' }}>
-                GSTIN: {senderTaxNumber || '27AABCA1234F1Z9'}
-              </div>
-            </div>
+            )}
 
             {/* Creative Engagement Scope Card */}
-            <div
-              style={{
-                fontSize: '0.70rem',
-                color: '#FFFFFF',
-                background: 'rgba(255,255,255,0.12)',
-                border: '1px solid rgba(255,255,255,0.20)',
-                padding: '12px 14px',
-                borderRadius: 8,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 4,
-              }}
-            >
-              <div style={{ fontWeight: 800, fontSize: '0.66rem', color: '#FED7AA', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                ENGAGEMENT SCOPE
+            {hasPoNumber && (
+              <div
+                style={{
+                  fontSize: '0.70rem',
+                  color: '#FFFFFF',
+                  background: 'rgba(255,255,255,0.12)',
+                  border: '1px solid rgba(255,255,255,0.20)',
+                  padding: '12px 14px',
+                  borderRadius: 8,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                }}
+              >
+                <div style={{ fontWeight: 800, fontSize: '0.66rem', color: '#FED7AA', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  ENGAGEMENT SCOPE
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Contract Ref / PO:</span>
+                  <strong>{poNumberValue}</strong>
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Type:</span>
-                <strong>Milestone Retainer</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>IP Rights:</span>
-                <strong>100% Release</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Contract Ref:</span>
-                <strong>{document.poNumber || 'PO-12345'}</strong>
-              </div>
-            </div>
+            )}
 
             {/* Instant Pay QR Badge */}
-            <div
-              className="sidebar-qr-badge"
-              style={{
-                background: '#FFFFFF',
-                color: '#E65100',
-                padding: '14px 12px',
-                borderRadius: 8,
-                textAlign: 'center',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.14)',
-              }}
-            >
-              <QrCode size={38} color="#E65100" style={{ margin: '0 auto 5px auto' }} />
-              <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#0F172A', letterSpacing: '0.04em' }}>
-                SCAN TO PAY VIA UPI
+            {document.upiId && (
+              <div
+                className="sidebar-qr-badge"
+                style={{
+                  background: '#FFFFFF',
+                  color: '#E65100',
+                  padding: '14px 12px',
+                  borderRadius: 8,
+                  textAlign: 'center',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.14)',
+                }}
+              >
+                <QrCode size={38} color="#E65100" style={{ margin: '0 auto 5px auto' }} />
+                <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#0F172A', letterSpacing: '0.04em' }}>
+                  SCAN TO PAY VIA UPI
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#C2410C', fontWeight: 800, marginTop: 3, wordBreak: 'break-all' }}>
+                  {document.upiId}
+                </div>
+                <div style={{ fontSize: '0.60rem', color: '#64748B', marginTop: 2 }}>
+                  Instant settlement via any UPI App
+                </div>
               </div>
-              <div style={{ fontSize: '0.68rem', color: '#C2410C', fontWeight: 800, marginTop: 3, wordBreak: 'break-all' }}>
-                {document.upiId || 'apexcorp@hdfcbank'}
-              </div>
-              <div style={{ fontSize: '0.60rem', color: '#64748B', marginTop: 2 }}>
-                Instant settlement via any UPI App
-              </div>
-            </div>
+            )}
 
             {/* Sidebar Bank Remittance Card */}
             {hasBankDetails && (
@@ -2220,9 +2295,9 @@ export default function BillDocumentRenderer({
                 <div style={{ fontWeight: 800, color: '#FED7AA', letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: '0.68rem' }}>
                   WIRE REMITTANCE:
                 </div>
-                <div>Bank: <strong style={{ color: '#FFFFFF' }}>{document.bankName || 'HDFC Bank Ltd.'}</strong></div>
-                <div>A/C: <strong style={{ color: '#FFFFFF' }}>{document.accountNumber || '50200084920194'}</strong></div>
-                <div>IFSC: <strong style={{ color: '#FFFFFF' }}>{document.ifscCode || 'HDFC0001234'}</strong> {document.branch && `(${document.branch})`}</div>
+                {document.bankName && <div>Bank: <strong style={{ color: '#FFFFFF' }}>{document.bankName}</strong></div>}
+                {document.accountNumber && <div>A/C: <strong style={{ color: '#FFFFFF' }}>{document.accountNumber}</strong></div>}
+                {document.ifscCode && <div>IFSC: <strong style={{ color: '#FFFFFF' }}>{document.ifscCode}</strong> {document.branch && `(${document.branch})`}</div>}
                 <div style={{ fontSize: '0.66rem', color: '#FED7AA', fontStyle: 'italic', marginTop: 3 }}>
                   Quote Ref #{cleanBillId} in remarks.
                 </div>
@@ -2276,11 +2351,13 @@ export default function BillDocumentRenderer({
                 </div>
               </div>
               <div style={{ textAlign: 'right', fontSize: '0.76rem', color: '#475569', lineHeight: 1.6 }}>
-                <div>Bill Date: <strong style={{ color: '#0F172A' }}>{formatHeaderDate(document.issueDate) || '2026-09-06'}</strong></div>
-                <div>Payment Due: <strong style={{ color: '#0F172A' }}>{formatHeaderDate(document.dueDate) || '2026-10-06'}</strong></div>
-                <div style={{ color: '#C2410C', fontWeight: 800, marginTop: 2 }}>
-                  Project Ref: {document.poNumber || 'PO-12345'}
-                </div>
+                <div>Bill Date: <strong style={{ color: '#0F172A' }}>{formatHeaderDate(document.issueDate) || '-'}</strong></div>
+                <div>Payment Due: <strong style={{ color: '#0F172A' }}>{formatHeaderDate(document.dueDate) || '-'}</strong></div>
+                {hasPoNumber && (
+                  <div style={{ color: '#C2410C', fontWeight: 800, marginTop: 2 }}>
+                    Project Ref: {poNumberValue}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2289,12 +2366,12 @@ export default function BillDocumentRenderer({
               <span style={{ fontSize: '0.68rem', color: '#C2410C', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 CLIENT / BILLED TO:
               </span>
-              <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '1.02rem', marginTop: 3 }}>{clientName}</div>
+              <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '1.02rem', marginTop: 3 }}>{clientName || clientPlaceholder}</div>
               {clientCompany && clientCompany !== clientName && <div style={{ color: '#475569', fontSize: '0.76rem', marginTop: 1 }}>{clientCompany}</div>}
               {clientAddress && <div style={{ color: '#64748B', fontSize: '0.74rem', marginTop: 3, lineHeight: 1.45 }}>{clientAddress}</div>}
-              {(clientPhone || clientEmail || clientTaxNumber) && (
+              {(clientPhone || clientEmail || hasClientTax) && (
                 <div style={{ color: '#9A3412', fontSize: '0.72rem', fontWeight: 600, marginTop: 5 }}>
-                  {[clientPhone && `Ph: ${clientPhone}`, clientEmail, clientTaxNumber && `GSTIN: ${clientTaxNumber}`].filter(Boolean).join('  •  ')}
+                  {[clientPhone && `Ph: ${clientPhone}`, clientEmail, hasClientTax && `GSTIN: ${clientTaxNumber}`].filter(Boolean).join('  •  ')}
                 </div>
               )}
             </div>
@@ -2305,10 +2382,12 @@ export default function BillDocumentRenderer({
                 <thead>
                   <tr style={{ background: '#FFEDD5', color: '#9A3412' }}>
                     <th style={{ width: '6%', textAlign: 'center', padding: '12px 8px', fontWeight: 800, fontSize: '0.74rem' }}>#</th>
-                    <th style={{ width: '44%', textAlign: 'left', padding: '12px 14px', fontWeight: 800, fontSize: '0.74rem', letterSpacing: '0.04em' }}>DELIVERABLE / MILESTONE</th>
+                    <th style={{ width: hasAnyTax ? '44%' : '54%', textAlign: 'left', padding: '12px 14px', fontWeight: 800, fontSize: '0.74rem', letterSpacing: '0.04em' }}>DELIVERABLE / MILESTONE</th>
                     <th style={{ width: '10%', textAlign: 'center', padding: '12px 8px', fontWeight: 800, fontSize: '0.74rem' }}>QTY</th>
                     <th style={{ width: '14%', textAlign: 'right', padding: '12px 10px', fontWeight: 800, fontSize: '0.74rem' }}>RATE</th>
-                    <th style={{ width: '10%', textAlign: 'center', padding: '12px 8px', fontWeight: 800, fontSize: '0.74rem' }}>TAX</th>
+                    {hasAnyTax && (
+                      <th style={{ width: '10%', textAlign: 'center', padding: '12px 8px', fontWeight: 800, fontSize: '0.74rem' }}>TAX</th>
+                    )}
                     <th style={{ width: '16%', textAlign: 'right', padding: '12px 14px', fontWeight: 800, fontSize: '0.74rem' }}>AMOUNT</th>
                   </tr>
                 </thead>
@@ -2322,16 +2401,18 @@ export default function BillDocumentRenderer({
                           {idx + 1}
                         </td>
                         <td className="cell-desc" style={{ textAlign: 'left', padding: '13px 14px' }}>
-                          <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.86rem' }}>{item.name || item.description || 'Deliverable'}</div>
+                          <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.86rem' }}>{item.name || item.description || itemPlaceholder}</div>
                           {item.name && item.description && item.description !== item.name && (
                             <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: 3, lineHeight: 1.4 }}>{item.description}</div>
                           )}
                         </td>
                         <td style={{ textAlign: 'center', padding: '13px 8px', fontWeight: 600, color: '#334155' }}>{item.qty}</td>
                         <td style={{ textAlign: 'right', padding: '13px 10px', fontVariantNumeric: 'tabular-nums', color: '#334155' }}>{currencySymbol}{formatAmount(item.rate)}</td>
-                        <td style={{ textAlign: 'center', fontSize: '0.74rem', color: '#64748B', padding: '13px 8px' }}>
-                          {getItemTaxDisplay(item)}
-                        </td>
+                        {hasAnyTax && (
+                          <td style={{ textAlign: 'center', fontSize: '0.74rem', color: '#64748B', padding: '13px 8px' }}>
+                            {getItemTaxDisplay(item)}
+                          </td>
+                        )}
                         <td style={{ textAlign: 'right', fontWeight: 800, color: '#9A3412', padding: '13px 14px', fontVariantNumeric: 'tabular-nums', fontSize: '0.84rem' }}>
                           {currencySymbol}{formatAmount(itemAmt)}
                         </td>
@@ -2360,7 +2441,11 @@ export default function BillDocumentRenderer({
                   MILESTONE AUDIT &amp; SCOPE ACCEPTANCE:
                 </div>
                 <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 2 }}>
-                  Deliverables audited and approved under project contract <strong>{document.poNumber || 'PO-12345'}</strong>.
+                  {hasPoNumber ? (
+                    <>Deliverables audited and approved under project contract <strong>{poNumberValue}</strong>.</>
+                  ) : (
+                    <>Deliverables audited and verified in accordance with commercial terms.</>
+                  )}
                 </div>
               </div>
               <span
@@ -2391,7 +2476,7 @@ export default function BillDocumentRenderer({
                   {document.termsAndConditions ? (
                     <div style={{ marginTop: 4, fontSize: '0.70rem', color: '#64748B', lineHeight: 1.45 }}><strong>Terms:</strong> {document.termsAndConditions}</div>
                   ) : (
-                    <div style={{ marginTop: 4, fontSize: '0.68rem', color: '#64748B', lineHeight: 1.5 }}>
+                    <div className="preview-placeholder" style={{ marginTop: 4, fontSize: '0.68rem', color: '#94A3B8', fontStyle: 'italic', lineHeight: 1.5 }}>
                       1. All intellectual property transfers upon full settlement of balance.<br />
                       2. Deliverables verified against agreed creative milestone scope.<br />
                       3. Production source files released upon electronic payment receipt.
@@ -2414,7 +2499,7 @@ export default function BillDocumentRenderer({
                     <span>-{currencySymbol}{formatAmount(calc.discountAmount)}</span>
                   </div>
                 )}
-                {calc.taxAmount > 0 && (
+                {calc.taxAmount > 0 && hasAnyTax && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B' }}>
                     <span>GST ({billTaxRate}%):</span>
                     <span style={{ fontWeight: 600, color: '#0F172A' }}>{currencySymbol}{formatAmount(calc.taxAmount)}</span>
@@ -2470,11 +2555,13 @@ export default function BillDocumentRenderer({
               {/* Left Footnote */}
               <div>
                 <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.84rem' }}>
-                  {senderName || 'Apex Corporate'}
+                  {senderName || senderPlaceholder}
                 </div>
-                <div style={{ fontSize: '0.70rem', color: '#64748B', marginTop: 2 }}>
-                  {senderTagline || 'Corporate Billing Services'}
-                </div>
+                {senderTagline && (
+                  <div style={{ fontSize: '0.70rem', color: '#64748B', marginTop: 2 }}>
+                    {senderTagline}
+                  </div>
+                )}
                 <div style={{ fontSize: '0.64rem', color: '#94A3B8', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 4 }}>
                   ORIGINAL FOR CLIENT • ELECTRONIC TAX INVOICE
                 </div>
@@ -2490,7 +2577,7 @@ export default function BillDocumentRenderer({
                 <div style={{ borderTop: '1.5px solid #E65100', fontSize: '0.72rem', color: '#E65100', fontWeight: 800, paddingTop: 4 }}>
                   Creative Director / Partner
                 </div>
-                <div style={{ fontSize: '0.66rem', color: '#64748B', marginTop: 1 }}>{senderName || 'Apex Corporate'}</div>
+                <div style={{ fontSize: '0.66rem', color: '#64748B', marginTop: 1 }}>{senderName || senderPlaceholder}</div>
               </div>
             </div>
           </div>
@@ -2565,8 +2652,9 @@ export default function BillDocumentRenderer({
                   style={{
                     maxHeight: 46,
                     maxWidth: 150,
+                    width: 'auto',
+                    height: 'auto',
                     objectFit: 'contain',
-                    borderRadius: 4,
                     display: 'block',
                   }}
                 />
@@ -2582,19 +2670,21 @@ export default function BillDocumentRenderer({
                 lineHeight: 1.15,
               }}
             >
-              {senderName || 'Kronos Cloud Systems'}
+              {senderName || senderPlaceholder}
             </h1>
-            <div style={{ fontSize: '0.74rem', color: '#64748B', marginTop: 3, fontWeight: 500 }}>
-              {senderTagline || 'Enterprise Cloud & Infrastructure Architecture'}
-            </div>
+            {senderTagline && (
+              <div style={{ fontSize: '0.74rem', color: '#64748B', marginTop: 3, fontWeight: 500 }}>
+                {senderTagline}
+              </div>
+            )}
             <div style={{ fontSize: '0.68rem', color: '#64748B', marginTop: 4, lineHeight: 1.4 }}>
-              {[senderAddress || '101 Cyber Towers, Tech Corridor, Bangalore 560100', senderPhone && `Ph: ${senderPhone}`, senderEmail].filter(Boolean).join('  •  ')}
+              {[senderAddress, senderPhone && `Ph: ${senderPhone}`, senderEmail].filter(Boolean).join('  •  ')}
             </div>
           </div>
 
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
             <div style={{ fontSize: '1.60rem', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.03em', lineHeight: 1 }}>
-              TAX BILL
+              {document.title || 'BILL'}
             </div>
             <div
               style={{
@@ -2618,11 +2708,11 @@ export default function BillDocumentRenderer({
           </div>
         </div>
 
-        {/* 2. Sleek Minimalist 4-Pillar Metadata Bar */}
+        {/* 2. Sleek Minimalist Metadata Bar */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
+            gridTemplateColumns: hasPoNumber ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
             gap: 12,
             background: '#F8FAFC',
             border: '1.5px solid #E2E8F0',
@@ -2635,7 +2725,7 @@ export default function BillDocumentRenderer({
               BILL DATE
             </div>
             <div style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0F172A', marginTop: 2 }}>
-              {formatHeaderDate(document.issueDate) || '2026-09-06'}
+              {formatHeaderDate(document.issueDate) || '-'}
             </div>
           </div>
           <div>
@@ -2646,14 +2736,16 @@ export default function BillDocumentRenderer({
               {formatHeaderDate(document.dueDate) || 'Due on Receipt'}
             </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              REF / PO NO.
+          {hasPoNumber && (
+            <div>
+              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                REF / PO NO.
+              </div>
+              <div style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0F172A', marginTop: 2 }}>
+                {poNumberValue}
+              </div>
             </div>
-            <div style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0F172A', marginTop: 2 }}>
-              {document.poNumber || 'PO-12345'}
-            </div>
-          </div>
+          )}
           <div>
             <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               PAYMENT STATUS
@@ -2696,22 +2788,30 @@ export default function BillDocumentRenderer({
                 01. ISSUED FROM
               </div>
               <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.94rem', marginTop: 4, lineHeight: 1.2 }}>
-                {senderName || 'Kronos Cloud Systems'}
+                {senderName || senderPlaceholder}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 2 }}>
-                {senderTagline || 'Enterprise Cloud Infrastructure'}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 4, lineHeight: 1.4 }}>
-                {senderAddress || '101 Cyber Towers, Tech Corridor, Bangalore 560100'}
-              </div>
-              <div style={{ fontSize: '0.70rem', color: '#64748B', marginTop: 3 }}>
-                {[senderPhone && `Ph: ${senderPhone}`, senderEmail].filter(Boolean).join('  •  ')}
-              </div>
+              {senderTagline && (
+                <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 2 }}>
+                  {senderTagline}
+                </div>
+              )}
+              {senderAddress && (
+                <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 4, lineHeight: 1.4 }}>
+                  {senderAddress}
+                </div>
+              )}
+              {(senderPhone || senderEmail) && (
+                <div style={{ fontSize: '0.70rem', color: '#64748B', marginTop: 3 }}>
+                  {[senderPhone && `Ph: ${senderPhone}`, senderEmail].filter(Boolean).join('  •  ')}
+                </div>
+              )}
             </div>
 
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A', marginTop: 'auto', paddingTop: 6, borderTop: '1px solid #E2E8F0' }}>
-              TAX / GSTIN: {senderTaxNumber || '27AABCA1234F1Z9'}
-            </div>
+            {hasSenderTax && (
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A', marginTop: 'auto', paddingTop: 6, borderTop: '1px solid #E2E8F0' }}>
+                TAX / GSTIN: {senderTaxNumber}
+              </div>
+            )}
           </div>
 
           {/* Card 2: Bill To */}
@@ -2733,22 +2833,30 @@ export default function BillDocumentRenderer({
                 02. INVOICED TO
               </div>
               <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.94rem', marginTop: 4, lineHeight: 1.2 }}>
-                {clientName || 'Linear Labs Global Inc.'}
+                {clientName || clientPlaceholder}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 2 }}>
-                {clientCompany && clientCompany !== clientName ? clientCompany : 'Technology Operations & Cloud Services'}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 4, lineHeight: 1.4 }}>
-                {clientAddress || '45 Innovation Way, Tech Park, Bangalore 560100'}
-              </div>
-              <div style={{ fontSize: '0.70rem', color: '#64748B', marginTop: 3 }}>
-                {[clientPhone && `Ph: ${clientPhone}`, clientEmail].filter(Boolean).join('  •  ')}
-              </div>
+              {clientCompany && clientCompany !== clientName && (
+                <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 2 }}>
+                  {clientCompany}
+                </div>
+              )}
+              {clientAddress && (
+                <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: 4, lineHeight: 1.4 }}>
+                  {clientAddress}
+                </div>
+              )}
+              {(clientPhone || clientEmail) && (
+                <div style={{ fontSize: '0.70rem', color: '#64748B', marginTop: 3 }}>
+                  {[clientPhone && `Ph: ${clientPhone}`, clientEmail].filter(Boolean).join('  •  ')}
+                </div>
+              )}
             </div>
 
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A', marginTop: 'auto', paddingTop: 6, borderTop: '1px solid #E2E8F0' }}>
-              CLIENT REF: {document.poNumber || clientTaxNumber || 'PO-12345'}
-            </div>
+            {(hasClientTax || hasPoNumber) && (
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A', marginTop: 'auto', paddingTop: 6, borderTop: '1px solid #E2E8F0' }}>
+                {[hasClientTax && `GSTIN: ${clientTaxNumber}`, hasPoNumber && `REF: ${poNumberValue}`].filter(Boolean).join('  •  ')}
+              </div>
+            )}
           </div>
         </div>
 
@@ -2760,7 +2868,7 @@ export default function BillDocumentRenderer({
                 <th style={{ width: '6%', textAlign: 'center', padding: '10px 6px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
                   #
                 </th>
-                <th style={{ width: '42%', textAlign: 'left', padding: '10px 12px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
+                <th style={{ width: hasAnyTax ? '42%' : '52%', textAlign: 'left', padding: '10px 12px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
                   ITEM / SERVICE PARTICULARS
                 </th>
                 <th style={{ width: '12%', textAlign: 'center', padding: '10px 8px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
@@ -2769,9 +2877,11 @@ export default function BillDocumentRenderer({
                 <th style={{ width: '14%', textAlign: 'right', padding: '10px 10px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
                   RATE / UNIT
                 </th>
-                <th style={{ width: '10%', textAlign: 'center', padding: '10px 8px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
-                  TAX RATE
-                </th>
+                {hasAnyTax && (
+                  <th style={{ width: '10%', textAlign: 'center', padding: '10px 8px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
+                    TAX RATE
+                  </th>
+                )}
                 <th style={{ width: '16%', textAlign: 'right', padding: '10px 14px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFFFFF' }}>
                   NET AMOUNT
                 </th>
@@ -2788,7 +2898,7 @@ export default function BillDocumentRenderer({
                     </td>
                     <td style={{ textAlign: 'left', padding: '10px 12px' }}>
                       <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.82rem' }}>
-                        {item.name || item.description || 'Particular'}
+                        {item.name || item.description || itemPlaceholder}
                       </div>
                       {item.name && item.description && item.description !== item.name && (
                         <div style={{ fontSize: '0.70rem', color: '#64748B', marginTop: 2 }}>{item.description}</div>
@@ -2800,9 +2910,11 @@ export default function BillDocumentRenderer({
                     <td style={{ textAlign: 'right', padding: '10px 10px', fontVariantNumeric: 'tabular-nums', fontSize: '0.80rem', color: '#334155' }}>
                       {currencySymbol}{formatAmount(item.rate)}
                     </td>
-                    <td style={{ textAlign: 'center', fontSize: '0.74rem', color: '#64748B', padding: '10px 8px' }}>
-                      {getItemTaxDisplay(item)}
-                    </td>
+                    {hasAnyTax && (
+                      <td style={{ textAlign: 'center', fontSize: '0.74rem', color: '#64748B', padding: '10px 8px' }}>
+                        {getItemTaxDisplay(item)}
+                      </td>
+                    )}
                     <td style={{ textAlign: 'right', padding: '10px 14px', fontWeight: 800, color: '#0F172A', fontVariantNumeric: 'tabular-nums', fontSize: '0.84rem' }}>
                       {currencySymbol}{formatAmount(itemAmt)}
                     </td>
@@ -2837,22 +2949,22 @@ export default function BillDocumentRenderer({
               </div>
               {hasBankDetails ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: '0.74rem', color: '#475569' }}>
-                  <div>Bank Name: <strong style={{ color: '#0F172A' }}>{document.bankName}</strong></div>
-                  <div>Account No: <strong style={{ color: '#0F172A' }}>{document.accountNumber}</strong></div>
-                  <div>IFSC Code: <strong style={{ color: '#0F172A' }}>{document.ifscCode}</strong> {document.branch && `(${document.branch})`}</div>
+                  {document.bankName && <div>Bank Name: <strong style={{ color: '#0F172A' }}>{document.bankName}</strong></div>}
+                  {document.accountNumber && <div>Account No: <strong style={{ color: '#0F172A' }}>{document.accountNumber}</strong></div>}
+                  {document.ifscCode && <div>IFSC Code: <strong style={{ color: '#0F172A' }}>{document.ifscCode}</strong> {document.branch && `(${document.branch})`}</div>}
                   {document.upiId && <div>UPI ID: <strong style={{ color: '#0F172A' }}>{document.upiId}</strong></div>}
                   <div style={{ fontSize: '0.68rem', color: '#64748B', fontStyle: 'italic', marginTop: 4 }}>
                     Please quote Bill Reference <strong>#{cleanBillId}</strong> in all electronic remittances.
                   </div>
                 </div>
               ) : (
-                <div style={{ fontSize: '0.74rem', color: '#64748B', fontStyle: 'italic', marginTop: 4 }}>
+                <div className="preview-placeholder" style={{ fontSize: '0.74rem', fontStyle: 'italic', marginTop: 4 }}>
                   Please remit payment via NEFT / RTGS / IMPS / UPI in accordance with agreed commercial terms.
                 </div>
               )}
             </div>
 
-            <div style={{ fontSize: '0.68rem', color: '#64748B', borderTop: '1px solid #E2E8F0', paddingTop: 6, marginTop: 8 }}>
+            <div className="preview-placeholder" style={{ fontSize: '0.68rem', color: '#94A3B8', borderTop: '1px solid #E2E8F0', paddingTop: 6, marginTop: 8 }}>
               Accepted Payment Modes: Online Bank Transfer, UPI, Corporate Card, Cheque
             </div>
           </div>
@@ -2881,7 +2993,7 @@ export default function BillDocumentRenderer({
                   <span>-{currencySymbol}{formatAmount(calc.discountAmount)}</span>
                 </div>
               )}
-              {calc.taxAmount > 0 && (
+              {calc.taxAmount > 0 && hasAnyTax && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B' }}>
                   <span>Tax ({billTaxRate}%):</span>
                   <span style={{ fontWeight: 600, color: '#0F172A' }}>{currencySymbol}{formatAmount(calc.taxAmount)}</span>
@@ -2955,9 +3067,9 @@ export default function BillDocumentRenderer({
               </span>
             </div>
             <div style={{ fontSize: '0.70rem', color: '#475569', lineHeight: 1.45 }}>
-              <div>{document.notes || 'Thank you for your business. Please remit within stated terms.'}</div>
+              <div>{document.notes || <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Thank you for your business. Please remit within stated terms.</span>}</div>
               <div style={{ color: '#64748B', marginTop: 1 }}>
-                Terms: {document.termsAndConditions || 'Payment is strictly due upon presentation of bill. Statutory commercial terms apply.'}
+                Terms: {document.termsAndConditions || <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Payment is strictly due upon presentation of bill. Statutory commercial terms apply.</span>}
               </div>
             </div>
           </div>
@@ -3015,11 +3127,13 @@ export default function BillDocumentRenderer({
           {/* Left: Brand Identity */}
           <div>
             <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.86rem' }}>
-              {senderName || 'Kronos Cloud Systems'}
+              {senderName || senderPlaceholder}
             </div>
-            <div style={{ fontSize: '0.70rem', color: '#64748B', marginTop: 1 }}>
-              {senderTagline || 'Enterprise Cloud & Infrastructure Architecture'}
-            </div>
+            {senderTagline && (
+              <div style={{ fontSize: '0.70rem', color: '#64748B', marginTop: 1 }}>
+                {senderTagline}
+              </div>
+            )}
           </div>
 
           {/* Right: Architectural Minimalist Signature Endorsement */}
@@ -3034,7 +3148,7 @@ export default function BillDocumentRenderer({
                 Authorized Signatory
               </div>
               <div style={{ fontSize: '0.64rem', color: '#64748B', marginTop: 1 }}>
-                {senderName || 'Kronos Cloud Systems'}
+                {senderName || senderPlaceholder}
               </div>
             </div>
           </div>
@@ -3084,21 +3198,21 @@ export default function BillDocumentRenderer({
             <div className="bill-logo-box" style={{ marginBottom: 4 }}>
               <img
                 src={senderLogo}
-                alt={senderName}
+                alt={senderName || 'Logo'}
                 style={{
                   maxHeight: 38,
                   maxWidth: 130,
+                  width: 'auto',
+                  height: 'auto',
                   objectFit: 'contain',
-                  background: '#ffffff',
-                  borderRadius: 6,
-                  padding: '2px 6px',
+                  display: 'block',
                 }}
               />
             </div>
           )}
           <div>
             <h1 className="a4-business-name bill-business-name" style={{ color: '#FFFFFF', fontSize: '1.45rem', fontWeight: 900, margin: 0, letterSpacing: '0.02em' }}>
-              {senderName}
+              {senderName || senderPlaceholder}
             </h1>
             {senderTagline && (
               <p className="a4-business-tagline bill-business-tagline" style={{ color: '#C5CAE9', opacity: 0.95, margin: '2px 0 0', fontSize: '0.74rem', fontWeight: 600 }}>
@@ -3143,10 +3257,10 @@ export default function BillDocumentRenderer({
                 <strong>{formatHeaderDate(document.dueDate)}</strong>
               </div>
             )}
-            {(document.poNumber || 'PO-12345') && (
+            {hasPoNumber && (
               <div style={{ marginTop: 2 }}>
                 <span style={{ opacity: 0.75 }}>Ref/PO: </span>
-                <strong>{document.poNumber || 'PO-12345'}</strong>
+                <strong>{poNumberValue}</strong>
               </div>
             )}
           </div>
@@ -3164,7 +3278,7 @@ export default function BillDocumentRenderer({
             </div>
             <div className="a4-party-card-body" style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 3 }}>
               <div className="a4-party-name" style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.84rem' }}>
-                {senderName}
+                {senderName || senderPlaceholder}
               </div>
               {senderAddress && (
                 <div className="a4-party-line" style={{ whiteSpace: 'pre-line', color: '#334155', fontSize: '0.74rem' }}>
@@ -3186,7 +3300,7 @@ export default function BillDocumentRenderer({
                   <Globe size={11} color="#64748b" /> {senderWebsite}
                 </div>
               )}
-              {senderTaxNumber && (
+              {hasSenderTax && (
                 <div className="a4-party-line bill-tax-line" style={{ color: '#0f172a', fontWeight: 700, fontSize: '0.72rem', marginTop: 2 }}>
                   GSTIN/Tax: <span style={{ color: '#1A237E' }}>{senderTaxNumber}</span>
                 </div>
@@ -3204,7 +3318,7 @@ export default function BillDocumentRenderer({
             </div>
             <div className="a4-party-card-body" style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 3 }}>
               <div className="a4-party-name" style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.84rem' }}>
-                {clientName}
+                {clientName || clientPlaceholder}
               </div>
               {clientAddress && (
                 <div className="a4-party-line" style={{ whiteSpace: 'pre-line', color: '#334155', fontSize: '0.74rem' }}>
@@ -3227,7 +3341,7 @@ export default function BillDocumentRenderer({
                   <Phone size={11} color="#64748b" /> {clientPhone}
                 </div>
               )}
-              {clientTaxNumber && (
+              {hasClientTax && (
                 <div className="a4-party-line bill-tax-line" style={{ color: '#0f172a', fontWeight: 700, fontSize: '0.72rem', marginTop: 2 }}>
                   GSTIN/Tax: <span style={{ color: '#1A237E' }}>{clientTaxNumber}</span>
                 </div>
@@ -3242,7 +3356,7 @@ export default function BillDocumentRenderer({
         <table className="a4-items-table bill-items-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#E8EAF6' }}>
-              <th style={{ width: '46%', textAlign: 'left', color: '#1A237E', padding: '10px 14px', fontSize: '0.74rem', fontWeight: 800, borderRight: '1px solid #C5CAE9', letterSpacing: '0.04em' }}>
+              <th style={{ width: hasAnyTax ? '46%' : '58%', textAlign: 'left', color: '#1A237E', padding: '10px 14px', fontSize: '0.74rem', fontWeight: 800, borderRight: '1px solid #C5CAE9', letterSpacing: '0.04em' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span>DESCRIPTION OF SERVICES / PRODUCTS</span>
                 </div>
@@ -3253,9 +3367,11 @@ export default function BillDocumentRenderer({
               <th style={{ width: '14%', textAlign: 'right', color: '#1A237E', padding: '10px 10px', fontSize: '0.74rem', fontWeight: 800, borderRight: '1px solid #C5CAE9', letterSpacing: '0.04em' }}>
                 RATE
               </th>
-              <th style={{ width: '12%', textAlign: 'center', color: '#1A237E', padding: '10px 8px', fontSize: '0.74rem', fontWeight: 800, borderRight: '1px solid #C5CAE9', letterSpacing: '0.04em' }}>
-                TAX
-              </th>
+              {hasAnyTax && (
+                <th style={{ width: '12%', textAlign: 'center', color: '#1A237E', padding: '10px 8px', fontSize: '0.74rem', fontWeight: 800, borderRight: '1px solid #C5CAE9', letterSpacing: '0.04em' }}>
+                  TAX
+                </th>
+              )}
               <th style={{ width: '16%', textAlign: 'right', color: '#1A237E', padding: '10px 14px', fontSize: '0.74rem', fontWeight: 800, letterSpacing: '0.04em' }}>
                 AMOUNT
               </th>
@@ -3269,7 +3385,7 @@ export default function BillDocumentRenderer({
                 <tr key={item.id} style={{ borderBottom: isLast ? 'none' : '1px solid #E8EAF6' }}>
                   <td className="cell-desc" style={{ textAlign: 'left', padding: '11px 14px', borderRight: '1px solid #E8EAF6' }}>
                     <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8rem' }}>
-                      {item.name || item.description || 'Untitled Item'}
+                      {item.name || item.description || itemPlaceholder}
                     </div>
                   </td>
                   <td className="cell-qty" style={{ textAlign: 'center', padding: '11px 8px', fontWeight: 600, fontSize: '0.78rem', color: '#0f172a', borderRight: '1px solid #E8EAF6' }}>
@@ -3278,9 +3394,11 @@ export default function BillDocumentRenderer({
                   <td className="cell-rate" style={{ textAlign: 'right', padding: '11px 10px', fontVariantNumeric: 'tabular-nums', fontSize: '0.78rem', color: '#0f172a', borderRight: '1px solid #E8EAF6' }}>
                     {currencySymbol}{formatAmount(item.rate)}
                   </td>
-                  <td className="cell-tax" style={{ textAlign: 'center', fontSize: '0.76rem', color: '#64748b', padding: '11px 8px', borderRight: '1px solid #E8EAF6' }}>
-                    {getItemTaxDisplay(item)}
-                  </td>
+                  {hasAnyTax && (
+                    <td className="cell-tax" style={{ textAlign: 'center', fontSize: '0.76rem', color: '#64748b', padding: '11px 8px', borderRight: '1px solid #E8EAF6' }}>
+                      {getItemTaxDisplay(item)}
+                    </td>
+                  )}
                   <td className="cell-amount" style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a', padding: '11px 14px', fontVariantNumeric: 'tabular-nums', fontSize: '0.82rem' }}>
                     {currencySymbol}{formatAmount(itemAmt)}
                   </td>
@@ -3366,7 +3484,7 @@ export default function BillDocumentRenderer({
             </div>
           )}
 
-          {calc.taxAmount > 0 && (
+          {calc.taxAmount > 0 && hasAnyTax && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
               <span style={{ fontSize: '0.84rem', color: '#475569' }}>Tax ({billTaxRate}%)</span>
               <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
@@ -3441,8 +3559,8 @@ export default function BillDocumentRenderer({
                 <span style={{ fontWeight: 600, color: '#0f172a' }}>Terms: </span>{document.termsAndConditions}
               </div>
             ) : (
-              <div className="bill-note-item">
-                <span style={{ fontWeight: 600, color: '#0f172a' }}>Terms: </span>Goods/services are subject to the agreed terms.
+              <div className="bill-note-item preview-placeholder">
+                <span style={{ fontWeight: 600 }}>Terms: </span>Goods/services are subject to the agreed terms.
               </div>
             )}
           </div>
@@ -3470,7 +3588,7 @@ export default function BillDocumentRenderer({
               Authorized Signatory
             </div>
             <div className="a4-signature-sub" style={{ fontSize: '0.68rem', color: '#64748b', marginTop: 1 }}>
-              {senderName}
+              {senderName || senderPlaceholder}
             </div>
           </div>
         </div>

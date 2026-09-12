@@ -25,6 +25,7 @@ import {
   normalizeTemplateId,
   getTemplateById,
 } from '../data/templates';
+import { formatHeaderDate, formatDisplayDate } from '../utils/dates';
 import BillDocumentRenderer from './BillDocumentRenderer';
 
 interface DocumentRendererProps {
@@ -96,28 +97,63 @@ export default function DocumentRenderer({
   };
 
   // Identify active template & layout type
-  const normTemplateId = normalizeTemplateId(document.template);
+  const normTemplateId = normalizeTemplateId(document.template, document.type === 'invoice' ? 'invoice' : 'bill');
   const tplStyle = getTemplateById(normTemplateId);
   const layout = tplStyle?.layoutType || 'classic';
 
   const accentHex = tplStyle?.accentColor || ACCENT_COLOR_MAP[document.accent] || '#1e3a8a';
   const isInvoice = document.type === 'invoice';
-  const docHeading = isInvoice ? 'INVOICE' : 'BILL';
+  const docHeading = document.title || (isInvoice ? 'INVOICE' : 'BILL');
 
-  // Sender fallback details
-  const senderName = document.senderName || tplStyle?.logoText || (isInvoice ? 'Studio Pulse' : 'Apex Corporate');
-  const senderTagline = document.senderTagline || (isInvoice ? 'Technology & Enterprise AI Solutions' : 'Corporate Billing Services');
-  const senderEmail = document.senderEmail || (isInvoice ? 'billing@studiopulse.design' : 'billing@apexcorp.com');
-  const senderPhone = document.senderPhone || '+91 98765 43210';
-  const senderAddress = document.senderAddress || (isInvoice ? '74 Nordic Creative Park, Indiranagar 100ft Rd, Bengaluru 560038' : '101 Cyber Towers, BKC, Mumbai 400051');
-  const senderLogo = document.senderLogo || (document as any).logo || (isInvoice ? DEFAULT_INVOICE_LOGO : '');
+  // Sender fallback details - clean empty fallbacks, placeholders shown distinctly
+  const senderName = document.senderName ? document.senderName.trim() : '';
+  const senderNamePlaceholder = isInvoice ? '[Your Company Name]' : '[Your Business Name]';
+  const senderPlaceholder = <span className="preview-placeholder">{senderNamePlaceholder}</span>;
+  const senderTagline = document.senderTagline || '';
+  const senderEmail = document.senderEmail || '';
+  const senderPhone = document.senderPhone || '';
+  const senderAddress = document.senderAddress || '';
+  const senderLogo = document.senderLogo || (document as any).logo || '';
 
-  // Client fallback details
-  const clientName = document.clientName || tplStyle?.sampleClient || (isInvoice ? 'NovaTech AI Solutions Inc.' : 'Stellar Innovations Pvt. Ltd.');
-  const clientAddress = document.clientAddress || (isInvoice ? 'Tower 4, Level 11, TechPark SEZ, Outer Ring Road, Bengaluru 560103' : '45 Innovation Way, Tech Corridor, Bangalore 560100');
-  const clientEmail = document.clientEmail || (isInvoice ? 'finance@novatech-ai.com' : 'accounts@stellarinnovations.com');
-  const clientPhone = document.clientPhone || '+91 98765 43210';
-  const paymentTerms = document.paymentTerms || 'Net 30';
+  // Client fallback details - clean empty fallbacks so dummy clients are never forced
+  const clientName = document.clientName ? document.clientName.trim() : '';
+  const clientNamePlaceholder = '[Client / Customer Name]';
+  const clientPlaceholder = <span className="preview-placeholder">{clientNamePlaceholder}</span>;
+  const itemPlaceholder = <span className="preview-placeholder">Item / service description</span>;
+  const clientAddress = document.clientAddress || '';
+  const clientEmail = document.clientEmail || '';
+  const clientPhone = document.clientPhone || '';
+  const paymentTerms = document.paymentTerms ? document.paymentTerms.trim() : '';
+  const hasPaymentTerms = Boolean(paymentTerms);
+
+  const hasPoNumber = Boolean(
+    document.poNumber &&
+    document.poNumber.trim() &&
+    document.poNumber.trim().toLowerCase() !== 'none' &&
+    document.poNumber.trim() !== '-'
+  );
+  const poNumberValue = document.poNumber ? document.poNumber.trim() : '';
+
+  const hasSenderTax = Boolean(
+    document.senderTaxNumber &&
+    document.senderTaxNumber.trim() &&
+    document.senderTaxNumber.trim().toLowerCase() !== 'none' &&
+    document.senderTaxNumber.trim() !== '-'
+  );
+  const senderTaxNumber = document.senderTaxNumber ? document.senderTaxNumber.trim() : '';
+
+  const hasClientTax = Boolean(
+    document.clientTaxNumber &&
+    document.clientTaxNumber.trim() &&
+    document.clientTaxNumber.trim().toLowerCase() !== 'none' &&
+    document.clientTaxNumber.trim() !== '-'
+  );
+  const clientTaxNumber = document.clientTaxNumber ? document.clientTaxNumber.trim() : '';
+
+  const hasAnyTax = Boolean(
+    (document.taxRate && Number(document.taxRate) > 0) ||
+    document.items.some((it) => it.taxRate && Number(it.taxRate) > 0)
+  );
 
   const bankRows = useMemo(() => {
     if (document.bankName || document.accountNumber || document.ifscCode || document.upiId) {
@@ -130,12 +166,7 @@ export default function DocumentRenderer({
     }
     const raw = document.paymentNotes?.trim();
     if (!raw) {
-      return [
-        { label: 'Bank Name', value: 'HDFC Bank Ltd.' },
-        { label: 'Account Number', value: isInvoice ? '50200012345678' : '50200084920194' },
-        { label: 'IFSC Code', value: isInvoice ? 'HDFC0000123' : 'HDFC0001234' },
-        { label: isInvoice ? 'UPI ID' : 'Branch', value: isInvoice ? 'billing@upi' : 'BKC Premier Mumbai' },
-      ];
+      return [];
     }
     return raw
       .split('\n')
@@ -155,51 +186,63 @@ export default function DocumentRenderer({
       });
   }, [document.bankName, document.accountNumber, document.ifscCode, document.upiId, document.paymentNotes, isInvoice]);
 
-  // Dedicated 52 × 52px Business Logo Renderer for Invoice Headers (Left Position)
+  // Business Logo Renderer for Invoice Headers (Left Position). Renders the
+  // logo at its own natural aspect ratio — capped only by a max-height so
+  // header rows stay a consistent height — with no square box, background,
+  // or border imposed around it (any background visible in the logo is
+  // baked into the uploaded image itself, not added here).
   const renderBusinessLogo = (customLogo?: string, altText?: string, isDarkBg: boolean = false) => {
-    const logoUrl = customLogo || senderLogo || (isInvoice ? DEFAULT_INVOICE_LOGO : '');
+    const logoUrl = customLogo || senderLogo;
     if (logoUrl) {
       return (
+        <img
+          src={logoUrl}
+          alt={altText || senderName || 'Business Logo'}
+          style={{
+            maxWidth: 130,
+            maxHeight: 52,
+            width: 'auto',
+            height: 'auto',
+            objectFit: 'contain',
+            display: 'block',
+            flexShrink: 0,
+          }}
+        />
+      );
+    }
+
+    if (!senderName) {
+      return (
         <div
+          className="preview-placeholder"
           style={{
             width: 52,
             height: 52,
             minWidth: 52,
             minHeight: 52,
             borderRadius: 10,
-            overflow: 'hidden',
-            border: isDarkBg ? '1.5px solid rgba(255,255,255,0.28)' : '1.5px solid #e2e8f0',
+            background: isDarkBg ? 'rgba(255,255,255,0.10)' : '#f8fafc',
+            border: isDarkBg ? '1.5px dashed rgba(255,255,255,0.25)' : '1.5px dashed #cbd5e1',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: isDarkBg ? 'rgba(255,255,255,0.96)' : '#ffffff',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+            color: isDarkBg ? 'rgba(255,255,255,0.6)' : '#94a3b8',
             flexShrink: 0,
           }}
+          title="Logo Placeholder"
         >
-          <img
-            src={logoUrl}
-            alt={altText || senderName || 'Business Logo'}
-            style={{
-              maxWidth: 52,
-              maxHeight: 52,
-              width: 'auto',
-              height: 'auto',
-              objectFit: 'contain',
-              display: 'block',
-            }}
-          />
+          <Building2 size={22} />
         </div>
       );
     }
 
-    const initials = (senderName || 'SP')
+    const initials = senderName
       .split(/\s+/)
       .filter(Boolean)
       .slice(0, 2)
       .map((w) => w[0])
       .join('')
-      .toUpperCase() || 'SP';
+      .toUpperCase();
 
     return (
       <div
@@ -282,12 +325,12 @@ export default function DocumentRenderer({
   };
 
   // Render item cell supporting both Item Name (bold) and Description (secondary text)
-  const renderItemCell = (item: any, defaultFallback: string = 'Item', primaryColor: string = '#0f172a') => {
-    if (item.name) {
+  const renderItemCell = (item: any, _defaultFallback: string = 'Item', primaryColor: string = '#0f172a') => {
+    if (item.name && item.name.trim()) {
       return (
         <div>
           <div style={{ fontWeight: 600, color: primaryColor }}>{item.name}</div>
-          {item.description ? (
+          {item.description && item.description.trim() ? (
             <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', lineHeight: 1.35 }}>
               {item.description}
             </div>
@@ -295,38 +338,14 @@ export default function DocumentRenderer({
         </div>
       );
     }
-    return item.description || defaultFallback;
-  };
-
-  const formatHeaderDate = (d?: string) => {
-    if (!d) return '2026-09-06';
-    const match = d.match(/^(\d{2})[-/.](\d{2})[-/.](\d{4})$/);
-    if (match) {
-      return `${match[3]}-${match[2]}-${match[1]}`;
+    if (item.description && item.description.trim()) {
+      return <div>{item.description}</div>;
     }
-    return d;
-  };
-
-  const formatDisplayDate = (d?: string) => {
-    if (!d) return '8 Sept 2026';
-    const trimmed = d.trim();
-    const dmy = trimmed.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
-    if (dmy) {
-      const day = parseInt(dmy[1], 10);
-      const mIdx = parseInt(dmy[2], 10) - 1;
-      const yr = dmy[3];
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
-      return `${day} ${months[mIdx] || ''} ${yr}`;
-    }
-    const ymd = trimmed.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
-    if (ymd) {
-      const yr = ymd[1];
-      const mIdx = parseInt(ymd[2], 10) - 1;
-      const day = parseInt(ymd[3], 10);
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
-      return `${day} ${months[mIdx] || ''} ${yr}`;
-    }
-    return d;
+    return (
+      <span className="preview-placeholder">
+        Item / service description
+      </span>
+    );
   };
 
   // =========================================================================
@@ -349,14 +368,16 @@ export default function DocumentRenderer({
             {renderBusinessLogo(senderLogo, senderName, true)}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="receipt-header-title" style={{ textAlign: 'left', wordBreak: 'break-word' }}>{senderName}</div>
-            <div className="receipt-header-sub" style={{ textAlign: 'left', wordBreak: 'break-word' }}>{senderTagline || 'Retail Store & POS Billing'}</div>
-            <div style={{ fontSize: '0.74rem', opacity: 0.88, marginTop: 4, wordBreak: 'break-word' }}>
-              {senderAddress} | Ph: {senderPhone}
-            </div>
-            {document.senderTaxNumber && (
+            <div className="receipt-header-title" style={{ textAlign: 'left', wordBreak: 'break-word' }}>{senderName || senderPlaceholder}</div>
+            {senderTagline && <div className="receipt-header-sub" style={{ textAlign: 'left', wordBreak: 'break-word' }}>{senderTagline}</div>}
+            {(senderAddress || senderPhone) && (
+              <div style={{ fontSize: '0.74rem', opacity: 0.88, marginTop: 4, wordBreak: 'break-word' }}>
+                {[senderAddress, senderPhone && `Ph: ${senderPhone}`].filter(Boolean).join(' | ')}
+              </div>
+            )}
+            {hasSenderTax && (
               <div style={{ fontSize: '0.72rem', opacity: 0.95, marginTop: 2, fontWeight: 700 }}>
-                GSTIN: {document.senderTaxNumber}
+                GSTIN: {senderTaxNumber}
               </div>
             )}
           </div>
@@ -370,20 +391,21 @@ export default function DocumentRenderer({
           <span>{isInvoice ? 'INVOICE' : 'RECEIPT'}: <strong>#{document.billNumber || 'INV-2026-1817'}</strong></span>
           <span>DATE: <strong>{formatHeaderDate(document.issueDate)}</strong></span>
           {document.dueDate && <span>DUE: <strong>{formatHeaderDate(document.dueDate)}</strong></span>}
-          <span>TERMS: <strong>{paymentTerms}</strong></span>
+          {hasPoNumber && <span>PO: <strong>{poNumberValue}</strong></span>}
+          {hasPaymentTerms && <span>TERMS: <strong>{paymentTerms}</strong></span>}
         </div>
 
         {/* Customer Strip */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: '0.82rem', padding: '10px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', color: '#1e293b', width: '100%', boxSizing: 'border-box', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#004d40', textTransform: 'uppercase', letterSpacing: '0.05em' }}>BILLED TO:</span>
-            <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#0f172a', marginTop: 2, wordBreak: 'break-word' }}>{clientName}</div>
+            <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#0f172a', marginTop: 2, wordBreak: 'break-word' }}>{clientName || clientPlaceholder}</div>
             {clientAddress && <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: 2, whiteSpace: 'pre-line', wordBreak: 'break-word' }}>{clientAddress}</div>}
           </div>
           <div style={{ textAlign: 'right', fontSize: '0.74rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
             {clientPhone && <div>Ph: <strong>{clientPhone}</strong></div>}
             {clientEmail && <div>{clientEmail}</div>}
-            {document.clientTaxNumber && <div style={{ fontWeight: 700, color: '#004d40' }}>GSTIN: {document.clientTaxNumber}</div>}
+            {hasClientTax && <div style={{ fontWeight: 700, color: '#004d40' }}>GSTIN: {clientTaxNumber}</div>}
           </div>
         </div>
 
@@ -405,7 +427,7 @@ export default function DocumentRenderer({
                 return (
                   <tr key={item.id}>
                     <td style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 600, color: '#064e3b' }}>
-                      {item.name || item.description || 'Item'}
+                      {item.name || item.description || itemPlaceholder}
                     </td>
                     <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px', color: '#64748b' }}>
                       {item.name ? (item.description || '—') : '—'}
@@ -421,29 +443,35 @@ export default function DocumentRenderer({
         </div>
 
         {/* Bottom Section: Symmetrical 2-Column Split */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', alignItems: 'start', marginTop: 'auto', paddingTop: '4px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: (bankRows.length > 0 || document.notes) ? '1.2fr 1fr' : '1fr', gap: '20px', alignItems: 'start', marginTop: 'auto', paddingTop: '4px' }}>
           {/* Left: Bank & Settlement */}
-          <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 8, border: '1px dashed #cbd5e1', fontSize: '0.78rem' }}>
-            <div style={{ fontWeight: 800, color: '#004d40', marginBottom: 6, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.04em' }}>
-              Payment &amp; Settlement Details
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, color: '#334155' }}>
-              {bankRows.map((r, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>{r.label || 'Info'}:</span>
-                  <strong style={{ color: '#0f172a' }}>{r.value}</strong>
+          {(bankRows.length > 0 || document.notes) && (
+            <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 8, border: '1px dashed #cbd5e1', fontSize: '0.78rem' }}>
+              {bankRows.length > 0 && (
+                <>
+                  <div style={{ fontWeight: 800, color: '#004d40', marginBottom: 6, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.04em' }}>
+                    Payment &amp; Settlement Details
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, color: '#334155' }}>
+                    {bankRows.map((r, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#64748b' }}>{r.label || 'Info'}:</span>
+                        <strong style={{ color: '#0f172a' }}>{r.value}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {document.notes && (
+                <div style={{ marginTop: bankRows.length > 0 ? 8 : 0, paddingTop: bankRows.length > 0 ? 6 : 0, borderTop: bankRows.length > 0 ? '1px dashed #cbd5e1' : undefined, fontSize: '0.72rem', color: '#64748b' }}>
+                  <strong style={{ color: '#004d40' }}>Note: </strong>{document.notes}
                 </div>
-              ))}
+              )}
             </div>
-            {document.notes && (
-              <div style={{ marginTop: 8, paddingTop: 6, borderTop: '1px dashed #cbd5e1', fontSize: '0.72rem', color: '#64748b' }}>
-                <strong style={{ color: '#004d40' }}>Note: </strong>{document.notes}
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Right: Totals Summary Card & Signature */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginLeft: (bankRows.length > 0 || document.notes) ? undefined : 'auto', width: (bankRows.length > 0 || document.notes) ? undefined : 320 }}>
             <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.80rem', display: 'flex', flexDirection: 'column', gap: 5 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
                 <span>Subtotal:</span>
@@ -455,10 +483,12 @@ export default function DocumentRenderer({
                   <strong style={{ fontVariantNumeric: 'tabular-nums' }}>-{currencySymbol}{formatAmount(discountAmount)}</strong>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                <span>Tax ({document.taxRate || 0}%):</span>
-                <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(taxAmount)}</strong>
-              </div>
+              {taxAmount > 0 && hasAnyTax && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
+                  <span>Tax ({document.taxRate || 0}%):</span>
+                  <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(taxAmount)}</strong>
+                </div>
+              )}
               <div style={{ borderTop: '1.5px dashed #00695c', margin: '4px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800, color: tplStyle?.totalColor || '#004d40', fontSize: '1.1rem' }}>
                 <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Net Payable:</span>
@@ -510,41 +540,45 @@ export default function DocumentRenderer({
               <div style={{ marginBottom: 14 }}>
                 {renderBusinessLogo(senderLogo, senderName, true)}
               </div>
-              <h3>{senderName}</h3>
-              <p>{senderTagline || 'Creative Media & Production Studio'}</p>
+              <h3>{senderName || senderPlaceholder}</h3>
+              {senderTagline && <p>{senderTagline}</p>}
               <div style={{ fontSize: '0.76rem', opacity: 0.92, marginTop: 14, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span>{senderEmail}</span>
-                <span>{senderPhone}</span>
-                <span style={{ marginTop: 2 }}>{senderAddress}</span>
-                {document.senderTaxNumber && (
+                {senderEmail && <span>{senderEmail}</span>}
+                {senderPhone && <span>{senderPhone}</span>}
+                {senderAddress && <span style={{ marginTop: 2 }}>{senderAddress}</span>}
+                {hasSenderTax && (
                   <span style={{ fontWeight: 700, marginTop: 4, background: 'rgba(255,255,255,0.15)', padding: '2px 6px', borderRadius: 4 }}>
-                    GSTIN: {document.senderTaxNumber}
+                    GSTIN: {senderTaxNumber}
                   </span>
                 )}
               </div>
             </div>
 
             {/* Bank details inside sidebar */}
-            <div style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ fontSize: '0.74rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 6 }}>
-                Payment Transfer
+            {bankRows.length > 0 && (
+              <div style={{ background: 'rgba(255,255,255,0.14)', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ fontSize: '0.74rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 6 }}>
+                  Payment Transfer
+                </div>
+                <div style={{ fontSize: '0.72rem', display: 'flex', flexDirection: 'column', gap: 3, opacity: 0.95 }}>
+                  {bankRows.slice(0, 4).map((r, i) => (
+                    <div key={i}>
+                      {r.label ? <strong>{r.label}: </strong> : null}
+                      {r.value}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div style={{ fontSize: '0.72rem', display: 'flex', flexDirection: 'column', gap: 3, opacity: 0.95 }}>
-                {bankRows.slice(0, 4).map((r, i) => (
-                  <div key={i}>
-                    {r.label ? <strong>{r.label}: </strong> : null}
-                    {r.value}
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
 
             {/* Instant Pay QR Badge */}
-            <div style={{ background: 'rgba(255,255,255,0.18)', border: '1px dashed rgba(255,255,255,0.4)', borderRadius: 10, padding: '12px', textAlign: 'center' }}>
-              <QrCode size={36} style={{ margin: '0 auto 4px' }} />
-              <div style={{ fontSize: '0.7rem', fontWeight: 700 }}>Scan to Settle Online</div>
-              <div style={{ fontSize: '0.62rem', opacity: 0.85 }}>Instant UPI &amp; Direct Bank</div>
-            </div>
+            {(bankRows.length > 0 || document.upiId) && (
+              <div style={{ background: 'rgba(255,255,255,0.18)', border: '1px dashed rgba(255,255,255,0.4)', borderRadius: 10, padding: '12px', textAlign: 'center' }}>
+                <QrCode size={36} style={{ margin: '0 auto 4px' }} />
+                <div style={{ fontSize: '0.7rem', fontWeight: 700 }}>Scan to Settle Online</div>
+                <div style={{ fontSize: '0.62rem', opacity: 0.85 }}>Instant UPI &amp; Direct Bank</div>
+              </div>
+            )}
           </div>
 
           {/* Right Main Charges Breakdown */}
@@ -564,19 +598,20 @@ export default function DocumentRenderer({
               <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#64748b', flexShrink: 0 }}>
                 <div>Date: <strong>{formatHeaderDate(document.issueDate)}</strong></div>
                 {document.dueDate && <div>Due: <strong>{formatHeaderDate(document.dueDate)}</strong></div>}
-                <div>Terms: <strong>{paymentTerms}</strong></div>
+                {hasPoNumber && <div>PO: <strong>{poNumberValue}</strong></div>}
+                {hasPaymentTerms && <div>Terms: <strong>{paymentTerms}</strong></div>}
               </div>
             </div>
 
             {/* Client Card */}
             <div style={{ background: '#fffaf5', border: '1px solid #fed7aa', borderRadius: 8, padding: '12px 14px', fontSize: '0.82rem' }}>
               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#e65100', textTransform: 'uppercase' }}>Billed To:</span>
-              <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#0f172a', marginTop: 2 }}>{clientName}</div>
-              <div style={{ color: '#475569', whiteSpace: 'pre-line', marginTop: 2 }}>{clientAddress}</div>
+              <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#0f172a', marginTop: 2 }}>{clientName || clientPlaceholder}</div>
+              {clientAddress && <div style={{ color: '#475569', whiteSpace: 'pre-line', marginTop: 2 }}>{clientAddress}</div>}
               <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 {clientEmail && <span>{clientEmail}</span>}
                 {clientPhone && <span>Ph: {clientPhone}</span>}
-                {document.clientTaxNumber && <span>GSTIN: {document.clientTaxNumber}</span>}
+                {hasClientTax && <span>GSTIN: {clientTaxNumber}</span>}
               </div>
             </div>
 
@@ -596,7 +631,7 @@ export default function DocumentRenderer({
                   {document.items.map((item) => (
                     <tr key={item.id}>
                       <td style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 600, color: '#0f172a' }}>
-                        {item.name || item.description || 'Item'}
+                        {item.name || item.description || itemPlaceholder}
                       </td>
                       <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px', color: '#64748b' }}>
                         {item.name ? (item.description || '—') : '—'}
@@ -621,13 +656,16 @@ export default function DocumentRenderer({
                       <span style={{ whiteSpace: 'pre-line' }}>{document.notes}</span>
                     </div>
                   ) : (
-                    <div style={{ fontSize: '0.72rem', color: '#9a3412', fontStyle: 'italic', background: '#fffaf5', border: '1px solid #fed7aa', borderRadius: 6, padding: '10px 12px' }}>
-                      Thank you for partnering with {senderName}.
+                    <div className="preview-placeholder" style={{ fontSize: '0.72rem', background: '#fffaf5', border: '1px solid #fed7aa', borderRadius: 6, padding: '10px 12px' }}>
+                      Deliverable & project notes
                     </div>
                   )}
-                  <div style={{ marginTop: 10, fontSize: '0.70rem', color: '#64748b' }}>
-                    Payment Terms: <strong>{paymentTerms}</strong> · Due: <strong>{formatHeaderDate(document.dueDate)}</strong>
-                  </div>
+                  {(hasPaymentTerms || document.dueDate) && (
+                    <div style={{ marginTop: 10, fontSize: '0.70rem', color: '#64748b' }}>
+                      {hasPaymentTerms && <>Payment Terms: <strong>{paymentTerms}</strong>{document.dueDate && ' · '}</>}
+                      {document.dueDate && <>Due: <strong>{formatHeaderDate(document.dueDate)}</strong></>}
+                    </div>
+                  )}
                 </div>
 
                 {/* Right: Totals Summary Card */}
@@ -643,10 +681,12 @@ export default function DocumentRenderer({
                         <strong style={{ fontVariantNumeric: 'tabular-nums' }}>-{currencySymbol}{formatAmount(discountAmount)}</strong>
                       </div>
                     )}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                      <span>Tax ({document.taxRate || 0}%):</span>
-                      <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(taxAmount)}</strong>
-                    </div>
+                    {taxAmount > 0 && hasAnyTax && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
+                        <span>Tax ({document.taxRate || 0}%):</span>
+                        <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(taxAmount)}</strong>
+                      </div>
+                    )}
                     <div style={{ borderTop: '1.5px solid #fed7aa', margin: '4px 0' }} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800, color: tplStyle?.totalColor || '#e65100', fontSize: '1.1rem' }}>
                       <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Due:</span>
@@ -690,17 +730,21 @@ export default function DocumentRenderer({
             <span className="clinical-rx-badge" style={{ flexShrink: 0 }}>℞</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#00838f', margin: 0, wordBreak: 'break-word' }}>
-                {senderName}
+                {senderName || senderPlaceholder}
               </h2>
-              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0', wordBreak: 'break-word' }}>
-                {senderTagline || 'Multi-Specialty Clinic & Diagnostic Centre'}
-              </p>
-              <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: 2, wordBreak: 'break-word' }}>
-                {senderAddress} | Ph: {senderPhone}
-              </div>
-              {document.senderTaxNumber && (
+              {senderTagline && (
+                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0', wordBreak: 'break-word' }}>
+                  {senderTagline}
+                </p>
+              )}
+              {(senderAddress || senderPhone) && (
+                <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: 2, wordBreak: 'break-word' }}>
+                  {[senderAddress, senderPhone && `Ph: ${senderPhone}`].filter(Boolean).join(' | ')}
+                </div>
+              )}
+              {hasSenderTax && (
                 <div style={{ fontSize: '0.70rem', color: '#00838f', fontWeight: 700, marginTop: 2 }}>
-                  CLINIC REG / GSTIN: {document.senderTaxNumber}
+                  CLINIC REG / GSTIN: {senderTaxNumber}
                 </div>
               )}
             </div>
@@ -708,12 +752,12 @@ export default function DocumentRenderer({
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
               <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#00838f', background: '#e0f7fa', padding: '4px 10px', borderRadius: 6, display: 'inline-block' }}>
-                OFFICIAL RECORD
+                {docHeading}
               </div>
               {renderStatusBadge(document.status)}
             </div>
             <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>
-              Bill #{document.billNumber || 'INV-2026-1817'}
+              #{document.billNumber || 'INV-2026-1817'}
             </div>
             <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
               Date: {formatHeaderDate(document.issueDate)}
@@ -723,9 +767,16 @@ export default function DocumentRenderer({
                 Due: {formatHeaderDate(document.dueDate)}
               </div>
             )}
-            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-              Terms: <strong>{paymentTerms}</strong>
-            </div>
+            {hasPoNumber && (
+              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                PO / Ref: <strong>{poNumberValue}</strong>
+              </div>
+            )}
+            {hasPaymentTerms && (
+              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                Terms: <strong>{paymentTerms}</strong>
+              </div>
+            )}
           </div>
         </div>
 
@@ -733,20 +784,20 @@ export default function DocumentRenderer({
         <div className="clinical-patient-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#e0f7fa', border: '1px solid #80deea', borderRadius: 10, padding: '14px 18px', fontSize: '0.82rem' }}>
           <div>
             <span style={{ color: '#00696f', fontWeight: 800, fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>PATIENT / CLIENT:</span>
-            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.96rem', marginTop: 2 }}>{clientName}</div>
+            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.96rem', marginTop: 2 }}>{clientName || clientPlaceholder}</div>
             {clientAddress && <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2, whiteSpace: 'pre-line' }}>{clientAddress}</div>}
           </div>
           <div>
             <span style={{ color: '#00696f', fontWeight: 800, fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>CLINICAL RECORD &amp; TERMS:</span>
             <div style={{ fontSize: '0.76rem', color: '#0f172a', marginTop: 2 }}>
-              Ref: <strong>#{document.billNumber || 'MED-2026'}</strong> · Terms: <strong>{paymentTerms}</strong>
+              Ref: <strong>#{document.billNumber || 'MED-2026'}</strong>{hasPaymentTerms && <> · Terms: <strong>{paymentTerms}</strong></>}
             </div>
             <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2 }}>
               {[clientPhone, clientEmail].filter(Boolean).join(' · ')}
             </div>
-            {document.clientTaxNumber && (
+            {hasClientTax && (
               <div style={{ fontSize: '0.72rem', color: '#00696f', fontWeight: 600, marginTop: 2 }}>
-                Patient ID / UID: {document.clientTaxNumber}
+                Patient ID / UID: {clientTaxNumber}
               </div>
             )}
           </div>
@@ -768,7 +819,7 @@ export default function DocumentRenderer({
               {document.items.map((item) => (
                 <tr key={item.id}>
                   <td style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 600, color: '#004d40' }}>
-                    {item.name || item.description || 'Clinical Item'}
+                    {item.name || item.description || itemPlaceholder}
                   </td>
                   <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px', color: '#64748b' }}>
                     {item.name ? (item.description || '—') : '—'}
@@ -783,29 +834,35 @@ export default function DocumentRenderer({
         </div>
 
         {/* Bottom Section: Left Remittance & Notes, Right Charges & Attending Physician */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', alignItems: 'start', marginTop: 'auto', paddingTop: 16, borderTop: '2px solid #80deea' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: (bankRows.length > 0 || document.notes) ? '1.2fr 1fr' : '1fr', gap: '20px', alignItems: 'start', marginTop: 'auto', paddingTop: 16, borderTop: '2px solid #80deea' }}>
           {/* Left: Hospital Remittance & Patient Notes */}
-          <div style={{ background: '#f0fdfa', border: '1px solid #ccfbf1', borderRadius: 8, padding: '12px 14px', fontSize: '0.78rem' }}>
-            <div style={{ fontWeight: 800, color: '#00696f', marginBottom: 6, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Hospital &amp; Clinical Remittance
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, color: '#334155' }}>
-              {bankRows.map((r, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>{r.label || 'Details'}:</span>
-                  <strong style={{ color: '#0f172a' }}>{r.value}</strong>
+          {(bankRows.length > 0 || document.notes) && (
+            <div style={{ background: '#f0fdfa', border: '1px solid #ccfbf1', borderRadius: 8, padding: '12px 14px', fontSize: '0.78rem' }}>
+              {bankRows.length > 0 && (
+                <>
+                  <div style={{ fontWeight: 800, color: '#00696f', marginBottom: 6, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Hospital &amp; Clinical Remittance
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, color: '#334155' }}>
+                    {bankRows.map((r, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#64748b' }}>{r.label || 'Details'}:</span>
+                        <strong style={{ color: '#0f172a' }}>{r.value}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {document.notes && (
+                <div style={{ marginTop: bankRows.length > 0 ? 8 : 0, paddingTop: bankRows.length > 0 ? 6 : 0, borderTop: bankRows.length > 0 ? '1px dashed #99f6e4' : undefined, fontSize: '0.72rem', color: '#0f766e' }}>
+                  <strong>Clinical Notes: </strong>{document.notes}
                 </div>
-              ))}
+              )}
             </div>
-            {document.notes && (
-              <div style={{ marginTop: 8, paddingTop: 6, borderTop: '1px dashed #99f6e4', fontSize: '0.72rem', color: '#0f766e' }}>
-                <strong>Clinical Notes: </strong>{document.notes}
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Right: Charges Breakdown & Physician Signature */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginLeft: (bankRows.length > 0 || document.notes) ? undefined : 'auto', width: (bankRows.length > 0 || document.notes) ? undefined : 320 }}>
             <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: 8, padding: '12px 14px', fontSize: '0.80rem', display: 'flex', flexDirection: 'column', gap: 5 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
                 <span>Subtotal:</span>
@@ -817,10 +874,12 @@ export default function DocumentRenderer({
                   <strong style={{ fontVariantNumeric: 'tabular-nums' }}>-{currencySymbol}{formatAmount(discountAmount)}</strong>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                <span>Tax / Cess ({document.taxRate || 0}%):</span>
-                <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(taxAmount)}</strong>
-              </div>
+              {taxAmount > 0 && hasAnyTax && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
+                  <span>Tax / Cess ({document.taxRate || 0}%):</span>
+                  <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(taxAmount)}</strong>
+                </div>
+              )}
               <div style={{ borderTop: '1.5px solid #80deea', margin: '4px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800, color: '#00838f', fontSize: '1.15rem' }}>
                 <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Payable:</span>
@@ -864,17 +923,19 @@ export default function DocumentRenderer({
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 style={{ fontSize: '1.45rem', fontWeight: 700, margin: 0, letterSpacing: '0.02em', color: '#ffffff', wordBreak: 'break-word' }}>
-                {senderName}
+                {senderName || senderPlaceholder}
               </h2>
-              <div style={{ fontSize: '0.78rem', opacity: 0.88, marginTop: 3, fontFamily: 'sans-serif', color: '#e2e8f0', wordBreak: 'break-word' }}>
-                {senderTagline || 'Technology & Enterprise Solutions'}
-              </div>
+              {senderTagline && (
+                <div style={{ fontSize: '0.78rem', opacity: 0.88, marginTop: 3, fontFamily: 'sans-serif', color: '#e2e8f0', wordBreak: 'break-word' }}>
+                  {senderTagline}
+                </div>
+              )}
               <div style={{ fontSize: '0.72rem', opacity: 0.82, marginTop: 2, fontFamily: 'sans-serif', color: '#cbd5e1', wordBreak: 'break-word' }}>
                 {[senderAddress, senderPhone, senderEmail].filter(Boolean).join(' · ')}
               </div>
-              {document.senderTaxNumber && (
+              {hasSenderTax && (
                 <div style={{ fontSize: '0.70rem', color: '#93c5fd', marginTop: 2, fontFamily: 'sans-serif', fontWeight: 600 }}>
-                  GSTIN / PAN: {document.senderTaxNumber}
+                  GSTIN / PAN: {senderTaxNumber}
                 </div>
               )}
             </div>
@@ -897,9 +958,11 @@ export default function DocumentRenderer({
                 Due: {formatHeaderDate(document.dueDate)}
               </div>
             )}
-            <div style={{ fontSize: '0.74rem', opacity: 0.8, color: '#cbd5e1' }}>
-              Terms: <strong>{paymentTerms}</strong>
-            </div>
+            {hasPaymentTerms && (
+              <div style={{ fontSize: '0.74rem', opacity: 0.8, color: '#cbd5e1' }}>
+                Terms: <strong>{paymentTerms}</strong>
+              </div>
+            )}
           </div>
         </div>
 
@@ -907,24 +970,26 @@ export default function DocumentRenderer({
         <div className="editorial-matter-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#f8fafc', borderLeft: '4px solid #0d2137', borderRadius: '0 8px 8px 0', padding: '14px 18px', fontSize: '0.82rem' }}>
           <div>
             <span style={{ color: '#64748b', fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Client:</span>
-            <strong style={{ color: '#0f172a', fontSize: '0.96rem' }}>{clientName}</strong>
-            <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: 2 }}>{clientAddress}</div>
+            <strong style={{ color: '#0f172a', fontSize: '0.96rem' }}>{clientName || clientPlaceholder}</strong>
+            {clientAddress && <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: 2 }}>{clientAddress}</div>}
           </div>
           <div>
             <span style={{ color: '#64748b', fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Contact &amp; Tax ID:</span>
             <span style={{ color: '#0d2137', fontWeight: 600 }}>{[clientEmail, clientPhone].filter(Boolean).join(' · ')}</span>
-            {document.clientTaxNumber && (
-              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 2 }}>GSTIN: <strong>{document.clientTaxNumber}</strong></div>
+            {hasClientTax && (
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 2 }}>GSTIN: <strong>{clientTaxNumber}</strong></div>
             )}
           </div>
           <div>
             <span style={{ color: '#64748b', fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Payment Terms:</span>
             <strong style={{ color: '#0d2137' }}>{paymentTerms}</strong>
           </div>
-          <div>
-            <span style={{ color: '#64748b', fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Matter / PO Ref:</span>
-            <span style={{ color: '#0f172a', fontWeight: 600 }}>{document.poNumber ? `#${document.poNumber}` : `#${document.billNumber || 'INV-2026'}`}</span>
-          </div>
+          {hasPoNumber && (
+            <div>
+              <span style={{ color: '#64748b', fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Matter / PO Ref:</span>
+              <span style={{ color: '#0f172a', fontWeight: 600 }}>#{poNumberValue}</span>
+            </div>
+          )}
         </div>
 
         {/* Legal Items Table */}
@@ -943,7 +1008,7 @@ export default function DocumentRenderer({
               {document.items.map((item) => (
                 <tr key={item.id}>
                   <td style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 600, color: '#0d2137', fontFamily: 'sans-serif' }}>
-                    {item.name || item.description || 'Counsel Item'}
+                    {item.name || item.description || itemPlaceholder}
                   </td>
                   <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px', fontFamily: 'sans-serif', color: '#64748b' }}>
                     {item.name ? (item.description || '—') : '—'}
@@ -958,29 +1023,35 @@ export default function DocumentRenderer({
         </div>
 
         {/* Totals & Trust Account Split */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px', alignItems: 'start', marginTop: 'auto', borderTop: '2px solid #0d2137', paddingTop: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: (bankRows.length > 0 || document.notes) ? '1.2fr 1fr' : '1fr', gap: '24px', alignItems: 'start', marginTop: 'auto', borderTop: '2px solid #0d2137', paddingTop: 16 }}>
           {/* Left: Escrow / Wire Instructions */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '14px 16px', fontSize: '0.78rem', fontFamily: 'sans-serif' }}>
-            <div style={{ fontWeight: 800, color: '#0d2137', marginBottom: 8, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              ESCROW &amp; WIRE INSTRUCTIONS
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, color: '#334155' }}>
-              {bankRows.map((r, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>{r.label || 'Wire'}:</span>
-                  <strong style={{ color: '#0f172a' }}>{r.value}</strong>
+          {(bankRows.length > 0 || document.notes) && (
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '14px 16px', fontSize: '0.78rem', fontFamily: 'sans-serif' }}>
+              {bankRows.length > 0 && (
+                <>
+                  <div style={{ fontWeight: 800, color: '#0d2137', marginBottom: 8, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    ESCROW &amp; WIRE INSTRUCTIONS
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, color: '#334155' }}>
+                    {bankRows.map((r, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#64748b' }}>{r.label || 'Wire'}:</span>
+                        <strong style={{ color: '#0f172a' }}>{r.value}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {document.notes && (
+                <div style={{ marginTop: bankRows.length > 0 ? 10 : 0, paddingTop: bankRows.length > 0 ? 8 : 0, borderTop: bankRows.length > 0 ? '1px solid #e2e8f0' : undefined, fontSize: '0.72rem', color: '#475569' }}>
+                  <strong style={{ color: '#0d2137' }}>Counsel Notes: </strong>{document.notes}
                 </div>
-              ))}
+              )}
             </div>
-            {document.notes && (
-              <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid #e2e8f0', fontSize: '0.72rem', color: '#475569' }}>
-                <strong style={{ color: '#0d2137' }}>Counsel Notes: </strong>{document.notes}
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Right: Fee Summary Card & Partner Signature */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontFamily: 'sans-serif' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontFamily: 'sans-serif', marginLeft: (bankRows.length > 0 || document.notes) ? undefined : 'auto', width: (bankRows.length > 0 || document.notes) ? undefined : 320 }}>
             <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '12px 16px', fontSize: '0.80rem', display: 'flex', flexDirection: 'column', gap: 5 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
                 <span>Subtotal</span>
@@ -992,10 +1063,12 @@ export default function DocumentRenderer({
                   <strong style={{ fontVariantNumeric: 'tabular-nums' }}>-{currencySymbol}{formatAmount(discountAmount)}</strong>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                <span>Tax ({document.taxRate || 0}%)</span>
-                <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(taxAmount)}</strong>
-              </div>
+              {taxAmount > 0 && hasAnyTax && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
+                  <span>Tax ({document.taxRate || 0}%)</span>
+                  <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(taxAmount)}</strong>
+                </div>
+              )}
               <div style={{ borderTop: '1.5px solid #0d2137', margin: '4px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800, color: '#0d2137', fontSize: '1.15rem' }}>
                 <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Fee Due:</span>
@@ -1079,14 +1152,18 @@ export default function DocumentRenderer({
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '0.02em', lineHeight: 1.2, wordBreak: 'break-word' }}>
-                {senderName || 'Cambridge Global Academy'}
+                {senderName || senderPlaceholder}
               </h2>
-              <div style={{ fontSize: '0.74rem', color: '#FCD34D', fontWeight: 700, fontStyle: 'italic', marginTop: 3 }}>
-                {senderTagline || 'Academic Affairs & Bursar Office'}
-              </div>
-              <div style={{ fontSize: '0.70rem', color: '#CBD5E1', marginTop: 2, wordBreak: 'break-word' }}>
-                {[senderAddress, senderPhone].filter(Boolean).join(' · ')}
-              </div>
+              {senderTagline && (
+                <div style={{ fontSize: '0.74rem', color: '#FCD34D', fontWeight: 700, fontStyle: 'italic', marginTop: 3 }}>
+                  {senderTagline}
+                </div>
+              )}
+              {(senderAddress || senderPhone) && (
+                <div style={{ fontSize: '0.70rem', color: '#CBD5E1', marginTop: 2, wordBreak: 'break-word' }}>
+                  {[senderAddress, senderPhone].filter(Boolean).join(' · ')}
+                </div>
+              )}
             </div>
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -1104,24 +1181,31 @@ export default function DocumentRenderer({
                   letterSpacing: '0.05em',
                 }}
               >
-                AUTUMN SEMESTER 2026-27
+                {docHeading}
               </div>
               {renderStatusBadge(document.status)}
             </div>
             <div style={{ fontSize: '0.94rem', fontWeight: 900, letterSpacing: '0.02em', color: '#FFFFFF' }}>
-              OFFICIAL FEE RECEIPT #{document.billNumber || 'REC-2026-089'}
+              #{document.billNumber || 'REC-2026-089'}
             </div>
             <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>
-              Date: <strong>{formatHeaderDate(document.issueDate) || '2026-09-06'}</strong>
+              Date: <strong>{formatHeaderDate(document.issueDate)}</strong>
             </div>
             {document.dueDate && (
               <div style={{ fontSize: '0.70rem', color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>
                 Due: <strong>{formatHeaderDate(document.dueDate)}</strong>
               </div>
             )}
-            <div style={{ fontSize: '0.70rem', color: '#FCD34D', marginTop: 2 }}>
-              Terms: <strong>{paymentTerms}</strong>
-            </div>
+            {hasPoNumber && (
+              <div style={{ fontSize: '0.70rem', color: '#FCD34D', marginTop: 2 }}>
+                PO: <strong>{poNumberValue}</strong>
+              </div>
+            )}
+            {hasPaymentTerms && (
+              <div style={{ fontSize: '0.70rem', color: '#FCD34D', marginTop: 2 }}>
+                Terms: <strong>{paymentTerms}</strong>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1145,7 +1229,7 @@ export default function DocumentRenderer({
                 <span>ACADEMIC INSTITUTION / BURSAR</span>
               </div>
               <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.94rem', marginTop: 4 }}>
-                {senderName}
+                {senderName || senderPlaceholder}
               </div>
               <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2 }}>
                 {senderAddress}
@@ -1154,9 +1238,11 @@ export default function DocumentRenderer({
                 {[senderEmail, senderPhone].filter(Boolean).join(' · ')}
               </div>
             </div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1E293B', marginTop: 10, paddingTop: 4, borderTop: '1px solid #E2E8F0' }}>
-              INST REG / GSTIN: {document.senderTaxNumber || '27AABCA1234F1Z9'}
-            </div>
+            {hasSenderTax && (
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1E293B', marginTop: 10, paddingTop: 4, borderTop: '1px solid #E2E8F0' }}>
+                INST REG / GSTIN: {senderTaxNumber}
+              </div>
+            )}
           </div>
 
           <div
@@ -1177,17 +1263,24 @@ export default function DocumentRenderer({
                 <span>STUDENT &amp; ENROLMENT PARTICULARS</span>
               </div>
               <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.94rem', marginTop: 4 }}>
-                {clientName}
+                {clientName || clientPlaceholder}
               </div>
-              <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2 }}>
-                {clientAddress}
-              </div>
+              {clientAddress && (
+                <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2 }}>
+                  {clientAddress}
+                </div>
+              )}
               <div style={{ fontSize: '0.72rem', color: '#283593', fontWeight: 600, marginTop: 2 }}>
                 {[clientEmail, clientPhone].filter(Boolean).join(' · ')}
               </div>
             </div>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1E293B', marginTop: 10, paddingTop: 4, borderTop: '1px solid #E2E8F0' }}>
               ENROLMENT REF: #{document.billNumber || 'CGA-2026-089'} · Terms: {paymentTerms}
+              {hasClientTax && (
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1E293B', marginTop: 4 }}>
+                  GSTIN: {clientTaxNumber}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1218,7 +1311,7 @@ export default function DocumentRenderer({
               {document.items.map((item, idx) => (
                 <tr key={item.id} style={{ borderBottom: '1px solid #E2E8F0', background: idx % 2 === 1 ? '#F8FAFC' : '#FFFFFF' }}>
                   <td style={{ textAlign: 'left', padding: '11px 14px', fontSize: '0.82rem', fontWeight: 600, color: '#0f172a' }}>
-                    {item.name || item.description || 'Fee Item'}
+                    {item.name || item.description || itemPlaceholder}
                   </td>
                   <td style={{ textAlign: 'left', padding: '11px 14px', fontSize: '0.82rem', color: '#64748b' }}>
                     {item.name ? (item.description || '—') : '—'}
@@ -1239,49 +1332,51 @@ export default function DocumentRenderer({
         </div>
 
         {/* Seal & Registrar Stamp */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', alignItems: 'start', marginTop: 'auto', borderTop: '1.5px solid #283593', paddingTop: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: (bankRows.length > 0 || document.notes) ? '1.2fr 1fr' : '1fr', gap: '20px', alignItems: 'start', marginTop: 'auto', borderTop: '1.5px solid #283593', paddingTop: 14 }}>
           {/* Left: Official Seal & Fee Remittance Details */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div
-              style={{
-                border: '1.5px dashed #283593',
-                borderRadius: 6,
-                padding: '8px 12px',
-                color: '#283593',
-                fontSize: '0.72rem',
-                fontWeight: 800,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                background: '#EEF2FF',
-              }}
-            >
-              <Award size={18} color="#283593" />
-              <span>[OFFICIAL SEAL: Bursar &amp; Accounts Registry - Verified]</span>
-            </div>
+          {(bankRows.length > 0 || document.notes) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div
+                style={{
+                  border: '1.5px dashed #283593',
+                  borderRadius: 6,
+                  padding: '8px 12px',
+                  color: '#283593',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: '#EEF2FF',
+                }}
+              >
+                <Award size={18} color="#283593" />
+                <span>[OFFICIAL SEAL: Bursar &amp; Accounts Registry - Verified]</span>
+              </div>
 
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px', fontSize: '0.76rem' }}>
-              <div style={{ fontWeight: 800, color: '#283593', marginBottom: 4, textTransform: 'uppercase', fontSize: '0.68rem', letterSpacing: '0.04em' }}>
-                Bank &amp; Fee Remittance Details
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, color: '#334155' }}>
-                {bankRows.map((r, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>{r.label || 'Account'}:</span>
-                    <strong style={{ color: '#0f172a' }}>{r.value}</strong>
-                  </div>
-                ))}
-              </div>
-              {document.notes && (
-                <div style={{ marginTop: 6, paddingTop: 4, borderTop: '1px dashed #cbd5e1', fontSize: '0.70rem', color: '#475569' }}>
-                  <strong>Notes: </strong>{document.notes}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px', fontSize: '0.76rem' }}>
+                <div style={{ fontWeight: 800, color: '#283593', marginBottom: 4, textTransform: 'uppercase', fontSize: '0.68rem', letterSpacing: '0.04em' }}>
+                  Bank &amp; Fee Remittance Details
                 </div>
-              )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3, color: '#334155' }}>
+                  {bankRows.map((r, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>{r.label || 'Account'}:</span>
+                      <strong style={{ color: '#0f172a' }}>{r.value}</strong>
+                    </div>
+                  ))}
+                </div>
+                {document.notes && (
+                  <div style={{ marginTop: 6, paddingTop: 4, borderTop: '1px dashed #cbd5e1', fontSize: '0.70rem', color: '#475569' }}>
+                    <strong>Notes: </strong>{document.notes}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Right: Fee Summary & Registrar Signature */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginLeft: (bankRows.length > 0 || document.notes) ? undefined : 'auto', width: (bankRows.length > 0 || document.notes) ? undefined : 320 }}>
             <div style={{ background: '#f8fafc', border: '1px solid #c7d2fe', borderRadius: 8, padding: '12px 14px', fontSize: '0.80rem', display: 'flex', flexDirection: 'column', gap: 5 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
                 <span>Tuition Subtotal:</span>
@@ -1293,10 +1388,12 @@ export default function DocumentRenderer({
                   <strong style={{ fontVariantNumeric: 'tabular-nums' }}>-{currencySymbol}{formatAmount(discountAmount)}</strong>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                <span>University Cess / Tax ({document.taxRate || 0}%):</span>
-                <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(taxAmount)}</strong>
-              </div>
+              {taxAmount > 0 && hasAnyTax && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
+                  <span>University Cess / Tax ({document.taxRate || 0}%):</span>
+                  <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(taxAmount)}</strong>
+                </div>
+              )}
               <div style={{ borderTop: '1.5px solid #283593', margin: '4px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 900, color: '#283593', fontSize: '1.2rem' }}>
                 <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Net Tuition Due:</span>
@@ -1355,25 +1452,29 @@ export default function DocumentRenderer({
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0, wordBreak: 'break-word' }}>
-                {senderName}
+                {senderName || senderPlaceholder}
               </h2>
-              <div style={{ fontSize: '0.78rem', opacity: 0.95, marginTop: 3 }}>
-                GSTIN: <strong>{document.senderTaxNumber || '22AAAAA0000A1Z5'}</strong> | State: 29 (Karnataka)
-              </div>
-              <div style={{ fontSize: '0.72rem', opacity: 0.85, marginTop: 2, wordBreak: 'break-word' }}>
-                {[senderEmail, senderPhone].filter(Boolean).join(' · ')}
-              </div>
+              {hasSenderTax && (
+                <div style={{ fontSize: '0.78rem', opacity: 0.95, marginTop: 3 }}>
+                  GSTIN: <strong>{senderTaxNumber}</strong>
+                </div>
+              )}
+              {(senderEmail || senderPhone) && (
+                <div style={{ fontSize: '0.72rem', opacity: 0.85, marginTop: 2, wordBreak: 'break-word' }}>
+                  {[senderEmail, senderPhone].filter(Boolean).join(' · ')}
+                </div>
+              )}
             </div>
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
               <span style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '0.04em' }}>
-                TAX INVOICE (GST)
+                {docHeading}
               </span>
               {renderStatusBadge(document.status)}
             </div>
             <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>
-              Invoice #{document.billNumber || 'INV-2026-1817'}
+              #{document.billNumber || 'INV-2026-1817'}
             </div>
             <div style={{ fontSize: '0.74rem', opacity: 0.85 }}>
               Date: {formatHeaderDate(document.issueDate)}
@@ -1383,9 +1484,16 @@ export default function DocumentRenderer({
                 Due: {formatHeaderDate(document.dueDate)}
               </div>
             )}
-            <div style={{ fontSize: '0.74rem', opacity: 0.85 }}>
-              Terms: <strong>{paymentTerms}</strong>
-            </div>
+            {hasPoNumber && (
+              <div style={{ fontSize: '0.74rem', opacity: 0.85 }}>
+                PO / Ref: <strong>{poNumberValue}</strong>
+              </div>
+            )}
+            {hasPaymentTerms && (
+              <div style={{ fontSize: '0.74rem', opacity: 0.85 }}>
+                Terms: <strong>{paymentTerms}</strong>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1394,28 +1502,30 @@ export default function DocumentRenderer({
           <div className="gst-party-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
             <div>
               <div style={{ fontWeight: 800, color: '#880e4f', marginBottom: 2, fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>DETAILS OF SUPPLIER:</div>
-              <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#0f172a' }}>{senderName}</div>
+              <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#0f172a' }}>{senderName || senderPlaceholder}</div>
               <div style={{ color: '#475569', fontSize: '0.76rem', whiteSpace: 'pre-line', marginTop: 2 }}>{senderAddress}</div>
               <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2 }}>
                 {[senderEmail, senderPhone].filter(Boolean).join(' · ')}
               </div>
             </div>
-            <div style={{ marginTop: 8, paddingTop: 4, borderTop: '1px solid #fbcfe8', fontSize: '0.76rem' }}>
-              GSTIN: <strong>{document.senderTaxNumber || '22AAAAA0000A1Z5'}</strong>
-            </div>
+            {hasSenderTax && (
+              <div style={{ marginTop: 8, paddingTop: 4, borderTop: '1px solid #fbcfe8', fontSize: '0.76rem' }}>
+                GSTIN: <strong>{senderTaxNumber}</strong>
+              </div>
+            )}
           </div>
           <div className="gst-party-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
             <div>
               <div style={{ fontWeight: 800, color: '#880e4f', marginBottom: 2, fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>DETAILS OF RECIPIENT (BILLED TO):</div>
-              <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#0f172a' }}>{clientName}</div>
+              <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#0f172a' }}>{clientName || clientPlaceholder}</div>
               <div style={{ color: '#475569', fontSize: '0.76rem', whiteSpace: 'pre-line', marginTop: 2 }}>{clientAddress}</div>
               <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2 }}>
                 {[clientEmail, clientPhone].filter(Boolean).join(' · ')}
               </div>
             </div>
             <div style={{ marginTop: 8, paddingTop: 4, borderTop: '1px solid #fbcfe8', fontSize: '0.76rem', display: 'flex', justifyContent: 'space-between' }}>
-              <span>GSTIN: <strong>{document.clientTaxNumber || '29AAAAA0000A1Z5'}</strong></span>
-              <span>Terms: <strong>{paymentTerms}</strong></span>
+              {hasClientTax ? <span>GSTIN: <strong>{clientTaxNumber}</strong></span> : <span />}
+              {hasPaymentTerms && <span>Terms: <strong>{paymentTerms}</strong></span>}
             </div>
           </div>
         </div>
@@ -1436,7 +1546,7 @@ export default function DocumentRenderer({
               {document.items.map((item, idx) => (
                 <tr key={item.id}>
                   <td style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 600, color: '#0f172a' }}>
-                    {item.name || item.description || 'Item'}
+                    {item.name || item.description || itemPlaceholder}
                   </td>
                   <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px', color: '#64748b' }}>
                     {item.name ? (item.description || '—') : '—'}
@@ -1459,19 +1569,21 @@ export default function DocumentRenderer({
             </div>
 
             {/* Structured Bank & UPI details */}
-            <div style={{ background: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: 8, padding: '10px 14px', fontSize: '0.74rem' }}>
-              <div style={{ fontWeight: 800, color: '#880e4f', marginBottom: 4, fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Bank &amp; Electronic Settlement Details
+            {bankRows.length > 0 && (
+              <div style={{ background: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: 8, padding: '10px 14px', fontSize: '0.74rem' }}>
+                <div style={{ fontWeight: 800, color: '#880e4f', marginBottom: 4, fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Bank &amp; Electronic Settlement Details
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', color: '#334155' }}>
+                  {bankRows.map((r, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>{r.label || 'Bank'}:</span>
+                      <strong style={{ color: '#0f172a' }}>{r.value}</strong>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', color: '#334155' }}>
-                {bankRows.map((r, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>{r.label || 'Bank'}:</span>
-                    <strong style={{ color: '#0f172a' }}>{r.value}</strong>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
 
             {document.notes && (
               <div style={{ fontSize: '0.72rem', color: '#64748b', background: '#f8fafc', padding: '6px 10px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
@@ -1488,7 +1600,7 @@ export default function DocumentRenderer({
               <span>Taxable Value:</span>
               <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(subtotal - discountAmount)}</strong>
             </div>
-            {taxAmount > 0 && (
+            {taxAmount > 0 && hasAnyTax && (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
                   <span>CGST ({halfTaxRate.toFixed(1)}%):</span>
@@ -1548,7 +1660,7 @@ export default function DocumentRenderer({
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.5px', color: '#111827', lineHeight: 1.15, wordBreak: 'break-word' }}>
-                {senderName}
+                {senderName || senderPlaceholder}
               </div>
               {senderTagline && (
                 <div style={{ fontSize: '0.76rem', color: '#6B7280', marginTop: '2px', wordBreak: 'break-word' }}>
@@ -1572,9 +1684,9 @@ export default function DocumentRenderer({
                   {senderAddress}
                 </div>
               )}
-              {document.senderTaxNumber && (
+              {hasSenderTax && (
                 <div style={{ fontSize: '0.72rem', color: '#111827', marginTop: '3px', fontWeight: 700 }}>
-                  GSTIN / PAN: {document.senderTaxNumber}
+                  GSTIN / PAN: {senderTaxNumber}
                 </div>
               )}
             </div>
@@ -1590,9 +1702,9 @@ export default function DocumentRenderer({
             <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#4B5563' }}>
               #{document.billNumber || 'INV-2026-1817'}
             </div>
-            {document.poNumber && (
+            {hasPoNumber && (
               <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: '2px' }}>
-                PO: #{document.poNumber}
+                PO: #{poNumberValue}
               </div>
             )}
           </div>
@@ -1614,7 +1726,7 @@ export default function DocumentRenderer({
               BILLED TO
             </div>
             <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#111827' }}>
-              {clientName}
+              {clientName || clientPlaceholder}
             </div>
             <div style={{ fontSize: '0.74rem', color: '#4B5563', marginTop: '3px', whiteSpace: 'pre-line', lineHeight: 1.4 }}>
               {clientAddress}
@@ -1632,9 +1744,9 @@ export default function DocumentRenderer({
                   {clientPhone}
                 </span>
               )}
-              {document.clientTaxNumber && (
+              {hasClientTax && (
                 <span style={{ fontWeight: 600, color: '#111827' }}>
-                  GSTIN / Tax ID: {document.clientTaxNumber}
+                  GSTIN / Tax ID: {clientTaxNumber}
                 </span>
               )}
             </div>
@@ -1685,7 +1797,7 @@ export default function DocumentRenderer({
                       {idx + 1}
                     </td>
                     <td style={{ padding: '9px 10px', textAlign: 'left', fontWeight: 600, color: '#111827' }}>
-                      {it.name || it.description || 'Item'}
+                      {it.name || it.description || itemPlaceholder}
                     </td>
                     <td style={{ padding: '9px 10px', textAlign: 'left', color: '#6B7280' }}>
                       {it.name ? (it.description || '—') : '—'}
@@ -1710,58 +1822,62 @@ export default function DocumentRenderer({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1.15fr 1fr',
+            gridTemplateColumns: (bankRows.length > 0 || document.notes) ? '1.15fr 1fr' : '1fr',
             gap: '20px',
             alignItems: 'start',
             paddingTop: '6px',
           }}
         >
           {/* Left Column: Settlement & Notes */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div
-              style={{
-                border: '1px solid #E5E7EB',
-                borderRadius: '8px',
-                background: '#F9FAFB',
-                padding: '10px 12px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.68rem', fontWeight: 800, color: '#111827', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                <Landmark size={13} color="#374151" />
-                <span>BANK &amp; PAYMENT SETTLEMENT</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '6px', fontSize: '0.73rem' }}>
-                {bankRows.map((r, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
-                    <span style={{ width: 105, color: '#6B7280', flexShrink: 0 }}>{r.label || 'Note'}</span>
-                    <span style={{ width: 12, color: '#9CA3AF', textAlign: 'center' }}>:</span>
-                    <span style={{ color: '#111827', fontWeight: 600 }}>{r.value}</span>
+          {(bankRows.length > 0 || document.notes) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {bankRows.length > 0 && (
+                <div
+                  style={{
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    background: '#F9FAFB',
+                    padding: '10px 12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.68rem', fontWeight: 800, color: '#111827', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <Landmark size={13} color="#374151" />
+                    <span>BANK &amp; PAYMENT SETTLEMENT</span>
                   </div>
-                ))}
-              </div>
-            </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '6px', fontSize: '0.73rem' }}>
+                    {bankRows.map((r, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ width: 105, color: '#6B7280', flexShrink: 0 }}>{r.label || 'Note'}</span>
+                        <span style={{ width: 12, color: '#9CA3AF', textAlign: 'center' }}>:</span>
+                        <span style={{ color: '#111827', fontWeight: 600 }}>{r.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-            {document.notes && (
-              <div
-                style={{
-                  border: '1px solid #E5E7EB',
-                  borderRadius: '8px',
-                  background: '#FFFFFF',
-                  padding: '8px 12px',
-                }}
-              >
-                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>
-                  Customer Notes &amp; Terms
+              {document.notes && (
+                <div
+                  style={{
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    background: '#FFFFFF',
+                    padding: '8px 12px',
+                  }}
+                >
+                  <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>
+                    Customer Notes &amp; Terms
+                  </div>
+                  <div style={{ fontSize: '0.73rem', color: '#4B5563', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
+                    {document.notes}
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.73rem', color: '#4B5563', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
-                  {document.notes}
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Right Column: Totals Summary & Authorized Signature */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginLeft: (bankRows.length > 0 || document.notes) ? undefined : 'auto', width: (bankRows.length > 0 || document.notes) ? undefined : 320 }}>
             <div
               style={{
                 border: '1px solid #E5E7EB',
@@ -1789,12 +1905,14 @@ export default function DocumentRenderer({
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#4B5563' }}>
-                <span>Tax ({document.taxRate || 0}%)</span>
-                <span style={{ fontWeight: 600, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
-                  {currencySymbol}{formatAmount(taxAmount)}
-                </span>
-              </div>
+              {taxAmount > 0 && hasAnyTax && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#4B5563' }}>
+                  <span>Tax ({document.taxRate || 0}%)</span>
+                  <span style={{ fontWeight: 600, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                    {currencySymbol}{formatAmount(taxAmount)}
+                  </span>
+                </div>
+              )}
 
               <div style={{ borderTop: '1.5px solid #E5E7EB', margin: '3px 0' }} />
 
@@ -1850,7 +1968,7 @@ export default function DocumentRenderer({
             {renderBusinessLogo(senderLogo, senderName, true)}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h2 className="a4-classic-company" style={{ wordBreak: 'break-word' }}>{senderName}</h2>
+            <h2 className="a4-classic-company" style={{ wordBreak: 'break-word' }}>{senderName || senderPlaceholder}</h2>
             {senderTagline && <p className="a4-classic-tagline" style={{ wordBreak: 'break-word' }}>{senderTagline}</p>}
             <div className="a4-classic-contact" style={{ display: 'flex', alignItems: 'center', gap: '6px 12px', flexWrap: 'wrap', marginTop: '8px' }}>
               <span className="contact-item">
@@ -1863,10 +1981,10 @@ export default function DocumentRenderer({
                   <span>{senderPhone}</span>
                 </span>
               )}
-              {document.senderTaxNumber && (
+              {hasSenderTax && (
                 <span className="contact-item">
                   <FileText size={12} />
-                  <span>GSTIN: {document.senderTaxNumber}</span>
+                  <span>GSTIN: {senderTaxNumber}</span>
                 </span>
               )}
             </div>
@@ -1889,6 +2007,12 @@ export default function DocumentRenderer({
                 <span>Due Date: {formatHeaderDate(document.dueDate)}</span>
               </p>
             )}
+            {hasPoNumber && (
+              <p className="a4-classic-date" style={{ margin: 0, color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.74rem' }}>
+                <FileText size={12} />
+                <span>PO: #{poNumberValue}</span>
+              </p>
+            )}
             {paymentTerms && (
               <p className="a4-classic-date" style={{ margin: 0, color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.74rem' }}>
                 <FileText size={12} />
@@ -1907,7 +2031,7 @@ export default function DocumentRenderer({
               <Building2 size={15} color="#2563eb" />
               <span>{isInvoice ? 'INVOICE FROM' : 'BILL FROM'}</span>
             </div>
-            <div className="a4-addr-name">{senderName}</div>
+            <div className="a4-addr-name">{senderName || senderPlaceholder}</div>
             <div className="a4-addr-text">{senderAddress}</div>
           </div>
           <div className="a4-addr-meta" style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px solid #dbeafe' }}>
@@ -1921,10 +2045,10 @@ export default function DocumentRenderer({
                 <span>{senderPhone}</span>
               </span>
             )}
-            {document.senderTaxNumber && (
+            {hasSenderTax && (
               <span className="addr-meta-row">
                 <FileText size={13} />
-                <span>GSTIN / PAN: {document.senderTaxNumber}</span>
+                <span>GSTIN / PAN: {senderTaxNumber}</span>
               </span>
             )}
           </div>
@@ -1935,7 +2059,7 @@ export default function DocumentRenderer({
               <User size={15} color="#2563eb" />
               <span>{isInvoice ? 'BILLED TO' : 'BILL TO'}</span>
             </div>
-            <div className="a4-addr-name">{clientName}</div>
+            <div className="a4-addr-name">{clientName || clientPlaceholder}</div>
             <div className="a4-addr-text">{clientAddress}</div>
           </div>
           <div className="a4-addr-meta" style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px solid #dbeafe' }}>
@@ -1949,10 +2073,10 @@ export default function DocumentRenderer({
                 <span>{clientPhone}</span>
               </span>
             )}
-            {document.clientTaxNumber && (
+            {hasClientTax && (
               <span className="addr-meta-row">
                 <FileText size={13} />
-                <span>GSTIN / Tax ID: {document.clientTaxNumber}</span>
+                <span>GSTIN / Tax ID: {clientTaxNumber}</span>
               </span>
             )}
             {paymentTerms && (
@@ -1983,7 +2107,7 @@ export default function DocumentRenderer({
               return (
                 <tr key={item.id}>
                   <td style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 600, color: '#0f172a' }}>
-                    {item.name || item.description || 'Item'}
+                    {item.name || item.description || itemPlaceholder}
                   </td>
                   <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px', color: '#64748b' }}>
                     {item.name ? (item.description || '—') : '—'}
@@ -2004,44 +2128,50 @@ export default function DocumentRenderer({
 
       {/* Bottom section: Totals and Payment notes */}
       <div className="a4-footer-wrapper">
-        <div className="a4-bottom-grid">
+        <div className="a4-bottom-grid" style={{ gridTemplateColumns: (bankRows.length > 0 || document.notes) ? undefined : '1fr' }}>
           {/* Left: Payment instructions */}
-          <div className="a4-bottom-notes-section">
-            <div className="a4-notes-card">
-              <div className="a4-notes-card-header">
-                <Landmark size={18} color="#1e40af" />
-                <span className="a4-notes-header-text">BANK &amp; PAYMENT INSTRUCTIONS</span>
+          {(bankRows.length > 0 || document.notes) && (
+            <div className="a4-bottom-notes-section">
+              <div className="a4-notes-card">
+                {bankRows.length > 0 && (
+                  <>
+                    <div className="a4-notes-card-header">
+                      <Landmark size={18} color="#1e40af" />
+                      <span className="a4-notes-header-text">BANK &amp; PAYMENT INSTRUCTIONS</span>
+                    </div>
+                    <div className="a4-bank-details-grid">
+                      {bankRows.map((row, i) => (
+                        <div key={i} className="bank-detail-row">
+                          {row.label ? (
+                            <>
+                              <span className="bank-k">{row.label}</span>
+                              <span className="bank-colon">:</span>
+                              <span className="bank-v">{row.value}</span>
+                            </>
+                          ) : (
+                            <span className="bank-v full-line">{row.value}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {document.notes && (
+                  <div style={{ marginTop: bankRows.length > 0 ? '12px' : 0, paddingTop: bankRows.length > 0 ? '10px' : 0, borderTop: bankRows.length > 0 ? '1px dashed #bfdbfe' : 'none' }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', marginBottom: '3px' }}>
+                      Customer Notes
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
+                      {document.notes}
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="a4-bank-details-grid">
-                {bankRows.map((row, i) => (
-                  <div key={i} className="bank-detail-row">
-                    {row.label ? (
-                      <>
-                        <span className="bank-k">{row.label}</span>
-                        <span className="bank-colon">:</span>
-                        <span className="bank-v">{row.value}</span>
-                      </>
-                    ) : (
-                      <span className="bank-v full-line">{row.value}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-              {document.notes && (
-                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #bfdbfe' }}>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', marginBottom: '3px' }}>
-                    Customer Notes
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
-                    {document.notes}
-                  </div>
-                </div>
-              )}
             </div>
-          </div>
+          )}
 
           {/* Right: Totals Area */}
-          <div className="a4-totals-area">
+          <div className="a4-totals-area" style={{ marginLeft: (bankRows.length > 0 || document.notes) ? undefined : 'auto' }}>
             <div className="a4-totals-card">
               <div className="a4-totals-card-line">
                 <span className="totals-card-k">Subtotal:</span>
@@ -2059,12 +2189,14 @@ export default function DocumentRenderer({
                 </div>
               )}
 
-              <div className="a4-totals-card-line">
-                <span className="totals-card-k">Tax ({document.taxRate || 0}%):</span>
-                <span className="totals-card-v">
-                  {currencySymbol}{formatAmount(taxAmount)}
-                </span>
-              </div>
+              {taxAmount > 0 && hasAnyTax && (
+                <div className="a4-totals-card-line">
+                  <span className="totals-card-k">Tax ({document.taxRate || 0}%):</span>
+                  <span className="totals-card-v">
+                    {currencySymbol}{formatAmount(taxAmount)}
+                  </span>
+                </div>
+              )}
 
               <div
                 className="a4-totals-card-divider"

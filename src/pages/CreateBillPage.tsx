@@ -33,18 +33,23 @@ import {
   Sparkles,
   ArrowUp,
   ArrowDown,
+  RotateCcw,
 } from 'lucide-react';
 import DocumentRenderer from '../components/DocumentRenderer';
 import DateInputWithPicker from '../components/DateInputWithPicker';
 import { BillDocument, TemplateId, CurrencyCode, BusinessProfile, STORAGE_PROFILE_KEY } from '../types';
 import {
   DEFAULT_BILL,
+  SAMPLE_BILL_DATA,
   CURRENCY_SYMBOLS,
   ACCENT_COLOR_MAP,
   TEMPLATES,
   BILL_TEMPLATES,
-  INVOICE_TEMPLATES,
   normalizeTemplateId,
+  fillSampleIntoEmpty,
+  looksLikeStaleSampleDraft,
+  getTodayIsoDate,
+  getFutureIsoDate,
 } from '../data/templates';
 import { calculateBillTotals, formatCurrencyAmount } from '../utils/billCalculations';
 import { applyBusinessProfileToDoc, getSavedBusinessProfile, PROFILE_UPDATED_EVENT } from '../utils/profileSync';
@@ -52,21 +57,30 @@ import { applyBusinessProfileToDoc, getSavedBusinessProfile, PROFILE_UPDATED_EVE
 interface CreateBillPageProps {
   initialDocument?: BillDocument;
   onSave: (doc: BillDocument) => void;
+  onPreview?: (doc: BillDocument) => void;
   onNavigate: (tabId: string) => void;
   onNotify: (msg: string) => void;
+  /** Reports whether the form has changes that haven't been committed via
+   * Save Draft / Create Bill, so the app shell can warn before navigating
+   * away (mirrors the "unsaved changes" prompt in Word/Office). */
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 export default function CreateBillPage({
   initialDocument,
   onSave,
+  onPreview,
   onNavigate,
   onNotify,
+  onDirtyChange,
 }: CreateBillPageProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [showGallery, setShowGallery] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isDraggingLogo, setIsDraggingLogo] = useState(false);
+  const [lastDueDate, setLastDueDate] = useState('');
+  const [showSampleData, setShowSampleData] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const sanitizeBillDoc = (doc: Partial<BillDocument>): BillDocument => {
@@ -75,9 +89,9 @@ export default function CreateBillPage({
       !doc.title.toLowerCase().includes('enterprise') &&
       !doc.title.toLowerCase().includes('architecture') &&
       !doc.title.toLowerCase().includes('consulting') &&
-      doc.title.trim().length <= 15
+      doc.title.trim().length <= 40
         ? doc.title.trim()
-        : 'BILL';
+        : (doc.title?.trim() || 'BILL');
 
     // Clear any previous shopping cart SVG so the light grey image icon displays
     const cleanSenderLogo =
@@ -105,7 +119,7 @@ export default function CreateBillPage({
       const params = new URLSearchParams(window.location.search);
       const tplParam = params.get('template');
       if (tplParam) {
-        return sanitizeBillDoc({ template: tplParam });
+        return sanitizeBillDoc({ template: tplParam, issueDate: getTodayIsoDate(), dueDate: getFutureIsoDate(30) });
       }
     } catch (_) {}
     if (initialDocument) {
@@ -115,20 +129,41 @@ export default function CreateBillPage({
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return sanitizeBillDoc(parsed);
+        // Older builds could persist full sample content into the draft
+        // (before "Sample Data" became preview-only). Discard it rather
+        // than showing leftover example content as if it were real data.
+        if (looksLikeStaleSampleDraft(parsed)) {
+          localStorage.removeItem('billease_bill_draft');
+        } else {
+          return sanitizeBillDoc(parsed);
+        }
       } catch (e) {
         console.error(e);
       }
     }
     return sanitizeBillDoc({
       template: 'apex-corporate-bill',
+      // DEFAULT_BILL.issueDate/dueDate are frozen at app-load time, so a
+      // brand-new document must not fall back to them — compute fresh here.
+      issueDate: getTodayIsoDate(),
+      dueDate: getFutureIsoDate(30),
     });
   });
 
+  // Snapshot of formData as of the last successful Save Draft / Create Bill /
+  // Download PDF, used to detect unsaved changes. Starts as the initial load
+  // so a freshly opened (unchanged) form is never considered dirty.
+  const lastSavedSnapshot = useRef<string>(JSON.stringify(formData));
+
   // Sync initialDocument and localStorage whenever template changes or user applies from Templates page
   useEffect(() => {
+    setShowSampleData(false); // never carry a stale sample preview into a different document
     if (initialDocument) {
-      setFormData((prev) => sanitizeBillDoc({ ...prev, ...initialDocument }));
+      setFormData((prev) => {
+        const next = sanitizeBillDoc({ ...prev, ...initialDocument });
+        lastSavedSnapshot.current = JSON.stringify(next); // loading a document is not "dirty"
+        return next;
+      });
     } else {
       const stored = localStorage.getItem('billease_active_template');
       if (stored) {
@@ -146,6 +181,13 @@ export default function CreateBillPage({
       localStorage.setItem('billease_bill_draft', JSON.stringify(formData));
     } catch (_) {}
   }, [formData]);
+
+  // Report unsaved-changes state up to the app shell so it can warn before
+  // navigating away (Save Draft / Create Bill / Download PDF all update the
+  // snapshot to mark the form as clean again).
+  useEffect(() => {
+    onDirtyChange?.(JSON.stringify(formData) !== lastSavedSnapshot.current);
+  }, [formData, onDirtyChange]);
 
   // Automatically sync with Business Profile Defaults in real-time
   useEffect(() => {
@@ -326,52 +368,43 @@ export default function CreateBillPage({
     });
   };
 
-  const handleLoadSampleData = () => {
-    const num = Math.floor(1000 + Math.random() * 9000);
-    const freshSample: BillDocument = {
+  // Sample data is a PREVIEW ONLY — it is never written to formData or
+  // localStorage, so it can never be confused with, or accidentally saved
+  // as, the user's real data. Toggling it off instantly reverts the preview
+  // to showing only what the user actually entered.
+  const handleToggleSampleData = () => {
+    setShowSampleData((prev) => {
+      const next = !prev;
+      onNotify(next ? '✨ Previewing with sample content — nothing is saved' : 'Cleared sample preview');
+      return next;
+    });
+  };
+
+  const previewDocument = showSampleData
+    ? fillSampleIntoEmpty(formData, SAMPLE_BILL_DATA)
+    : formData;
+
+  // Wipes the working draft back to a blank bill — clears formData AND
+  // the persisted draft/template choice in localStorage. Useful for testing
+  // and for anyone who wants to start completely fresh.
+  const handleResetForm = () => {
+    const blank: BillDocument = {
       ...DEFAULT_BILL,
       id: `bill-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      billNumber: `BIL-2026-${num}`,
-      template: normalizeTemplateId(formData.template || 'apex-corporate-bill', 'bill'),
-      items: [
-        {
-          id: 'item-1',
-          name: 'Enterprise Architecture Consulting',
-          description: 'System design, microservices analysis & blueprinting',
-          qty: 22,
-          rate: 2500,
-          taxRate: 18,
-          discount: 0,
-        },
-        {
-          id: 'item-2',
-          name: 'Cloud Infrastructure Audit & Hardening',
-          description: 'Security audit, cost optimization & VPC hardening',
-          qty: 10,
-          rate: 3500,
-          taxRate: 18,
-          discount: 0,
-        },
-        {
-          id: 'item-3',
-          name: 'Executive Stakeholder Presentation',
-          description: 'C-level architecture review & executive roadmap sign-off',
-          qty: 3,
-          rate: 1500,
-          taxRate: 18,
-          discount: 0,
-        },
-      ],
-      taxRate: 18,
-      discount: 250,
-      additionalCharges: 50,
-      amountPaid: 20000,
+      billNumber: `BIL-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      // DEFAULT_BILL.issueDate/dueDate are frozen at app-load time —
+      // recompute fresh so a reset form always starts on today's date.
+      issueDate: getTodayIsoDate(),
+      dueDate: getFutureIsoDate(30),
+      createdAt: new Date().toISOString(),
     };
-    setFormData(freshSample);
+    setShowSampleData(false);
+    setFormData(blank);
     try {
-      localStorage.setItem('billease_bill_draft', JSON.stringify(freshSample));
+      localStorage.removeItem('billease_bill_draft');
+      localStorage.removeItem('billease_active_template');
     } catch (_) {}
-    onNotify('✨ Loaded full sample bill with items & calculations!');
+    onNotify('Form reset — starting with a blank bill');
   };
 
   const handleAutoFillFromProfile = () => {
@@ -565,15 +598,31 @@ export default function CreateBillPage({
   };
 
   const handleSaveDraft = () => {
-    const savedDoc = {
+    const isTemplateDefaultId =
+      !formData.id ||
+      formData.id === 'doc-apex-billing' ||
+      formData.id === 'inv-studio-pulse' ||
+      formData.id === 'inv-acme-design' ||
+      formData.id.startsWith('default-');
+    const uniqueId = isTemplateDefaultId
+      ? `bill-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+      : formData.id;
+
+    const savedDoc: BillDocument = {
       ...formData,
+      id: uniqueId,
       status: 'Draft' as const,
       updatedAt: new Date().toISOString(),
     };
+    if (isTemplateDefaultId) {
+      setFormData((prev) => ({ ...prev, id: uniqueId }));
+    }
     onSave(savedDoc);
     try {
       localStorage.setItem('billease_bill_draft', JSON.stringify(savedDoc));
     } catch (_) {}
+    lastSavedSnapshot.current = JSON.stringify(savedDoc);
+    onDirtyChange?.(false);
     onNotify(`Bill #${formData.billNumber} saved successfully to your documents!`);
   };
 
@@ -583,7 +632,12 @@ export default function CreateBillPage({
       return;
     }
 
-    const isTemplateDefaultId = !formData.id || formData.id === 'doc-apex-billing' || formData.id.startsWith('default-');
+    const isTemplateDefaultId =
+      !formData.id ||
+      formData.id === 'doc-apex-billing' ||
+      formData.id === 'inv-studio-pulse' ||
+      formData.id === 'inv-acme-design' ||
+      formData.id.startsWith('default-');
     const uniqueId = isTemplateDefaultId
       ? `bill-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
       : formData.id;
@@ -603,6 +657,8 @@ export default function CreateBillPage({
     try {
       localStorage.removeItem('billease_bill_draft');
     } catch (_) {}
+    lastSavedSnapshot.current = JSON.stringify(completedDoc);
+    onDirtyChange?.(false);
 
     onNotify(`Bill #${completedDoc.billNumber} created successfully! Added to My Documents and Home.`);
     onNavigate(destination);
@@ -619,6 +675,8 @@ export default function CreateBillPage({
       updatedAt: new Date().toISOString(),
     };
     onSave(completedDoc);
+    lastSavedSnapshot.current = JSON.stringify(completedDoc);
+    onDirtyChange?.(false);
     const prevTitle = document.title;
     const docNumber = formData.billNumber || 'BILL-2026-5479';
     document.title = `Bill_${docNumber}`;
@@ -658,25 +716,27 @@ export default function CreateBillPage({
             <Save size={15} />
             <span>Save Draft</span>
           </button>
-          <button
-            type="button"
-            className="btn-download-pdf"
-            onClick={handleGeneratePdf}
-            disabled={isGeneratingPdf}
-            title="Save and open print/PDF preview"
-          >
-            {isGeneratingPdf ? (
-              <>
-                <Loader2 size={15} className="animate-spin" />
-                <span>Generating...</span>
-              </>
-            ) : (
-              <>
-                <Download size={15} />
-                <span>PDF</span>
-              </>
-            )}
-          </button>
+          {currentStep === 6 && (
+            <button
+              type="button"
+              className="btn-download-pdf"
+              onClick={handleGeneratePdf}
+              disabled={isGeneratingPdf}
+              title="Save and open print/PDF preview"
+            >
+              {isGeneratingPdf ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <Download size={15} />
+                  <span>PDF</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -712,127 +772,8 @@ export default function CreateBillPage({
           {currentStep === 1 && (
             <div className="form-step-content">
               <div className="form-step-header">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                  <div>
-                    <h2>1. Bill Details</h2>
-                    <p>Set the bill number, dates, currency, and choose your bill template.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(6)}
-                    style={{
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      color: '#1d4ed8',
-                      background: '#eff6ff',
-                      border: '1px solid #bfdbfe',
-                      borderRadius: '8px',
-                      padding: '5px 12px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                    }}
-                  >
-                    <Palette size={13} />
-                    <span>Choose Template (Step 6)</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Quick Template Picker Strip in Step 1 */}
-              <div
-                style={{
-                  padding: '12px 14px',
-                  background: '#f8fafc',
-                  borderRadius: '10px',
-                  border: '1px solid #e2e8f0',
-                  marginBottom: '1rem',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '8px',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: '0.74rem',
-                      fontWeight: 700,
-                      color: '#475569',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    Select Bill Template
-                  </span>
-                  <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 600 }}>
-                    {BILL_TEMPLATES.find((t) => t.id === normalizeTemplateId(formData.template, 'bill'))?.name}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                    gap: '6px',
-                  }}
-                >
-                  {BILL_TEMPLATES.map((t) => {
-                    const isSel = normalizeTemplateId(formData.template, 'bill') === t.id;
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => {
-                          handleInputChange('template', t.id);
-                          try {
-                            localStorage.setItem('billease_active_template', t.id);
-                          } catch (_) {}
-                          onNotify(`Switched to ${t.name}`);
-                        }}
-                        style={{
-                          padding: '6px 8px',
-                          borderRadius: '6px',
-                          border: isSel ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
-                          background: isSel ? '#eff6ff' : '#ffffff',
-                          color: isSel ? '#1e40af' : '#334155',
-                          fontWeight: isSel ? 700 : 500,
-                          fontSize: '0.74rem',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: '8px',
-                            height: '8px',
-                            borderRadius: '50%',
-                            background: t.accentColor,
-                            flexShrink: 0,
-                          }}
-                        />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {t.name.replace(' Standard Bill', '').replace(' Bill', '')}
-                        </span>
-                        {isSel && (
-                          <Check
-                            size={12}
-                            color="#2563eb"
-                            style={{ marginLeft: 'auto', flexShrink: 0 }}
-                            strokeWidth={2.5}
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                <h2>1. Bill Details</h2>
+                <p>Set the bill number, dates, currency, and choose your bill template.</p>
               </div>
 
               <div className="form-fields-stack">
@@ -861,17 +802,19 @@ export default function CreateBillPage({
                     <select
                       id="input-bill-title"
                       className="form-input"
-                      value={
-                        ['BILL', 'TAX BILL', 'CASH MEMO', 'RETAIL INVOICE'].includes(formData.title || 'BILL')
-                          ? formData.title || 'BILL'
-                          : 'BILL'
-                      }
+                      value={formData.title || 'BILL'}
                       onChange={(e) => handleInputChange('title', e.target.value)}
                     >
                       <option value="BILL">BILL (Standard)</option>
                       <option value="TAX BILL">TAX BILL</option>
                       <option value="CASH MEMO">CASH MEMO</option>
                       <option value="RETAIL INVOICE">RETAIL INVOICE</option>
+                      <option value="RECEIPT">RECEIPT</option>
+                      <option value="PROFORMA INVOICE">PROFORMA INVOICE</option>
+                      <option value="COMMERCIAL INVOICE">COMMERCIAL INVOICE</option>
+                      {!['BILL', 'TAX BILL', 'CASH MEMO', 'RETAIL INVOICE', 'RECEIPT', 'PROFORMA INVOICE', 'COMMERCIAL INVOICE'].includes(formData.title || 'BILL') && (
+                        <option value={formData.title}>{formData.title}</option>
+                      )}
                     </select>
                   </div>
                 </div>
@@ -937,7 +880,24 @@ export default function CreateBillPage({
                       onChange={(val) => handleInputChange('dueDate', val)}
                       placeholder="YYYY-MM-DD"
                       title="Select Due Date from calendar"
+                      disabled={!formData.dueDate}
                     />
+                    <label htmlFor="bill-no-due-date" className="no-due-date-toggle" title="Check this if the bill has no due date (e.g. a one-off receipt or cash sale)">
+                      <input
+                        id="bill-no-due-date"
+                        type="checkbox"
+                        checked={!formData.dueDate}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setLastDueDate(formData.dueDate);
+                            handleInputChange('dueDate', '');
+                          } else {
+                            handleInputChange('dueDate', lastDueDate || new Date().toISOString().slice(0, 10));
+                          }
+                        }}
+                      />
+                      <span>No due date</span>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -1464,7 +1424,7 @@ export default function CreateBillPage({
 
                       <div className="form-grid-2" style={{ gap: '12px', width: '100%' }}>
                         <div className="form-group" style={{ gap: '6px' }}>
-                          <label className="form-label" style={{ fontSize: '0.74rem' }}>
+                          <label className="form-label" style={{ fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
                             Item / Service Name
                           </label>
                           <input
@@ -1477,8 +1437,8 @@ export default function CreateBillPage({
                         </div>
 
                         <div className="form-group" style={{ gap: '6px' }}>
-                          <label className="form-label" style={{ fontSize: '0.74rem' }}>
-                            Description / Deliverables <span style={{ color: '#94a3b8', fontWeight: 400 }}>(Optional)</span>
+                          <label className="form-label" style={{ fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
+                            Description <span style={{ color: '#94a3b8', fontWeight: 400 }}>(Optional)</span>
                           </label>
                           <input
                             className="form-input"
@@ -2202,45 +2162,45 @@ export default function CreateBillPage({
                 </div>
 
                 {/* Review & Finalize Card */}
-                <div className="summary-review-card" style={{ padding: '16px', background: 'var(--glass-bg-subtle, #eff6ff)', borderRadius: '12px', border: '1px solid var(--glass-border-subtle, #bfdbfe)' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary, #1e40af)', marginBottom: '8px' }}>
+                <div className="summary-review-card" style={{ padding: '18px', background: 'var(--glass-bg-subtle, #eff6ff)', borderRadius: '12px', border: '1px solid var(--glass-border-subtle, #bfdbfe)' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-primary, #1e40af)', marginBottom: '2px' }}>
                     Document Summary
                   </div>
-                  <div className="summary-review-row">
+                  <div className="summary-review-row summary-review-row-line">
                     <span style={{ color: 'var(--text-secondary)' }}>Items Subtotal</span>
                     <span style={{ fontWeight: 600 }}>{currencySymbol}{formatAmount(calc.subtotal)}</span>
                   </div>
                   {calc.discountAmount > 0 && (
-                    <div className="summary-review-row">
+                    <div className="summary-review-row summary-review-row-line">
                       <span style={{ color: 'var(--text-secondary)' }}>Discount</span>
                       <span style={{ color: '#10b981', fontWeight: 600 }}>-{currencySymbol}{formatAmount(calc.discountAmount)}</span>
                     </div>
                   )}
                   {calc.taxAmount > 0 && (
-                    <div className="summary-review-row">
+                    <div className="summary-review-row summary-review-row-line">
                       <span style={{ color: 'var(--text-secondary)' }}>Tax / GST ({formData.taxRate}%)</span>
                       <span style={{ fontWeight: 600 }}>+{currencySymbol}{formatAmount(calc.taxAmount)}</span>
                     </div>
                   )}
                   {calc.additionalCharges > 0 && (
-                    <div className="summary-review-row">
+                    <div className="summary-review-row summary-review-row-line">
                       <span style={{ color: 'var(--text-secondary)' }}>Additional Charges</span>
                       <span style={{ fontWeight: 600 }}>+{currencySymbol}{formatAmount(calc.additionalCharges)}</span>
                     </div>
                   )}
-                  <div className="summary-review-row" style={{ borderTop: '1px solid var(--glass-border-subtle, #cbd5e1)', paddingTop: '0.65rem', marginTop: '0.5rem' }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Grand Total</span>
-                    <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary, #0f2b6a)' }}>
+                  <div className="summary-review-row summary-review-row-subtotal" style={{ borderTop: '1px solid var(--glass-border-subtle, #cbd5e1)', paddingTop: '0.65rem', marginTop: '0.4rem' }}>
+                    <span style={{ fontWeight: 700 }}>Grand Total</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary, #0f2b6a)' }}>
                       {currencySymbol}{formatAmount(calc.grandTotal)}
                     </span>
                   </div>
-                  <div className="summary-review-row" style={{ color: '#059669' }}>
+                  <div className="summary-review-row summary-review-row-line" style={{ color: '#059669' }}>
                     <span style={{ fontWeight: 600 }}>Amount Paid</span>
                     <span style={{ fontWeight: 700 }}>{currencySymbol}{formatAmount(calc.amountPaid)}</span>
                   </div>
-                  <div className="summary-review-row" style={{ borderTop: '1px solid var(--glass-border-subtle, #cbd5e1)', paddingTop: '0.65rem', marginTop: '0.5rem' }}>
-                    <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--builder-accent, #1e40af)' }}>BALANCE DUE</span>
-                    <span className="summary-total-large" style={{ color: 'var(--builder-accent, #1e40af)', fontWeight: 900 }}>
+                  <div className="summary-review-row summary-review-row-balance" style={{ borderTop: '1px solid var(--glass-border-subtle, #cbd5e1)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--builder-accent, #1e40af)' }}>BALANCE DUE</span>
+                    <span className="summary-total-large" style={{ color: 'var(--builder-accent, #1e40af)', fontWeight: 800 }}>
                       {currencySymbol}{formatAmount(calc.balanceDue)}
                     </span>
                   </div>
@@ -2250,7 +2210,7 @@ export default function CreateBillPage({
           )}
 
           {/* Stepper Footer Controls */}
-          <div className="wizard-footer-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.75rem', paddingTop: '1.25rem', borderTop: '1px solid #eef2f6' }}>
+          <div className="wizard-footer-nav" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginTop: '1.75rem', paddingTop: '1.25rem', borderTop: '1px solid #eef2f6' }}>
             <button
               type="button"
               className="btn-wizard-prev"
@@ -2273,7 +2233,7 @@ export default function CreateBillPage({
                 <ArrowRight size={16} />
               </button>
             ) : (
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
                 <button
                   type="button"
                   className="btn-wizard-next"
@@ -2297,7 +2257,7 @@ export default function CreateBillPage({
                   }}
                 >
                   <CheckCircle2 size={16} />
-                  <span>Finish &amp; View in My Documents</span>
+                  <span>Finish &amp; View</span>
                 </button>
               </div>
             )}
@@ -2336,27 +2296,14 @@ export default function CreateBillPage({
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="Invoice Templates">
-                    {INVOICE_TEMPLATES.map((tpl) => (
-                      <option key={tpl.id} value={tpl.id}>
-                        {tpl.name}
-                      </option>
-                    ))}
-                  </optgroup>
                 </select>
               </div>
 
               <button
                 type="button"
                 className="btn-gallery-trigger"
-                onClick={() => {
-                  try {
-                    localStorage.setItem('billease_bill_draft', JSON.stringify(formData));
-                    localStorage.setItem('billease_active_template', normalizeTemplateId(formData.template));
-                  } catch (_) {}
-                  onNavigate('templates');
-                }}
-                title="Browse Full Templates Gallery"
+                onClick={() => setShowGallery(true)}
+                title="Browse Templates Gallery"
                 aria-label="Open Template Gallery"
               >
                 <LayoutGrid size={15} />
@@ -2365,9 +2312,52 @@ export default function CreateBillPage({
             </div>
           </div>
 
+          {/* Sample Data Preview Banner — only shown while previewing, never persisted */}
+          {showSampleData && (
+            <div
+              role="status"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                background: '#fffbeb',
+                border: '1px solid #fde68a',
+                color: '#92400e',
+                borderRadius: 10,
+                padding: '8px 14px',
+                marginBottom: 14,
+                fontSize: '0.78rem',
+                fontWeight: 600,
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={14} />
+                Previewing with sample content — nothing shown here is saved
+              </span>
+              <button
+                type="button"
+                onClick={handleToggleSampleData}
+                style={{
+                  background: 'none',
+                  border: '1px solid #fcd34d',
+                  color: '#92400e',
+                  fontWeight: 700,
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                  padding: '3px 10px',
+                  borderRadius: 6,
+                  flexShrink: 0,
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          )}
+
           {/* The A4 Canvas Rendered Live */}
           <div className="live-arch-paper-container">
-            <DocumentRenderer document={formData} />
+            <DocumentRenderer document={previewDocument} />
           </div>
 
           {/* Bottom Card Footer */}
@@ -2385,41 +2375,97 @@ export default function CreateBillPage({
             <span className="a4-format-tag" style={{ fontSize: '0.8rem', color: '#64748b' }}>
               Format: A4 Standard (210 × 297 mm)
             </span>
-            <button
-              type="button"
-              className="btn-card-download-pdf"
-              onClick={handleGeneratePdf}
-              disabled={isGeneratingPdf}
-            >
-              {isGeneratingPdf ? (
-                <>
-                  <Loader2 size={13} className="animate-spin" />
-                  <span>Generating...</span>
-                </>
-              ) : (
-                <>
-                  <Download size={13} />
-                  <span>Save &amp; Download PDF</span>
-                </>
-              )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={handleToggleSampleData}
+                style={{
+                  background: showSampleData ? '#fffbeb' : 'none',
+                  border: showSampleData ? '1px solid #fde68a' : 'none',
+                  color: showSampleData ? '#92400e' : activeAccentHex,
+                  fontWeight: 700,
+                  fontSize: '0.76rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                }}
+                title={showSampleData ? 'Stop previewing sample content' : 'Preview the document filled with example content — your real data is never touched or saved'}
+              >
+                <Sparkles size={13} />
+                <span>{showSampleData ? 'Clear Sample Preview' : 'Sample Data'}</span>
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Reset the form to blank? This clears everything you\'ve entered on this bill.')) {
+                    handleResetForm();
+                  }
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  fontWeight: 700,
+                  fontSize: '0.76rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                }}
+                title="Clear this form and start with a blank bill"
+              >
+                <RotateCcw size={13} />
+                <span>Reset Form</span>
+              </button>
+              <button
+                type="button"
+                className="btn-card-download-pdf"
+                onClick={handleGeneratePdf}
+                disabled={isGeneratingPdf}
+              >
+                {isGeneratingPdf ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download size={13} />
+                    <span>Save &amp; Download PDF</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </aside>
       </div>
 
       {/* Gallery Modal / Drawer */}
       {showGallery && (
-        <div className="gallery-modal-overlay" onClick={() => setShowGallery(false)}>
+        <div
+          className="gallery-modal-overlay"
+          style={{ '--builder-accent': activeAccentHex } as React.CSSProperties}
+          onClick={() => setShowGallery(false)}
+        >
           <div className="gallery-modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="gallery-modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <LayoutGrid size={18} style={{ color: '#10b981' }} />
+                <LayoutGrid size={18} style={{ color: activeAccentHex }} />
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Choose Template Layout</h3>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <button
                   type="button"
                   onClick={() => {
+                    try {
+                      localStorage.setItem('billease_bill_draft', JSON.stringify(formData));
+                      localStorage.setItem('billease_active_template', normalizeTemplateId(formData.template, 'bill'));
+                    } catch (_) {}
                     setShowGallery(false);
                     onNavigate('templates');
                   }}
@@ -2429,9 +2475,9 @@ export default function CreateBillPage({
                     gap: 6,
                     fontSize: '0.8rem',
                     fontWeight: 600,
-                    color: '#0d9468',
-                    background: 'rgba(16, 185, 129, 0.1)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    color: activeAccentHex,
+                    background: `${activeAccentHex}15`,
+                    border: `1px solid ${activeAccentHex}40`,
                     padding: '6px 12px',
                     borderRadius: 8,
                     cursor: 'pointer',
@@ -2452,16 +2498,21 @@ export default function CreateBillPage({
             </div>
 
             <div className="gallery-templates-grid">
-              {TEMPLATES.map((tpl) => {
+              {BILL_TEMPLATES.map((tpl) => {
                 const isSelected = normalizeTemplateId(formData.template, 'bill') === tpl.id;
                 return (
                   <div
                     key={tpl.id}
                     className={`gallery-card-item ${isSelected ? 'active' : ''}`}
+                    style={{
+                      borderColor: isSelected ? activeAccentHex : undefined,
+                      background: isSelected ? `${activeAccentHex}0f` : undefined,
+                    }}
                     onClick={() => {
                       handleInputChange('template', tpl.id);
                       try {
                         localStorage.setItem('billease_active_template', tpl.id);
+                        localStorage.setItem('billease_bill_draft', JSON.stringify({ ...formData, template: tpl.id }));
                       } catch (_) {}
                       setShowGallery(false);
                       onNotify(`Applied ${tpl.name} layout!`);
@@ -2469,11 +2520,11 @@ export default function CreateBillPage({
                   >
                     <div className="gallery-card-meta">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#349b73', textTransform: 'uppercase' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: activeAccentHex, textTransform: 'uppercase' }}>
                           {tpl.categoryTag}
                         </span>
                         {isSelected && (
-                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0d9468', background: '#d1fae5', padding: '1px 6px', borderRadius: 4 }}>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: activeAccentHex, background: `${activeAccentHex}20`, padding: '1px 6px', borderRadius: 4 }}>
                             Active
                           </span>
                         )}

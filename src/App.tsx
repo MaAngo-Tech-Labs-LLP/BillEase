@@ -10,6 +10,7 @@ import BusinessProfileModal from './components/BusinessProfileModal';
 import { useDocuments } from './hooks/useDocuments';
 import { BillDocument, TemplateId, BusinessProfile } from './types';
 import { applyBusinessProfileToDoc } from './utils/profileSync';
+import { DEFAULT_BILL, DEFAULT_INVOICE } from './data/templates';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<string>(() => {
@@ -39,6 +40,7 @@ export default function App() {
     setDraft,
     saveDocument,
     deleteDocument,
+    clearAllDocuments,
     createNewDraft,
   } = useDocuments();
 
@@ -47,6 +49,11 @@ export default function App() {
 
   const [lastEditorTab, setLastEditorTab] = useState<'create-bill' | 'create-invoice'>('create-bill');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  // Whether the currently open editor (Create Bill / Create Invoice) has
+  // changes that haven't been committed via Save Draft / Create / Download
+  // PDF. Used to warn before navigating away, like Word/Office does.
+  const [isEditorDirty, setIsEditorDirty] = useState(false);
 
   const handleSaveProfile = (profile: BusinessProfile) => {
     setDraft((prev) => applyBusinessProfileToDoc(prev, profile, true));
@@ -68,6 +75,18 @@ export default function App() {
     } catch (_) {}
   }, [isDark]);
 
+  // Warn before closing/refreshing the tab with unsaved editor changes —
+  // browsers show their own native prompt here (text is ignored by most).
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!isEditorDirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isEditorDirty]);
+
   // Toast feedback trigger
   const triggerToast = (message: string) => {
     setToastMessage(message);
@@ -77,8 +96,49 @@ export default function App() {
   };
 
   const handleSelectTab = (tabId: string) => {
+    // Warn before leaving a dirty editor for anywhere else — including
+    // switching from Bill to Invoice or vice versa — same as Word/Office
+    // asking to save unsaved changes before closing/switching documents.
+    const leavingDirtyEditor =
+      (currentTab === 'create-bill' || currentTab === 'create-invoice') &&
+      tabId !== currentTab &&
+      isEditorDirty;
+    if (leavingDirtyEditor) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Leave without saving?\n\nTip: use "Save Draft" first to keep your changes.'
+      );
+      if (!confirmed) return;
+      setIsEditorDirty(false);
+    }
+
     if (tabId === 'create-bill' || tabId === 'create-invoice') {
       setLastEditorTab(tabId);
+    }
+    if (tabId === 'preview') {
+      const activeType = currentTab === 'create-invoice' || lastEditorTab === 'create-invoice' ? 'invoice' : 'bill';
+      if (activeType === 'invoice') {
+        const savedInv = localStorage.getItem('billease_invoice_draft');
+        if (savedInv) {
+          try {
+            setPreviewDoc(JSON.parse(savedInv));
+          } catch (_) {}
+        } else if (draft.type === 'invoice') {
+          setPreviewDoc(draft);
+        } else {
+          setPreviewDoc(DEFAULT_INVOICE);
+        }
+      } else {
+        const savedBill = localStorage.getItem('billease_bill_draft');
+        if (savedBill) {
+          try {
+            setPreviewDoc(JSON.parse(savedBill));
+          } catch (_) {}
+        } else if (draft.type === 'bill') {
+          setPreviewDoc(draft);
+        } else {
+          setPreviewDoc(DEFAULT_BILL);
+        }
+      }
     }
     setCurrentTab(tabId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -145,6 +205,19 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleSaveDocument = (doc: BillDocument) => {
+    const saved = saveDocument(doc);
+    setPreviewDoc(saved);
+    return saved;
+  };
+
+  const handlePreviewDocument = (doc: BillDocument) => {
+    const saved = saveDocument(doc);
+    setPreviewDoc(saved);
+    setCurrentTab('preview');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="app-wrapper">
       {/* Background ambient orbs providing organic liquid refractions through glass */}
@@ -176,18 +249,22 @@ export default function App() {
         {currentTab === 'create-bill' && (
           <CreateBillPage
             initialDocument={draft.type === 'bill' ? draft : undefined}
-            onSave={saveDocument}
+            onSave={handleSaveDocument}
+            onPreview={handlePreviewDocument}
             onNavigate={handleSelectTab}
             onNotify={triggerToast}
+            onDirtyChange={setIsEditorDirty}
           />
         )}
 
         {currentTab === 'create-invoice' && (
           <CreateInvoicePage
             initialDocument={draft.type === 'invoice' ? draft : undefined}
-            onSave={saveDocument}
+            onSave={handleSaveDocument}
+            onPreview={handlePreviewDocument}
             onNavigate={handleSelectTab}
             onNotify={triggerToast}
+            onDirtyChange={setIsEditorDirty}
           />
         )}
 
@@ -207,6 +284,10 @@ export default function App() {
               deleteDocument(id);
               triggerToast('Document deleted.');
             }}
+            onClearAllDocuments={() => {
+              clearAllDocuments();
+              triggerToast('All documents cleared.');
+            }}
             onNavigate={handleSelectTab}
           />
         )}
@@ -214,7 +295,18 @@ export default function App() {
         {currentTab === 'preview' && (
           <PreviewPage
             document={previewDoc || draft}
-            onBack={() => handleSelectTab(previewDoc?.type === 'invoice' ? 'create-invoice' : 'create-bill')}
+            onBack={() => {
+              // Return to whichever editor (Bill or Invoice) the user was
+              // actually in before opening Preview. `draft.type` is a single
+              // shared value that can go stale across the two editors, so it
+              // must never be used to decide this — always defer to the
+              // document actually being previewed, then to the last editor
+              // tab the user was on.
+              const target = previewDoc?.type === 'invoice' || (!previewDoc && lastEditorTab === 'create-invoice')
+                ? 'create-invoice'
+                : 'create-bill';
+              handleSelectTab(target);
+            }}
             onNotify={triggerToast}
           />
         )}

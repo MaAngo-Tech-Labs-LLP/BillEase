@@ -11,6 +11,7 @@ import { BillDocument } from '../types';
 import { CURRENCY_SYMBOLS } from '../data/templates';
 
 import { calculateBillTotals, formatCurrencyAmount } from '../utils/billCalculations';
+import { formatDisplayDate } from '../utils/dates';
 
 interface HomePageProps {
   documents: BillDocument[];
@@ -234,7 +235,7 @@ export default function HomePage({
                         {isInvoice ? 'Invoice' : 'Bill'} #{doc.billNumber}
                       </div>
                       <div className="home-recent-doc-sub">
-                        {doc.clientName || 'Walk-in Customer'} • {doc.issueDate}
+                        {doc.clientName || 'Walk-in Customer'} • {formatDisplayDate(doc.issueDate)}
                       </div>
                     </div>
                   </div>

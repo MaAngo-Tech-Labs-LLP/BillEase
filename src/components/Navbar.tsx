@@ -27,10 +27,16 @@ export default function Navbar({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // On the Home page, "Create Bill"/"Create Invoice" are already front and
+  // center as their own cards, so showing them again in the nav is redundant
+  // there. Everywhere else they're kept as quick links.
+  const isHome = currentTab === 'home';
   const navItems = [
     { id: 'home', label: 'Home' },
-    { id: 'create-bill', label: 'Create Bill' },
-    { id: 'create-invoice', label: 'Create Invoice' },
+    ...(isHome ? [] : [
+      { id: 'create-bill', label: 'Create Bill' },
+      { id: 'create-invoice', label: 'Create Invoice' },
+    ]),
     { id: 'templates', label: 'Templates' },
     { id: 'my-documents', label: 'My Documents' },
   ];
