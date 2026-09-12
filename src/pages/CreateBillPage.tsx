@@ -1138,23 +1138,11 @@ export default function CreateBillPage({
                     {formData.senderLogo ? (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div
-                            style={{
-                              maxWidth: 130,
-                              minWidth: 52,
-                              height: 52,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                            }}
-                          >
-                            <img
-                              src={formData.senderLogo}
-                              alt="Logo Preview"
-                              style={{ maxWidth: 130, maxHeight: 52, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
-                            />
-                          </div>
+                          <img
+                            src={formData.senderLogo}
+                            alt="Logo Preview"
+                            style={{ maxWidth: 130, maxHeight: 52, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block', flexShrink: 0 }}
+                          />
                           <div style={{ textAlign: 'left' }}>
                             <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary, #1e293b)' }}>
                               Business Logo
