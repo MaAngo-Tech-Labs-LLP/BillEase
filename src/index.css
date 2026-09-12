@@ -3382,6 +3382,93 @@ body[data-theme='dark'] .invoice-section-card {
   border-color: rgba(255, 255, 255, 0.08);
 }
 
+/* Itemized Services & Products — each item is a stacked card instead of a
+   single-row grid. A side-by-side grid always left the item name/description
+   column fighting the fixed-width QTY/RATE/AMOUNT/delete columns for space,
+   which clipped item text while typing at the panel widths this form
+   actually renders at. Stacking removes that contest entirely: the name and
+   description fields are always full width. */
+.invoice-item-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--glass-border-subtle, #e2e8f0);
+  border-radius: 10px;
+  background: var(--glass-bg-subtle, #f8fafc);
+}
+
+body[data-theme='dark'] .invoice-item-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.invoice-item-card-head {
+  display: flex;
+  align-items: center;
+}
+
+.invoice-item-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--glass-border-subtle, #e2e8f0);
+  color: var(--text-muted, #64748b);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+body[data-theme='dark'] .invoice-item-index {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.invoice-item-numbers-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 420px) {
+  .invoice-item-numbers-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.invoice-item-number-field label {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.invoice-item-amount-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.invoice-item-amount-value {
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-primary, #0f172a);
+  text-align: right;
+}
+
+body[data-theme='dark'] .invoice-item-amount-value {
+  color: #f8fafc;
+}
+
 .section-card-header {
   display: flex;
   align-items: baseline;

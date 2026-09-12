@@ -1,16 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BillDocument, DocumentType } from '../types';
-import { DEFAULT_BILL, DEFAULT_INVOICE, SAMPLE_DOCUMENTS, getTodayIsoDate, getFutureIsoDate } from '../data/templates';
+import { DEFAULT_BILL, DEFAULT_INVOICE, getTodayIsoDate, getFutureIsoDate } from '../data/templates';
 import { applyBusinessProfileToDoc, PROFILE_UPDATED_EVENT } from '../utils/profileSync';
 
 const STORAGE_DOCS_KEY = 'billease_documents_list';
 const STORAGE_DRAFT_KEY = 'billease_active_draft';
 
 export function useDocuments() {
-  // Saved documents list. Sample documents are only used to seed a
-  // brand-new install (no saved key at all yet) — an explicitly saved empty
-  // array (e.g. after "Clear All") must stay empty, not be treated the same
-  // as "nothing saved" and quietly repopulated with the samples.
+  // Saved documents list. A brand-new install (no saved key at all yet)
+  // starts empty — no demo/sample documents are seeded in, so a fresh
+  // clone never shows placeholder data that looks like a real saved bill.
   const [documents, setDocuments] = useState<BillDocument[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_DOCS_KEY);
@@ -23,7 +22,7 @@ export function useDocuments() {
     } catch (e) {
       console.error('Failed reading documents from storage:', e);
     }
-    return SAMPLE_DOCUMENTS;
+    return [];
   });
 
   // Active working draft (e.g. for Bill or Invoice creator)

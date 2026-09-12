@@ -1026,55 +1026,37 @@ export default function CreateInvoicePage({
               </button>
             </div>
 
-            {/* Table Column Headers */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(140px, 2fr) 80px 95px 85px 36px',
-                gap: '8px',
-                padding: '0 4px 6px',
-                borderBottom: '1px solid var(--glass-border-subtle, #e2e8f0)',
-                fontSize: '0.68rem',
-                fontWeight: 700,
-                color: 'var(--text-muted, #64748b)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-              }}
-            >
-              <div>
-                <div style={{ color: 'var(--text-primary, #0f172a)', fontWeight: 800 }}>ITEM</div>
-                <div style={{ fontSize: '0.60rem', color: 'var(--text-dim, #94a3b8)', fontWeight: 600, letterSpacing: '0.3px', marginTop: '1px' }}>
-                  DESCRIPTION
-                </div>
-              </div>
-              <div style={{ textAlign: 'center' }}>QTY</div>
-              <div style={{ textAlign: 'right' }}>RATE ({currencySymbol})</div>
-              <div style={{ textAlign: 'right' }}>AMOUNT</div>
-              <div />
-            </div>
-
-            {/* Items List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
-              {formData.items.map((item) => {
+            {/* Items List — each item is a stacked card (name, then
+                description, each full-width) so long item text is never
+                squeezed into a narrow grid column. Qty/Rate/Amount/Delete
+                sit in their own compact row underneath, with inline labels
+                since they no longer share a header row with the item name. */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '8px' }}>
+              {formData.items.map((item, idx) => {
                 const itemAmount = (Number(item.qty) || 0) * (Number(item.rate) || 0);
                 return (
-                  <div
-                    key={item.id}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'minmax(140px, 2fr) 80px 95px 85px 36px',
-                      gap: '8px',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div key={item.id} className="invoice-item-card">
+                    <div className="invoice-item-card-head">
+                      <span className="invoice-item-index">{idx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(item.id)}
+                        title="Remove item"
+                        className="invoice-item-delete-btn"
+                        style={{ width: '28px', height: '28px', marginLeft: 'auto' }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <input
                         type="text"
                         className="form-input"
                         value={item.name || ''}
                         onChange={(e) => handleItemChange(item.id, 'name', e.target.value)}
                         placeholder="Item name / title..."
-                        style={{ padding: '0.45rem 0.65rem', fontSize: '0.82rem', fontWeight: 600 }}
+                        style={{ padding: '0.5rem 0.7rem', fontSize: '0.85rem', fontWeight: 600, width: '100%' }}
                       />
                       <input
                         type="text"
@@ -1082,90 +1064,83 @@ export default function CreateInvoicePage({
                         value={item.description || ''}
                         onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
                         placeholder="Description (optional)..."
-                        style={{ padding: '0.38rem 0.65rem', fontSize: '0.76rem', color: 'var(--text-secondary, #64748b)' }}
+                        style={{ padding: '0.42rem 0.7rem', fontSize: '0.78rem', color: 'var(--text-secondary, #64748b)', width: '100%' }}
                       />
                     </div>
 
-                    <div>
-                      <div className="number-stepper-wrapper">
-                        <input
-                          type="number"
-                          min="1"
-                          step="1"
-                          className="form-input number-stepper-input"
-                          value={item.qty ?? ''}
-                          onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
-                          placeholder="1"
-                          style={{ textAlign: 'center', fontSize: '0.83rem' }}
-                        />
-                        <div className="number-stepper-btns">
-                          <button
-                            type="button"
-                            className="number-stepper-btn up"
-                            onClick={() => handleStepQty(item.id, 1)}
-                            title="Increase Quantity"
-                          >
-                            <ChevronUp size={11} strokeWidth={2.6} />
-                          </button>
-                          <button
-                            type="button"
-                            className="number-stepper-btn down"
-                            onClick={() => handleStepQty(item.id, -1)}
-                            title="Decrease Quantity"
-                          >
-                            <ChevronDown size={11} strokeWidth={2.6} />
-                          </button>
+                    <div className="invoice-item-numbers-row">
+                      <div className="invoice-item-number-field">
+                        <label>QTY</label>
+                        <div className="number-stepper-wrapper">
+                          <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            className="form-input number-stepper-input"
+                            value={item.qty ?? ''}
+                            onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
+                            placeholder="1"
+                            style={{ textAlign: 'center', fontSize: '0.83rem' }}
+                          />
+                          <div className="number-stepper-btns">
+                            <button
+                              type="button"
+                              className="number-stepper-btn up"
+                              onClick={() => handleStepQty(item.id, 1)}
+                              title="Increase Quantity"
+                            >
+                              <ChevronUp size={11} strokeWidth={2.6} />
+                            </button>
+                            <button
+                              type="button"
+                              className="number-stepper-btn down"
+                              onClick={() => handleStepQty(item.id, -1)}
+                              title="Decrease Quantity"
+                            >
+                              <ChevronDown size={11} strokeWidth={2.6} />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div>
-                      <div className="number-stepper-wrapper">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="form-input number-stepper-input"
-                          value={item.rate ?? ''}
-                          onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)}
-                          placeholder="0.00"
-                          style={{ textAlign: 'right', fontSize: '0.83rem' }}
-                        />
-                        <div className="number-stepper-btns">
-                          <button
-                            type="button"
-                            className="number-stepper-btn up"
-                            onClick={() => handleStepRate(item.id, 1)}
-                            title="Increase Rate"
-                          >
-                            <ChevronUp size={11} strokeWidth={2.6} />
-                          </button>
-                          <button
-                            type="button"
-                            className="number-stepper-btn down"
-                            onClick={() => handleStepRate(item.id, -1)}
-                            title="Decrease Rate"
-                          >
-                            <ChevronDown size={11} strokeWidth={2.6} />
-                          </button>
+                      <div className="invoice-item-number-field">
+                        <label>RATE ({currencySymbol})</label>
+                        <div className="number-stepper-wrapper">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="form-input number-stepper-input"
+                            value={item.rate ?? ''}
+                            onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)}
+                            placeholder="0.00"
+                            style={{ textAlign: 'right', fontSize: '0.83rem' }}
+                          />
+                          <div className="number-stepper-btns">
+                            <button
+                              type="button"
+                              className="number-stepper-btn up"
+                              onClick={() => handleStepRate(item.id, 1)}
+                              title="Increase Rate"
+                            >
+                              <ChevronUp size={11} strokeWidth={2.6} />
+                            </button>
+                            <button
+                              type="button"
+                              className="number-stepper-btn down"
+                              onClick={() => handleStepRate(item.id, -1)}
+                              title="Decrease Rate"
+                            >
+                              <ChevronDown size={11} strokeWidth={2.6} />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div style={{ textAlign: 'right', fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-primary, #0f172a)' }}>
-                      {formatPrice(itemAmount)}
-                    </div>
-
-                    <div style={{ textAlign: 'center' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(item.id)}
-                        title="Remove item"
-                        className="invoice-item-delete-btn"
-                        style={{ width: '30px', height: '30px' }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="invoice-item-number-field invoice-item-amount-field">
+                        <label>AMOUNT</label>
+                        <div className="invoice-item-amount-value">{formatPrice(itemAmount)}</div>
+                      </div>
                     </div>
                   </div>
                 );
