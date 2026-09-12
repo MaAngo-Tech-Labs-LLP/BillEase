@@ -7,13 +7,16 @@ const STORAGE_DOCS_KEY = 'billease_documents_list';
 const STORAGE_DRAFT_KEY = 'billease_active_draft';
 
 export function useDocuments() {
-  // Saved documents list
+  // Saved documents list. Sample documents are only used to seed a
+  // brand-new install (no saved key at all yet) — an explicitly saved empty
+  // array (e.g. after "Clear All") must stay empty, not be treated the same
+  // as "nothing saved" and quietly repopulated with the samples.
   const [documents, setDocuments] = useState<BillDocument[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_DOCS_KEY);
-      if (saved) {
+      if (saved !== null) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           return parsed;
         }
       }
