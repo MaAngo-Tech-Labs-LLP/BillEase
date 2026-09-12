@@ -5125,6 +5125,17 @@ body[data-theme='dark'] .tpl-modal-footer {
   word-break: break-word;
 }
 
+/* RATE/AMOUNT/QTY are short, fixed-format numeric values that must never
+   wrap (a wrapped currency value or header label looks broken); clip
+   cleanly instead of overflowing the column in the rare case a number is
+   unusually large. */
+.tpl-sidebar .sidebar-table .cell-qty,
+.tpl-sidebar .sidebar-table .cell-rate,
+.tpl-sidebar .sidebar-table .cell-amount {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* 4. Clinical Layout (Medical Healthcare) */
 .tpl-clinical .clinical-header {
   display: flex;

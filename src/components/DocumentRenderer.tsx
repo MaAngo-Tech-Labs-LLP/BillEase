@@ -620,25 +620,25 @@ export default function DocumentRenderer({
               <table className="a4-items-table sidebar-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
-                    <th style={{ width: '25%', textAlign: 'left', padding: '10px 12px' }}>ITEM</th>
-                    <th style={{ width: '31%', textAlign: 'left', padding: '10px 12px' }}>DELIVERABLE</th>
-                    <th style={{ width: '12%', textAlign: 'center', padding: '10px 8px' }}>QTY</th>
-                    <th style={{ width: '16%', textAlign: 'right', padding: '10px 12px' }}>RATE</th>
-                    <th style={{ width: '16%', textAlign: 'right', padding: '10px 12px' }}>AMOUNT</th>
+                    <th style={{ width: '23%', textAlign: 'left', padding: '10px 10px' }}>ITEM</th>
+                    <th style={{ width: '27%', textAlign: 'left', padding: '10px 10px' }}>DELIVERABLE</th>
+                    <th style={{ width: '12%', textAlign: 'center', padding: '10px 6px' }}>QTY</th>
+                    <th style={{ width: '18%', textAlign: 'right', padding: '10px 8px', whiteSpace: 'nowrap' }}>RATE</th>
+                    <th style={{ width: '20%', textAlign: 'right', padding: '10px 8px', whiteSpace: 'nowrap' }}>AMOUNT</th>
                   </tr>
                 </thead>
                 <tbody>
                   {document.items.map((item) => (
                     <tr key={item.id}>
-                      <td style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 600, color: '#0f172a' }}>
+                      <td style={{ textAlign: 'left', padding: '10px 10px', fontWeight: 600, color: '#0f172a' }}>
                         {item.name || item.description || itemPlaceholder}
                       </td>
-                      <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px', color: '#64748b' }}>
+                      <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 10px', color: '#64748b' }}>
                         {item.name ? (item.description || '—') : '—'}
                       </td>
-                      <td className="cell-qty" style={{ textAlign: 'center', padding: '10px 8px', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
-                      <td className="cell-rate" style={{ textAlign: 'right', padding: '10px 12px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(item.rate)}</td>
-                      <td className="cell-amount" style={{ textAlign: 'right', padding: '10px 12px', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
+                      <td className="cell-qty" style={{ textAlign: 'center', padding: '10px 6px', fontVariantNumeric: 'tabular-nums' }}>{item.qty}</td>
+                      <td className="cell-rate" style={{ textAlign: 'right', padding: '10px 8px', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{currencySymbol}{formatAmount(item.rate)}</td>
+                      <td className="cell-amount" style={{ textAlign: 'right', padding: '10px 8px', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{currencySymbol}{formatAmount((Number(item.qty) || 0) * (Number(item.rate) || 0))}</td>
                     </tr>
                   ))}
                 </tbody>
