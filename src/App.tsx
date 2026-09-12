@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import CreateBillPage from './pages/CreateBillPage';
@@ -7,6 +7,7 @@ import MyDocumentsPage from './pages/MyDocumentsPage';
 import TemplatesPage from './pages/TemplatesPage';
 import PreviewPage from './pages/PreviewPage';
 import BusinessProfileModal from './components/BusinessProfileModal';
+import UnsavedChangesModal from './components/UnsavedChangesModal';
 import { useDocuments } from './hooks/useDocuments';
 import { BillDocument, TemplateId, BusinessProfile } from './types';
 import { applyBusinessProfileToDoc } from './utils/profileSync';
@@ -52,8 +53,14 @@ export default function App() {
 
   // Whether the currently open editor (Create Bill / Create Invoice) has
   // changes that haven't been committed via Save Draft / Create / Download
-  // PDF. Used to warn before navigating away, like Word/Office does.
+  // PDF. Used to require saving before navigating away, like Word/Office does.
   const [isEditorDirty, setIsEditorDirty] = useState(false);
+  // The current editor's own Save Draft function, kept current via
+  // onRegisterSaveDraft so the unsaved-changes modal can trigger a real save.
+  const saveDraftRef = useRef<(() => void) | null>(null);
+  // Tab the user tried to switch to while the editor was dirty — remembered
+  // so navigation can resume automatically once the save completes.
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
 
   const handleSaveProfile = (profile: BusinessProfile) => {
     setDraft((prev) => applyBusinessProfileToDoc(prev, profile, true));
@@ -95,22 +102,10 @@ export default function App() {
     }, 3500);
   };
 
-  const handleSelectTab = (tabId: string) => {
-    // Warn before leaving a dirty editor for anywhere else — including
-    // switching from Bill to Invoice or vice versa — same as Word/Office
-    // asking to save unsaved changes before closing/switching documents.
-    const leavingDirtyEditor =
-      (currentTab === 'create-bill' || currentTab === 'create-invoice') &&
-      tabId !== currentTab &&
-      isEditorDirty;
-    if (leavingDirtyEditor) {
-      const confirmed = window.confirm(
-        'You have unsaved changes. Leave without saving?\n\nTip: use "Save Draft" first to keep your changes.'
-      );
-      if (!confirmed) return;
-      setIsEditorDirty(false);
-    }
-
+  // Actually performs the tab switch. Only called once we're clear to
+  // navigate — either the editor wasn't dirty, or the pending save just
+  // completed.
+  const performNavigation = (tabId: string) => {
     if (tabId === 'create-bill' || tabId === 'create-invoice') {
       setLastEditorTab(tabId);
     }
@@ -142,6 +137,38 @@ export default function App() {
     }
     setCurrentTab(tabId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSelectTab = (tabId: string) => {
+    // Require saving before leaving a dirty editor for anywhere else —
+    // including switching from Bill to Invoice or vice versa — same as
+    // Word/Office requiring you to save before closing/switching documents.
+    // There is deliberately no "leave without saving" option.
+    const leavingDirtyEditor =
+      (currentTab === 'create-bill' || currentTab === 'create-invoice') &&
+      tabId !== currentTab &&
+      isEditorDirty;
+    if (leavingDirtyEditor) {
+      setPendingTab(tabId);
+      return;
+    }
+    performNavigation(tabId);
+  };
+
+  // "Save Draft & Continue" in the unsaved-changes modal
+  const handleSaveAndContinue = () => {
+    saveDraftRef.current?.();
+    setIsEditorDirty(false);
+    if (pendingTab) {
+      const target = pendingTab;
+      setPendingTab(null);
+      performNavigation(target);
+    }
+  };
+
+  // "Cancel" in the unsaved-changes modal — stay exactly where we are
+  const handleCancelNavigation = () => {
+    setPendingTab(null);
   };
 
   // When clicking "Open" on any doc from home or my-documents
@@ -254,6 +281,7 @@ export default function App() {
             onNavigate={handleSelectTab}
             onNotify={triggerToast}
             onDirtyChange={setIsEditorDirty}
+            onRegisterSaveDraft={(fn) => { saveDraftRef.current = fn; }}
           />
         )}
 
@@ -265,6 +293,7 @@ export default function App() {
             onNavigate={handleSelectTab}
             onNotify={triggerToast}
             onDirtyChange={setIsEditorDirty}
+            onRegisterSaveDraft={(fn) => { saveDraftRef.current = fn; }}
           />
         )}
 
@@ -317,6 +346,14 @@ export default function App() {
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         onSave={handleSaveProfile}
+      />
+
+      {/* Mandatory Save Draft prompt when leaving a dirty Bill/Invoice editor */}
+      <UnsavedChangesModal
+        isOpen={pendingTab !== null}
+        docTypeLabel={currentTab === 'create-invoice' ? 'Invoice' : 'Bill'}
+        onSaveAndContinue={handleSaveAndContinue}
+        onCancel={handleCancelNavigation}
       />
 
       {/* Interactive feedback toast */}

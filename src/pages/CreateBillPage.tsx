@@ -64,6 +64,11 @@ interface CreateBillPageProps {
    * Save Draft / Create Bill, so the app shell can warn before navigating
    * away (mirrors the "unsaved changes" prompt in Word/Office). */
   onDirtyChange?: (isDirty: boolean) => void;
+  /** Lets the app shell trigger this page's own Save Draft action from
+   * outside (e.g. a "Save & Continue" choice in the unsaved-changes prompt
+   * when switching tabs), so saving goes through the same validated path as
+   * clicking the button here. */
+  onRegisterSaveDraft?: (fn: () => void) => void;
 }
 
 export default function CreateBillPage({
@@ -73,6 +78,7 @@ export default function CreateBillPage({
   onNavigate,
   onNotify,
   onDirtyChange,
+  onRegisterSaveDraft,
 }: CreateBillPageProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [showGallery, setShowGallery] = useState(false);
@@ -626,6 +632,13 @@ export default function CreateBillPage({
     onDirtyChange?.(false);
     onNotify(`Bill #${formData.billNumber} saved successfully to your documents!`);
   };
+
+  // Keep the app shell's reference to this page's Save Draft action current,
+  // so it can trigger a real save (going through the same validated path as
+  // clicking the button) from the unsaved-changes prompt when switching tabs.
+  useEffect(() => {
+    onRegisterSaveDraft?.(handleSaveDraft);
+  });
 
   const handleCreateBillAndFinish = (destination: 'my-documents' | 'home' = 'my-documents') => {
     if (!validateStep(1) || !validateStep(2) || !validateStep(3) || !validateStep(4)) {

@@ -44,6 +44,11 @@ interface CreateInvoicePageProps {
    * Save Draft / Create Invoice, so the app shell can warn before navigating
    * away (mirrors the "unsaved changes" prompt in Word/Office). */
   onDirtyChange?: (isDirty: boolean) => void;
+  /** Lets the app shell trigger this page's own Save Draft action from
+   * outside (e.g. a "Save & Continue" choice in the unsaved-changes prompt
+   * when switching tabs), so saving goes through the same validated path as
+   * clicking the button here. */
+  onRegisterSaveDraft?: (fn: () => void) => void;
 }
 
 export default function CreateInvoicePage({
@@ -53,6 +58,7 @@ export default function CreateInvoicePage({
   onNavigate,
   onNotify,
   onDirtyChange,
+  onRegisterSaveDraft,
 }: CreateInvoicePageProps) {
   const [showGallery, setShowGallery] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -470,6 +476,13 @@ export default function CreateInvoicePage({
     onDirtyChange?.(false);
     onNotify(`Invoice #${draftDoc.billNumber} draft saved!`);
   };
+
+  // Keep the app shell's reference to this page's Save Draft action current,
+  // so it can trigger a real save (going through the same validated path as
+  // clicking the button) from the unsaved-changes prompt when switching tabs.
+  useEffect(() => {
+    onRegisterSaveDraft?.(handleSaveDraft);
+  });
 
   const handlePreview = () => {
     const isTemplateDefaultId =
