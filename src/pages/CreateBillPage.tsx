@@ -430,7 +430,7 @@ export default function CreateBillPage({
       reader.onload = () => {
         if (typeof reader.result === 'string') {
           handleInputChange('senderLogo', reader.result);
-          onNotify('Vector logo uploaded and scaled to template (52×52px)!');
+          onNotify('Vector logo uploaded!');
         }
       };
       reader.readAsDataURL(file);
@@ -445,7 +445,7 @@ export default function CreateBillPage({
 
       const img = new Image();
       img.onload = () => {
-        const MAX_DIM = 256; // High DPI 4x scale for crisp 52x52 template display
+        const MAX_DIM = 256; // Cap resolution for a lightweight file while staying crisp at any display size
         let { width, height } = img;
 
         if (width > MAX_DIM || height > MAX_DIM) {
@@ -475,7 +475,7 @@ export default function CreateBillPage({
         // Convert to lightweight data URL (typically ~15-35KB, well within storage limits)
         const optimizedLogo = canvas.toDataURL('image/png', 0.92);
         handleInputChange('senderLogo', optimizedLogo);
-        onNotify('Desktop image uploaded & scaled to template size (52×52px)!');
+        onNotify('Desktop image uploaded!');
       };
       img.onerror = () => {
         onNotify('Could not decode the selected image. Please try another file.');
@@ -1105,7 +1105,7 @@ export default function CreateBillPage({
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                     <label className="form-label" style={{ margin: 0 }}>Business Logo</label>
                     <span style={{ fontSize: '0.73rem', color: 'var(--text-muted, #64748b)', fontWeight: 500 }}>
-                      Visible in left part of bill (52 × 52px)
+                      Shown at its natural size in the bill header
                     </span>
                   </div>
                   <div
@@ -1140,23 +1140,19 @@ export default function CreateBillPage({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <div
                             style={{
-                              width: 52,
+                              maxWidth: 130,
+                              minWidth: 52,
                               height: 52,
-                              borderRadius: 10,
-                              background: 'var(--glass-bg, #ffffff)',
-                              border: '1.5px solid var(--glass-border-subtle, #e2e8f0)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              overflow: 'hidden',
-                              boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
                               flexShrink: 0,
                             }}
                           >
                             <img
                               src={formData.senderLogo}
                               alt="Logo Preview"
-                              style={{ maxWidth: 52, maxHeight: 52, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
+                              style={{ maxWidth: 130, maxHeight: 52, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
                             />
                           </div>
                           <div style={{ textAlign: 'left' }}>
@@ -1164,7 +1160,7 @@ export default function CreateBillPage({
                               Business Logo
                             </div>
                             <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>
-                              ✓ Reduced to 52 × 52px slot
+                              ✓ Uploaded
                             </div>
                           </div>
                         </div>
@@ -1213,7 +1209,7 @@ export default function CreateBillPage({
                           Drag & drop image from desktop or click to upload
                         </span>
                         <span style={{ fontSize: '0.74rem', color: 'var(--text-muted, #64748b)' }}>
-                          PNG, JPG, SVG or WEBP • Auto-reduced to fit 52 × 52px template slot
+                          PNG, JPG, SVG or WEBP • Displayed at its natural size
                         </span>
                       </div>
                     )}

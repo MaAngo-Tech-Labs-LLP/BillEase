@@ -307,7 +307,7 @@ export default function CreateInvoicePage({
     }));
   };
 
-  // Client-side logo processing & auto-downscale matching CreateBillPage (52 × 52px slot)
+  // Client-side logo processing & auto-downscale, matching CreateBillPage
   const processLogoFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
       onNotify('Please select a valid image file (PNG, JPG, SVG, WEBP).');
@@ -319,7 +319,7 @@ export default function CreateInvoicePage({
       reader.onload = () => {
         if (typeof reader.result === 'string') {
           handleInputChange('senderLogo', reader.result);
-          onNotify('Vector logo uploaded and scaled to template (52×52px)!');
+          onNotify('Vector logo uploaded!');
         }
       };
       reader.readAsDataURL(file);
@@ -362,7 +362,7 @@ export default function CreateInvoicePage({
 
         const optimizedLogo = canvas.toDataURL('image/png', 0.92);
         handleInputChange('senderLogo', optimizedLogo);
-        onNotify('Desktop image uploaded & scaled to template size (52×52px)!');
+        onNotify('Desktop image uploaded!');
       };
       img.onerror = () => {
         onNotify('Could not decode the selected image. Please try another file.');
@@ -803,7 +803,7 @@ export default function CreateInvoicePage({
             </div>
           </section>
 
-          {/* SECTION 2: Your Information (BILL FROM) with 52x52 Logo Arrangement */}
+          {/* SECTION 2: Your Information (BILL FROM) */}
           <section className="invoice-section-card">
             <div className="section-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
               <h2 className="section-card-title">2. Your Information (BILL FROM)</h2>
@@ -827,12 +827,12 @@ export default function CreateInvoicePage({
             </div>
 
             <div className="form-fields-stack">
-              {/* Business Logo Upload Area Matching CreateBillPage (52 × 52px slot) */}
+              {/* Business Logo Upload Area, matching CreateBillPage */}
               <div className="form-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                   <label className="form-label" style={{ margin: 0 }}>Business Logo</label>
                   <span style={{ fontSize: '0.73rem', color: 'var(--text-muted, #64748b)', fontWeight: 500 }}>
-                    Visible in invoice header (52 × 52px)
+                    Shown at its natural size in the invoice header
                   </span>
                 </div>
                 <div
@@ -867,23 +867,19 @@ export default function CreateInvoicePage({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div
                           style={{
-                            width: 52,
+                            maxWidth: 130,
+                            minWidth: 52,
                             height: 52,
-                            borderRadius: 10,
-                            background: 'var(--glass-bg, #ffffff)',
-                            border: '1.5px solid var(--glass-border-subtle, #e2e8f0)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            overflow: 'hidden',
-                            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
                             flexShrink: 0,
                           }}
                         >
                           <img
                             src={formData.senderLogo}
                             alt="Logo Preview"
-                            style={{ maxWidth: 52, maxHeight: 52, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
+                            style={{ maxWidth: 130, maxHeight: 52, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
                           />
                         </div>
                         <div style={{ textAlign: 'left' }}>
@@ -891,7 +887,7 @@ export default function CreateInvoicePage({
                             Business Logo
                           </div>
                           <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>
-                            ✓ Scaled to 52 × 52px slot
+                            ✓ Uploaded
                           </div>
                         </div>
                       </div>
@@ -940,7 +936,7 @@ export default function CreateInvoicePage({
                         Click to upload or drag &amp; drop logo
                       </div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted, #64748b)' }}>
-                        Auto-scaled to 52 × 52px slot · PNG, JPG, SVG, WEBP
+                        Displayed at its natural size · PNG, JPG, SVG, WEBP
                       </div>
                     </div>
                   )}
