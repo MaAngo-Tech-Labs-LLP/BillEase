@@ -157,6 +157,14 @@ export default function CreateInvoicePage({
   // initial load so a freshly opened (unchanged) form is never dirty.
   const lastSavedSnapshot = useRef<string>(JSON.stringify(formData));
 
+  // Always-current mirror of formData, readable from delayed callbacks
+  // (e.g. the PDF-generation setTimeout) without nesting a setState call
+  // inside another setState updater just to peek at the latest value.
+  const formDataRef = useRef(formData);
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+
   // Sync initialDocument and active template
   useEffect(() => {
     setShowSampleData(false); // never carry a stale sample preview into a different document
@@ -460,17 +468,21 @@ export default function CreateInvoicePage({
   // Builds a brand-new blank invoice (fresh id/number/dates). Shared by
   // "Reset Form" and by finishing "Create Invoice", so both leave the form
   // in exactly the same clean state — no leftover client/item/payment data
-  // from whatever was just being worked on.
-  const buildBlankInvoice = (): BillDocument => ({
-    ...DEFAULT_INVOICE,
-    id: `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-    billNumber: `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-    // DEFAULT_INVOICE.issueDate/dueDate are frozen at app-load time —
-    // recompute fresh so a new invoice always starts on today's date.
-    issueDate: getTodayIsoDate(),
-    dueDate: getFutureIsoDate(30),
-    createdAt: new Date().toISOString(),
-  });
+  // from whatever was just being worked on. Still applies the saved
+  // Business Profile Defaults (logo, sender name/email/etc.), matching what
+  // a genuinely fresh "Create Invoice" gets via useDocuments.createNewDraft
+  // — otherwise every invoice after the first would lose its auto-fill.
+  const buildBlankInvoice = (): BillDocument =>
+    applyBusinessProfileToDoc({
+      ...DEFAULT_INVOICE,
+      id: `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      billNumber: `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      // DEFAULT_INVOICE.issueDate/dueDate are frozen at app-load time —
+      // recompute fresh so a new invoice always starts on today's date.
+      issueDate: getTodayIsoDate(),
+      dueDate: getFutureIsoDate(30),
+      createdAt: new Date().toISOString(),
+    });
 
   // Wipes the working draft back to a blank invoice — clears formData AND
   // the persisted draft/template choice in localStorage. Useful for testing
@@ -552,6 +564,18 @@ export default function CreateInvoicePage({
   });
 
   const handlePreview = () => {
+    // "Save & Preview" saves into My Documents just like "Create Invoice" —
+    // require the same minimum info so an essentially-blank invoice never
+    // lands there with a nameless, empty-line entry.
+    if (!formData.clientName?.trim()) {
+      onNotify('Please enter a Client or Company Name before previewing.');
+      return;
+    }
+    if (!formData.items || formData.items.length === 0) {
+      onNotify('Please add at least one line item to the invoice.');
+      return;
+    }
+
     const isTemplateDefaultId =
       !formData.id ||
       formData.id === 'inv-studio-pulse' ||
@@ -641,6 +665,18 @@ export default function CreateInvoicePage({
   };
 
   const handleGeneratePdf = () => {
+    // "Save & Download PDF" saves into My Documents just like "Create
+    // Invoice" — require the same minimum info so an essentially-blank
+    // invoice never lands there with a nameless, empty-line entry.
+    if (!formData.clientName?.trim()) {
+      onNotify('Please enter a Client or Company Name before downloading.');
+      return;
+    }
+    if (!formData.items || formData.items.length === 0) {
+      onNotify('Please add at least one line item to the invoice.');
+      return;
+    }
+
     const isTemplateDefaultId =
       !formData.id ||
       formData.id === 'inv-studio-pulse' ||
@@ -664,7 +700,8 @@ export default function CreateInvoicePage({
       updatedAt: new Date().toISOString(),
     };
     onSave(invoiceToSave);
-    lastSavedSnapshot.current = JSON.stringify(invoiceToSave);
+    const savedSnapshot = JSON.stringify(invoiceToSave);
+    lastSavedSnapshot.current = savedSnapshot;
     onDirtyChange?.(false);
     setTimeout(() => {
       setIsGeneratingPdf(false);
@@ -672,8 +709,14 @@ export default function CreateInvoicePage({
       window.print();
 
       // Now that the real data has been saved and sent to print, clear the
-      // working form the same way "Create Invoice" does.
-      clearWorkingDraftAfterSave();
+      // working form the same way "Create Invoice" does — but only if the
+      // user hasn't already started editing again during the brief delay
+      // before print. Blanking their in-progress edit out from under them
+      // would be worse than leaving the just-saved data on screen a moment
+      // longer; their next real save/preview/finish will still clear it.
+      if (JSON.stringify(formDataRef.current) === savedSnapshot) {
+        clearWorkingDraftAfterSave();
+      }
     }, 800);
   };
 
