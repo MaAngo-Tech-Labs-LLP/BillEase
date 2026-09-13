@@ -1,11 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <!-- Matches the navbar brand logo: mint-green background (#d1fae5) with
-       the emerald (#059669) Lucide "file-text" icon centered inside, same
-       colors as navbar-brand-icon-box in index.css and the FileText icon
-       used in Navbar.tsx. Fills the full canvas (no rounded corners) so no
-       transparent corner shows through as a white border in the tab. -->
-  <rect width="32" height="32" fill="#d1fae5"/>
-  <g transform="translate(7,7) scale(0.75)" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <!-- Just the icon itself — the same Lucide "file-text" glyph and emerald
+       (#059669) color used in the navbar's brand logo, without its
+       background chip. Transparent background so it adapts to the
+       browser's own tab color. -->
+  <g transform="translate(3,3) scale(1.083)" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/>
     <path d="M14 2v5a1 1 0 0 0 1 1h5"/>
     <path d="M10 9H8"/>
