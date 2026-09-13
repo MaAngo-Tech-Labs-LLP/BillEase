@@ -49,6 +49,12 @@ interface CreateInvoicePageProps {
    * when switching tabs), so saving goes through the same validated path as
    * clicking the button here. */
   onRegisterSaveDraft?: (fn: () => void) => void;
+  /** Called once an invoice is fully finalized via "Create Invoice" (i.e.
+   * after it's been saved, and any Preview/Download along the way is done
+   * with it). Lets the app shell reset its shared working draft so the next
+   * time this page is opened it starts blank instead of reloading the
+   * invoice that was just finished. */
+  onFinish?: () => void;
 }
 
 export default function CreateInvoicePage({
@@ -59,6 +65,7 @@ export default function CreateInvoicePage({
   onNotify,
   onDirtyChange,
   onRegisterSaveDraft,
+  onFinish,
 }: CreateInvoicePageProps) {
   const [showGallery, setShowGallery] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -450,27 +457,53 @@ export default function CreateInvoicePage({
     ? fillSampleIntoEmpty(formData, SAMPLE_INVOICE_DATA)
     : formData;
 
+  // Builds a brand-new blank invoice (fresh id/number/dates). Shared by
+  // "Reset Form" and by finishing "Create Invoice", so both leave the form
+  // in exactly the same clean state — no leftover client/item/payment data
+  // from whatever was just being worked on.
+  const buildBlankInvoice = (): BillDocument => ({
+    ...DEFAULT_INVOICE,
+    id: `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    billNumber: `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+    // DEFAULT_INVOICE.issueDate/dueDate are frozen at app-load time —
+    // recompute fresh so a new invoice always starts on today's date.
+    issueDate: getTodayIsoDate(),
+    dueDate: getFutureIsoDate(30),
+    createdAt: new Date().toISOString(),
+  });
+
   // Wipes the working draft back to a blank invoice — clears formData AND
   // the persisted draft/template choice in localStorage. Useful for testing
   // and for anyone who wants to start completely fresh.
   const handleResetForm = () => {
-    const blank: BillDocument = {
-      ...DEFAULT_INVOICE,
-      id: `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      billNumber: `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      // DEFAULT_INVOICE.issueDate/dueDate are frozen at app-load time —
-      // recompute fresh so a reset form always starts on today's date.
-      issueDate: getTodayIsoDate(),
-      dueDate: getFutureIsoDate(30),
-      createdAt: new Date().toISOString(),
-    };
     setShowSampleData(false);
-    setFormData(blank);
+    setFormData(buildBlankInvoice());
     try {
       localStorage.removeItem('billease_invoice_draft');
       localStorage.removeItem('billease_active_template');
     } catch (_) {}
     onNotify('Form reset — starting with a blank invoice');
+  };
+
+  // Once an invoice has actually been SAVED — "Create Invoice", "Save &
+  // Preview", or "Save & Download PDF" all count, since each of them adds
+  // (or updates) the invoice in My Documents — the working form must not
+  // keep showing that data. Only explicit "Save Draft" is allowed to leave
+  // values behind for the next time this page opens. This clears the
+  // persisted draft, resets the app shell's shared in-memory draft (via
+  // onFinish, so a remount doesn't reload the just-saved invoice either),
+  // and blanks the form itself.
+  const clearWorkingDraftAfterSave = () => {
+    try {
+      localStorage.removeItem('billease_invoice_draft');
+      localStorage.removeItem('billease_active_template');
+    } catch (_) {}
+    onFinish?.();
+
+    const blankInvoice = buildBlankInvoice();
+    setShowSampleData(false);
+    setFormData(blankInvoice);
+    lastSavedSnapshot.current = JSON.stringify(blankInvoice);
   };
 
   const handleAutoFillFromProfile = () => {
@@ -533,23 +566,26 @@ export default function CreateInvoicePage({
       ...formData,
       id: uniqueId,
       type: 'invoice',
-      status: formData.status || 'Draft',
+      // "Save & Preview" is a save (it lands in My Documents), not a draft —
+      // matches the same Draft -> Sent promotion "Create Invoice" applies.
+      status: formData.status === 'Draft' ? 'Sent' : (formData.status || 'Sent'),
       updatedAt: new Date().toISOString(),
     };
 
-    setFormData(invoiceToPreview);
-    onSave(invoiceToPreview);
-    try {
-      localStorage.setItem('billease_invoice_draft', JSON.stringify(invoiceToPreview));
-    } catch (_) {}
-    lastSavedSnapshot.current = JSON.stringify(invoiceToPreview);
-    onDirtyChange?.(false);
-
+    // Only one of these actually needs to run — onPreview (when the app
+    // shell provides it) already saves the document itself before showing
+    // Preview. Calling onSave here too would just save it twice, and since
+    // saving always re-syncs the app's shared draft to whatever was just
+    // saved, whichever call runs LAST would win and undo the clearing
+    // below — so save via exactly one path, then clear after it's done.
     if (onPreview) {
       onPreview(invoiceToPreview);
     } else {
+      onSave(invoiceToPreview);
       onNavigate('preview');
     }
+    onDirtyChange?.(false);
+    clearWorkingDraftAfterSave();
   };
 
   const handleCreateInvoiceAndFinish = (destination: 'my-documents' | 'preview' | 'stay' = 'my-documents') => {
@@ -596,18 +632,35 @@ export default function CreateInvoicePage({
       return;
     }
 
-    try {
-      localStorage.setItem('billease_invoice_draft', JSON.stringify(finalizedInvoice));
-    } catch (_) {}
+    // The invoice is now fully saved — clear the working draft so it
+    // doesn't leak into the next invoice.
+    clearWorkingDraftAfterSave();
 
     onNotify(`Invoice #${finalizedInvoice.billNumber} created successfully! Added to My Documents and Home.`);
     onNavigate(destination);
   };
 
   const handleGeneratePdf = () => {
+    const isTemplateDefaultId =
+      !formData.id ||
+      formData.id === 'inv-studio-pulse' ||
+      formData.id === 'inv-acme-design' ||
+      formData.id === 'doc-apex-billing' ||
+      formData.id.startsWith('default-');
+    const uniqueId = isTemplateDefaultId
+      ? `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+      : formData.id;
+
     setIsGeneratingPdf(true);
-    const invoiceToSave = {
+    const invoiceToSave: BillDocument = {
       ...formData,
+      id: uniqueId,
+      type: 'invoice',
+      // "Save & Download PDF" is a save (it lands in My Documents), not a
+      // draft — matches the same Draft -> Sent promotion "Create Invoice"
+      // and "Save & Preview" apply.
+      status: formData.status === 'Draft' ? 'Sent' : (formData.status || 'Sent'),
+      createdAt: formData.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     onSave(invoiceToSave);
@@ -615,8 +668,12 @@ export default function CreateInvoicePage({
     onDirtyChange?.(false);
     setTimeout(() => {
       setIsGeneratingPdf(false);
-      onNotify(`Invoice ${formData.billNumber} ready! Launching print/PDF preview...`);
+      onNotify(`Invoice ${invoiceToSave.billNumber} ready! Launching print/PDF preview...`);
       window.print();
+
+      // Now that the real data has been saved and sent to print, clear the
+      // working form the same way "Create Invoice" does.
+      clearWorkingDraftAfterSave();
     }, 800);
   };
 
@@ -671,51 +728,24 @@ export default function CreateInvoicePage({
             </div>
 
             <div className="form-fields-stack">
-              {/* Row 0: Invoice Title / Type & PO Number */}
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">Invoice Title / Type</label>
-                  <select
-                    className="form-input"
-                    value={formData.title || 'INVOICE'}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                  >
-                    <option value="INVOICE">INVOICE (Standard)</option>
-                    <option value="TAX INVOICE">TAX INVOICE</option>
-                    <option value="PROFORMA INVOICE">PROFORMA INVOICE</option>
-                    <option value="COMMERCIAL INVOICE">COMMERCIAL INVOICE</option>
-                    <option value="RETAIL INVOICE">RETAIL INVOICE</option>
-                    <option value="BILL">BILL</option>
-                    <option value="RECEIPT">RECEIPT</option>
-                    {!['INVOICE', 'TAX INVOICE', 'PROFORMA INVOICE', 'COMMERCIAL INVOICE', 'RETAIL INVOICE', 'BILL', 'RECEIPT'].includes(formData.title || 'INVOICE') && (
-                      <option value={formData.title}>{formData.title}</option>
-                    )}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Reference / PO (optional)</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={formData.poNumber || ''}
-                    onChange={(e) => handleInputChange('poNumber', e.target.value)}
-                    placeholder="e.g. PO-2026-098"
-                  />
-                </div>
+              {/* Row 0: Client / Company Name — full width on its own row now
+                  that Reference/PO has moved down to sit beside Payment
+                  Terms instead. (The old "Invoice Title / Type" dropdown
+                  that used to sit here was removed — Client Name now takes
+                  its place, since it's the more useful field to see first.) */}
+              <div className="form-group">
+                <label className="form-label">Client / Company Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.clientName}
+                  onChange={(e) => handleInputChange('clientName', e.target.value)}
+                  placeholder="e.g. Acme Corporation Ltd."
+                />
               </div>
 
-              {/* Row 1: Client Name & Email */}
+              {/* Row 1: Client Email & Phone */}
               <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">Client / Company Name</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={formData.clientName}
-                    onChange={(e) => handleInputChange('clientName', e.target.value)}
-                    placeholder="e.g. Acme Corporation Ltd."
-                  />
-                </div>
                 <div className="form-group">
                   <label className="form-label">Client Email</label>
                   <input
@@ -726,10 +756,6 @@ export default function CreateInvoicePage({
                     placeholder="e.g. finance@acmecorp.com"
                   />
                 </div>
-              </div>
-
-              {/* Row 2: Client Phone & Payment Terms */}
-              <div className="form-grid-2">
                 <div className="form-group">
                   <label className="form-label">Client Phone</label>
                   <input
@@ -740,6 +766,10 @@ export default function CreateInvoicePage({
                     placeholder="e.g. +91 98765 43210"
                   />
                 </div>
+              </div>
+
+              {/* Row 2: Payment Terms & Reference/PO Number */}
+              <div className="form-grid-2">
                 <div className="form-group">
                   <label className="form-label">Payment Terms</label>
                   <input
@@ -748,6 +778,16 @@ export default function CreateInvoicePage({
                     value={formData.paymentTerms || ''}
                     onChange={(e) => handleInputChange('paymentTerms', e.target.value)}
                     placeholder="e.g. Net 30, Due on Receipt"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Reference / PO (optional)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.poNumber || ''}
+                    onChange={(e) => handleInputChange('poNumber', e.target.value)}
+                    placeholder="e.g. PO-2026-098"
                   />
                 </div>
               </div>
@@ -1543,12 +1583,12 @@ export default function CreateInvoicePage({
         </div>
 
         {/* RIGHT COLUMN: Live Layout Architecture Matching CreateBillPage Sizing Arrangement */}
-        <aside className="live-layout-architecture-card" aria-label="Live Layout Architecture">
+        <aside className="live-layout-architecture-card" aria-label="Live Layout">
           {/* Card Header with Green Eye Icon, Dropdown, and Gallery Button */}
           <div className="live-arch-header">
             <div className="live-arch-title-group">
               <Eye size={18} className="live-arch-eye-icon" />
-              <span className="live-arch-title">Live Layout Architecture</span>
+              <span className="live-arch-title">Live Layout</span>
             </div>
 
             <div className="live-arch-controls">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, User, FileText, Eye } from 'lucide-react';
+import { Sun, Moon, User, FileText } from 'lucide-react';
 
 interface NavbarProps {
   currentTab: string;
@@ -74,18 +74,8 @@ export default function Navbar({
           })}
         </ul>
 
-        {/* Right Actions: Eye, Theme Toggle & Profile */}
+        {/* Right Actions: Theme Toggle & Profile */}
         <div className="navbar-actions">
-          <button
-            className="glass-action-btn"
-            onClick={() => onSelectTab('preview')}
-            aria-label="Preview Document"
-            title="Preview Active Document"
-            type="button"
-          >
-            <Eye size={17} />
-          </button>
-
           <button
             className="glass-action-btn"
             onClick={onToggleTheme}

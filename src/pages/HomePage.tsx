@@ -35,10 +35,10 @@ export default function HomePage({
       .slice(0, 5);
   }, [documents]);
 
-  // Typewriter effect cycling through "bills?" and "invoices?" inside the question mark
-  const WORDS = React.useMemo(() => ['bills?', 'invoices?'], []);
+  // Typewriter effect cycling the hero headline between "bills" and "invoices"
+  const WORDS = React.useMemo(() => ['bills', 'invoices'], []);
   const [wordIndex, setWordIndex] = React.useState(0);
-  const [currentText, setCurrentText] = React.useState('bills?');
+  const [currentText, setCurrentText] = React.useState('bills');
   const [isDeleting, setIsDeleting] = React.useState(false);
 
   React.useEffect(() => {
@@ -73,17 +73,17 @@ export default function HomePage({
   return (
     <div className="homepage-exact-container">
       {/* 1. Centered Hero Header with Animated Typewriter Effect */}
-      <section className="home-hero-centered" aria-label="What will you create">
-        <div className="home-hero-tagline">FAST &bull; SIMPLE &bull; PROFESSIONAL</div>
+      <section className="home-hero-centered" aria-label="Create stunning bills and invoices">
+        <div className="home-hero-tagline">CRAFTED FOR FREELANCERS &amp; SMALL BUSINESSES</div>
         <h1 className="home-hero-main-title">
-          What will you create{' '}
+          Create stunning{' '}
           <span className="hero-typewriter-wrapper">
             <span className="hero-gradient-text">{currentText}</span>
             <span className="hero-typewriter-cursor" aria-hidden="true">|</span>
           </span>
         </h1>
         <p className="home-hero-main-subtitle">
-          Create professional documents in a few simple steps.
+          Polished, on-brand documents that get you paid faster — done in minutes, not hours.
         </p>
       </section>
 

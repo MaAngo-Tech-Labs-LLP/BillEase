@@ -2264,12 +2264,12 @@ export default function CreateBillPage({
         </div>
 
         {/* Right Column: Live Layout Architecture */}
-        <aside className="live-layout-architecture-card" aria-label="Live Layout Architecture">
+        <aside className="live-layout-architecture-card" aria-label="Live Layout">
           {/* Card Header with Green Eye Icon, Dropdown, and Gallery Button */}
           <div className="live-arch-header">
             <div className="live-arch-title-group">
               <Eye size={18} className="live-arch-eye-icon" />
-              <span className="live-arch-title">Live Layout Architecture</span>
+              <span className="live-arch-title">Live Layout</span>
             </div>
 
             <div className="live-arch-controls">

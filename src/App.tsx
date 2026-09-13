@@ -8,6 +8,8 @@ import TemplatesPage from './pages/TemplatesPage';
 import PreviewPage from './pages/PreviewPage';
 import BusinessProfileModal from './components/BusinessProfileModal';
 import UnsavedChangesModal from './components/UnsavedChangesModal';
+import HelpModal from './components/HelpModal';
+import Footer from './components/Footer';
 import { useDocuments } from './hooks/useDocuments';
 import { BillDocument, TemplateId, BusinessProfile } from './types';
 import { applyBusinessProfileToDoc } from './utils/profileSync';
@@ -50,6 +52,7 @@ export default function App() {
 
   const [lastEditorTab, setLastEditorTab] = useState<'create-bill' | 'create-invoice'>('create-bill');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
   // Whether the currently open editor (Create Bill / Create Invoice) has
   // changes that haven't been committed via Save Draft / Create / Download
@@ -294,6 +297,7 @@ export default function App() {
             onNotify={triggerToast}
             onDirtyChange={setIsEditorDirty}
             onRegisterSaveDraft={(fn) => { saveDraftRef.current = fn; }}
+            onFinish={() => { createNewDraft('invoice'); }}
           />
         )}
 
@@ -341,12 +345,18 @@ export default function App() {
         )}
       </main>
 
+      {/* Basic Footer: copyright + Help/Privacy/Terms/Contact */}
+      <Footer onOpenHelp={() => setIsHelpModalOpen(true)} onNotify={triggerToast} />
+
       {/* Business Profile Defaults Modal */}
       <BusinessProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         onSave={handleSaveProfile}
       />
+
+      {/* Basic Help & FAQ Modal */}
+      <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
 
       {/* Mandatory Save Draft prompt when leaving a dirty Bill/Invoice editor */}
       <UnsavedChangesModal

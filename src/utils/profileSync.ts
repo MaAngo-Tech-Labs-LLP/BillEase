@@ -136,6 +136,13 @@ export function applyBusinessProfileToDoc<T extends Partial<BillDocument>>(
     if (forceOverride || !result.senderLogo || result.senderLogo.includes('DEFAULT_INVOICE_LOGO')) {
       result.senderLogo = p.logo;
     }
+  } else if (forceOverride) {
+    // The profile's logo was explicitly removed — a forced sync (Save
+    // Profile, or the real-time PROFILE_UPDATED_EVENT) must clear it from
+    // the document too. Without this, removing the logo in Business
+    // Profile Defaults never actually took effect on saved drafts, so it
+    // silently reappeared (e.g. after a refresh reloaded the draft).
+    result.senderLogo = '';
   }
 
   return result;

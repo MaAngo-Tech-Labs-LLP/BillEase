@@ -160,7 +160,6 @@ a {
   color: var(--text-primary);
   background-color: transparent;
   overflow-x: clip;
-  padding-bottom: 60px;
 }
 
 /* ------------------------------------------------------------
@@ -261,10 +260,11 @@ body[data-theme='dark'] .ambient-liquid-background::after {
 .main-content {
   position: relative;
   z-index: 1;
+  flex: 1;
   width: 100%;
   max-width: 1360px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 24px 48px;
   display: flex;
   flex-direction: column;
 }
@@ -277,26 +277,37 @@ body[data-theme='dark'] .ambient-liquid-background::after {
   top: 0;
   z-index: 100;
   width: 100%;
-  background: rgba(247, 248, 246, 0.65);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
-  box-shadow: none;
-  transition: background-color 200ms ease, border-bottom-color 200ms ease, box-shadow 250ms ease;
-}
-
-.navbar-container.is-scrolled {
-  background: rgba(247, 248, 246, 0.85);
-  border-bottom-color: rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 20px rgba(31, 38, 135, 0.08);
+  padding: 14px 20px 0;
+  background: transparent;
+  transition: padding 250ms ease;
 }
 
 .navbar-glass {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 36px;
+  gap: 16px;
+  padding: 10px 22px;
   width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: var(--glass-blur) saturate(180%);
+  -webkit-backdrop-filter: var(--glass-blur) saturate(180%);
+  border: 1px solid var(--glass-border-subtle);
+  box-shadow: var(--glass-shadow), var(--glass-specular);
+  transition: background-color 220ms ease, border-color 220ms ease, box-shadow 250ms ease;
+}
+
+.navbar-container.is-scrolled {
+  padding-top: 10px;
+}
+
+.navbar-container.is-scrolled .navbar-glass {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow-hover), var(--glass-specular);
 }
 
 /* Brand */
@@ -338,24 +349,28 @@ body[data-theme='dark'] .ambient-liquid-background::after {
 }
 
 .nav-link-btn {
-  padding: 6px 16px;
+  padding: 7px 16px;
   border-radius: var(--radius-full);
   font-size: 0.88rem;
   font-weight: 500;
   color: #4b5563;
   background: transparent;
+  border: 1px solid transparent;
   transition: all var(--transition-fast);
 }
 
 .nav-link-btn:hover {
   color: #111827;
-  background: rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.7);
 }
 
 .nav-link-btn.active {
-  color: #166534;
-  background: #dcfce7;
+  color: #0d9468;
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(255, 255, 255, 0.9);
   font-weight: 600;
+  box-shadow: var(--glass-shadow-active), var(--glass-specular);
 }
 
 /* Navbar Actions */
@@ -372,15 +387,17 @@ body[data-theme='dark'] .ambient-liquid-background::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  border: none;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid transparent;
   color: #4b5563;
   transition: all var(--transition-fast);
 }
 
 .glass-action-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.85);
   color: #111827;
+  box-shadow: var(--glass-shadow-active);
 }
 
 .profile-btn {
@@ -397,6 +414,76 @@ body[data-theme='dark'] .ambient-liquid-background::after {
   justify-content: center;
   background: transparent;
   color: #4b5563;
+}
+
+/* ------------------------------------------------------------
+   Basic App Footer — copyright + a few simple links
+   ------------------------------------------------------------ */
+.app-footer {
+  position: relative;
+  z-index: 1;
+  margin-top: auto;
+  border-top: 1px solid var(--glass-border-subtle, rgba(0, 0, 0, 0.06));
+}
+
+.app-footer-inner {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.app-footer-copyright {
+  font-size: 0.8rem;
+  color: var(--text-muted, #788290);
+}
+
+.app-footer-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.app-footer-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #484f59);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.app-footer-link-btn:hover {
+  color: var(--text-primary, #181b1e);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body[data-theme='dark'] .app-footer {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+body[data-theme='dark'] .app-footer-link-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 580px) {
+  .app-footer-inner {
+    justify-content: center;
+    text-align: center;
+    padding: 16px 16px;
+  }
 }
 
 /* ------------------------------------------------------------
@@ -968,16 +1055,16 @@ body[data-theme='dark'] .status-draft {
 }
 
 /* Dark Theme overrides */
-body[data-theme='dark'] .navbar-container {
-  background: rgba(19, 21, 24, 0.65);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: none;
+body[data-theme='dark'] .navbar-glass {
+  background: rgba(24, 27, 32, 0.62);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 32px -8px rgba(0, 0, 0, 0.45), var(--glass-specular);
 }
 
-body[data-theme='dark'] .navbar-container.is-scrolled {
-  background: rgba(19, 21, 24, 0.86);
-  border-bottom-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+body[data-theme='dark'] .navbar-container.is-scrolled .navbar-glass {
+  background: rgba(24, 27, 32, 0.86);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.55), var(--glass-specular);
 }
 
 body[data-theme='dark'] .brand-name {
@@ -990,21 +1077,25 @@ body[data-theme='dark'] .nav-link-btn {
 
 body[data-theme='dark'] .nav-link-btn:hover {
   color: #f8fafc;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 body[data-theme='dark'] .nav-link-btn.active {
-  color: #f8fafc;
-  background: rgba(255, 255, 255, 0.15);
+  color: #6ee7b7;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 body[data-theme='dark'] .glass-action-btn {
   color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 body[data-theme='dark'] .glass-action-btn:hover {
   color: #f8fafc;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 body[data-theme='dark'] .profile-btn .avatar-ring {
@@ -1262,11 +1353,12 @@ body[data-theme='dark'] .feedback-toast-glass {
 
 @media (max-width: 580px) {
   .navbar-container {
-    padding: 0 12px;
+    padding: 10px 10px 0;
   }
 
   .navbar-glass {
-    padding: 8px 12px;
+    padding: 8px 14px;
+    border-radius: 22px;
   }
 
   .nav-links {
@@ -5403,6 +5495,8 @@ body[data-theme='dark'] .tpl-modal-footer {
 
   /* 3. Hide ALL navigation, headers, forms, sidebars, buttons, modals, and toasts */
   .navbar-container,
+  .app-footer,
+  .help-modal-backdrop,
   .ambient-liquid-background,
   .liquid-orb,
   .builder-top-bar,
@@ -5436,7 +5530,8 @@ body[data-theme='dark'] .tpl-modal-footer {
   .quick-action-card,
   .home-card-item,
   .home-recent-row-item,
-  .navbar-container {
+  .navbar-container,
+  .navbar-glass {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     box-shadow: none !important;
@@ -7249,7 +7344,138 @@ body[data-theme='dark'] .delete-modal-btn-cancel:hover {
   }
 }
 
+/* ==========================================================================
+   Basic Help & FAQ Modal
+   ========================================================================== */
+.help-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: deleteFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
+body[data-theme='dark'] .help-modal-backdrop {
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.help-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  padding: 24px;
+  animation: deleteScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body[data-theme='dark'] .help-modal-card {
+  background: #181b21;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.help-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.help-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.help-modal-icon-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mint-tint, rgba(16, 185, 129, 0.1));
+  color: var(--mint-primary, #0d9468);
+  flex-shrink: 0;
+}
+
+.help-modal-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary, #181b1e);
+  margin: 0;
+}
+
+.help-modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #788290);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.help-modal-close-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-primary, #181b1e);
+}
+
+body[data-theme='dark'] .help-modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.help-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.help-modal-faq-item {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--glass-border-subtle, rgba(0, 0, 0, 0.06));
+}
+
+.help-modal-faq-item:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.help-modal-faq-q {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary, #181b1e);
+  margin: 0 0 4px;
+}
+
+.help-modal-faq-a {
+  font-size: 0.84rem;
+  color: var(--text-secondary, #484f59);
+  line-height: 1.5;
+  margin: 0;
+}
+
+body[data-theme='dark'] .help-modal-faq-item {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
 
 
 
