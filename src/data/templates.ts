@@ -276,30 +276,6 @@ export const SAMPLE_BILL_DATA: BillDocument = {
   createdAt: new Date().toISOString(),
 };
 
-export const SAMPLE_DOCUMENTS: BillDocument[] = [
-  DEFAULT_INVOICE,
-  {
-    id: 'doc-hero-match',
-    type: 'bill',
-    title: 'Walk-in Counter Bill',
-    billNumber: 'BIL-2026-3927',
-    issueDate: '2026-09-06',
-    dueDate: '2026-09-06',
-    currency: 'INR',
-    clientName: 'Walk-in Customer',
-    clientEmail: '',
-    clientAddress: '',
-    items: [],
-    taxRate: 0,
-    discount: 0,
-    paymentNotes: 'Settled at counter.',
-    template: 'modern',
-    accent: 'teal',
-    status: 'Paid',
-    createdAt: '2026-09-06T10:00:00.000Z',
-  },
-];
-
 // System/identity fields a "load sample" action must never touch — these
 // belong to the document being worked on, not to the example content.
 const SAMPLE_FILL_SKIP_KEYS = new Set<keyof BillDocument>([
