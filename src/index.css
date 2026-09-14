@@ -2854,7 +2854,7 @@ body[data-theme='dark'] .btn-gallery-trigger:hover {
 
 /* ---------------- Classic Professional Template (Exact Match) ---------------- */
 .a4-tpl-classic-header {
-  background: linear-gradient(135deg, #0e2f82 0%, #103289 60%, #153fa8 100%);
+  background: var(--builder-accent, #103289);
   border-radius: 12px;
   padding: 20px 22px;
   color: #ffffff;
@@ -2963,7 +2963,7 @@ body[data-theme='dark'] .btn-gallery-trigger:hover {
   gap: 7px;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #2563eb;
+  color: var(--builder-accent, #2563eb);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   margin-bottom: 8px;
@@ -3008,7 +3008,7 @@ body[data-theme='dark'] .btn-gallery-trigger:hover {
 
 .a4-classic-table thead tr th {
   background: #eef5ff;
-  color: #1e40af;
+  color: var(--builder-accent, #1e40af);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -3081,7 +3081,7 @@ body[data-theme='dark'] .btn-gallery-trigger:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #1e40af;
+  color: var(--builder-accent, #1e40af);
 }
 
 .a4-notes-header-text {
@@ -3089,7 +3089,7 @@ body[data-theme='dark'] .btn-gallery-trigger:hover {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #1e40af;
+  color: var(--builder-accent, #1e40af);
 }
 
 .a4-bank-details-grid {
@@ -3173,7 +3173,7 @@ body[data-theme='dark'] .btn-gallery-trigger:hover {
 }
 
 .a4-totals-card-divider {
-  border-top: 1.5px solid #93c5fd;
+  border-top: 1.5px solid var(--builder-accent, #93c5fd);
   margin: 10px 0 8px;
 }
 
@@ -3182,7 +3182,7 @@ body[data-theme='dark'] .btn-gallery-trigger:hover {
   justify-content: space-between;
   align-items: center;
   font-weight: 800;
-  color: #103289;
+  color: var(--builder-accent, #103289);
   padding-top: 2px;
   white-space: nowrap;
   gap: 12px;
@@ -5298,7 +5298,7 @@ body[data-theme='dark'] .tpl-modal-footer {
   background: #ffffff !important;
 }
 .tpl-receipt .receipt-header-box {
-  background: #00695c;
+  background: var(--builder-accent, #00695c);
   color: #ffffff;
   padding: 20px 24px;
   border-radius: 10px;
@@ -5323,22 +5323,22 @@ body[data-theme='dark'] .tpl-modal-footer {
   border-bottom: 1px dashed #b2dfdb;
   padding: 10px 14px;
   font-size: 0.78rem;
-  color: #004d40;
+  color: var(--builder-accent, #004d40);
   background: #e0f2f1;
   border-radius: 6px;
   margin-bottom: 16px;
 }
 .tpl-receipt .receipt-table th {
   background: #e0f2f1 !important;
-  color: #004d40 !important;
-  border-bottom: 1.5px dashed #00695c !important;
+  color: var(--builder-accent, #004d40) !important;
+  border-bottom: 1.5px dashed var(--builder-accent, #00695c) !important;
 }
 .tpl-receipt .receipt-table td {
   border-bottom: 1px dashed #b2dfdb !important;
 }
 .tpl-receipt .receipt-total-highlight {
   background: #e0f2f1;
-  border: 1.5px dashed #00695c;
+  border: 1.5px dashed var(--builder-accent, #00695c);
   border-radius: 10px;
   padding: 14px 20px;
   display: flex;
@@ -5346,7 +5346,7 @@ body[data-theme='dark'] .tpl-modal-footer {
   align-items: center;
   font-size: 1.15rem;
   font-weight: 800;
-  color: #004d40;
+  color: var(--builder-accent, #004d40);
   margin-top: 12px;
 }
 .tpl-receipt .receipt-barcode-wrap {
@@ -5417,7 +5417,7 @@ body[data-theme='dark'] .tpl-modal-footer {
 }
 .tpl-sidebar .sidebar-table th {
   background: #fff3e0 !important;
-  color: #bf360c !important;
+  color: var(--builder-accent, #bf360c) !important;
 }
 .tpl-sidebar .sidebar-table td,
 .tpl-sidebar .sidebar-table th {
@@ -5441,7 +5441,7 @@ body[data-theme='dark'] .tpl-modal-footer {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  border-bottom: 2.5px solid #00838f;
+  border-bottom: 2.5px solid var(--builder-accent, #00838f);
   padding-bottom: 16px;
   margin-bottom: 16px;
   width: 100%;
@@ -5451,7 +5451,7 @@ body[data-theme='dark'] .tpl-modal-footer {
 .tpl-clinical .clinical-rx-badge {
   font-size: 2.2rem;
   font-weight: 900;
-  color: #00838f;
+  color: var(--builder-accent, #00838f);
   font-family: serif;
   line-height: 1;
 }
@@ -5468,7 +5468,7 @@ body[data-theme='dark'] .tpl-modal-footer {
 }
 .tpl-clinical .clinical-table th {
   background: #e0f7fa !important;
-  color: #00696f !important;
+  color: var(--builder-accent, #00696f) !important;
 }
 
 /* 5. Editorial Layout (Executive Legal & Corporate Navy) */
@@ -5476,7 +5476,7 @@ body[data-theme='dark'] .tpl-modal-footer {
   font-family: 'Merriweather', Georgia, 'Times New Roman', serif;
 }
 .tpl-editorial .editorial-header {
-  background: #0d2137;
+  background: var(--builder-accent, #0d2137);
   color: #ffffff;
   border-radius: 10px;
   padding: 18px 22px;
@@ -5490,7 +5490,7 @@ body[data-theme='dark'] .tpl-modal-footer {
 }
 .tpl-editorial .editorial-matter-card {
   background: #f8fafc;
-  border-left: 4px solid #0d2137;
+  border-left: 4px solid var(--builder-accent, #0d2137);
   border-radius: 0 8px 8px 0;
   padding: 12px 18px;
   margin-bottom: 18px;
@@ -5501,13 +5501,13 @@ body[data-theme='dark'] .tpl-modal-footer {
 }
 .tpl-editorial .editorial-table th {
   background: #e3f2fd !important;
-  color: #0d2137 !important;
+  color: var(--builder-accent, #0d2137) !important;
   font-family: sans-serif;
 }
 
 /* 6. Academic Layout (Academy & Tuition Fee Receipt) */
 .tpl-academic .academic-header {
-  background: #283593;
+  background: var(--builder-accent, #283593);
   color: #ffffff;
   border-radius: 10px;
   padding: 18px 22px;
@@ -5531,14 +5531,14 @@ body[data-theme='dark'] .tpl-modal-footer {
   font-size: 0.82rem;
 }
 .tpl-academic .academic-table th {
-  background: #283593 !important;
+  background: var(--builder-accent, #283593) !important;
   color: #ffffff !important;
 }
 .tpl-academic .academic-seal-box {
-  border: 1.5px dashed #283593;
+  border: 1.5px dashed var(--builder-accent, #283593);
   border-radius: 8px;
   padding: 8px 14px;
-  color: #283593;
+  color: var(--builder-accent, #283593);
   font-size: 0.72rem;
   font-weight: 700;
   display: inline-flex;
@@ -5549,7 +5549,7 @@ body[data-theme='dark'] .tpl-modal-footer {
 
 /* 7. GST Layout (Indian GST Tax Invoice) */
 .tpl-gst .gst-header {
-  background: #880e4f;
+  background: var(--builder-accent, #880e4f);
   color: #ffffff;
   border-radius: 10px;
   padding: 18px 22px;
@@ -5576,7 +5576,7 @@ body[data-theme='dark'] .tpl-modal-footer {
 }
 .tpl-gst .gst-table th {
   background: #fce4ec !important;
-  color: #880e4f !important;
+  color: var(--builder-accent, #880e4f) !important;
 }
 .tpl-gst .gst-words-box {
   background: #fdf2f8;
@@ -5584,7 +5584,7 @@ body[data-theme='dark'] .tpl-modal-footer {
   border-radius: 8px;
   padding: 10px 16px;
   font-size: 0.78rem;
-  color: #880e4f;
+  color: var(--builder-accent, #880e4f);
   margin-top: 14px;
 }
 

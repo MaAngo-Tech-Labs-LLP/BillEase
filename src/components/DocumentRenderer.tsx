@@ -600,7 +600,7 @@ export default function DocumentRenderer({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #fed7aa', paddingBottom: 14, gap: 12, width: '100%', boxSizing: 'border-box' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: tplStyle?.accentColor || '#e65100', margin: 0, wordBreak: 'break-word' }}>
+                  <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: accentHex, margin: 0, wordBreak: 'break-word' }}>
                     {docHeading}
                   </h2>
                   {renderStatusBadge(document.status)}
@@ -619,10 +619,10 @@ export default function DocumentRenderer({
 
             {/* Client Card */}
             <div style={{ background: '#fffaf5', border: '1px solid #fed7aa', borderRadius: 8, padding: '12px 14px', fontSize: '0.82rem' }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#e65100', textTransform: 'uppercase' }}>Billed To:</span>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: accentHex, textTransform: 'uppercase' }}>Billed To:</span>
               <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#0f172a', marginTop: 2 }}>{clientPrimaryName}</div>
               {clientCompany && clientName && clientCompany !== clientName && (
-                <div style={{ fontSize: '0.74rem', color: '#e65100', fontWeight: 600, marginTop: 1 }}>{clientCompany}</div>
+                <div style={{ fontSize: '0.74rem', color: accentHex, fontWeight: 600, marginTop: 1 }}>{clientCompany}</div>
               )}
               {clientAddress && <div style={{ color: '#475569', whiteSpace: 'pre-line', marginTop: 2 }}>{clientAddress}</div>}
               <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -987,25 +987,25 @@ export default function DocumentRenderer({
         </div>
 
         {/* Dynamic Client & Matter Reference Box */}
-        <div className="editorial-matter-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#f8fafc', borderLeft: '4px solid #0d2137', borderRadius: '0 8px 8px 0', padding: '14px 18px', fontSize: '0.82rem' }}>
+        <div className="editorial-matter-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#f8fafc', borderLeft: `4px solid ${accentHex}`, borderRadius: '0 8px 8px 0', padding: '14px 18px', fontSize: '0.82rem' }}>
           <div>
             <span style={{ color: '#64748b', fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Client:</span>
             <strong style={{ color: '#0f172a', fontSize: '0.96rem', display: 'block' }}>{clientPrimaryName}</strong>
             {clientCompany && clientName && clientCompany !== clientName && (
-              <div style={{ fontSize: '0.74rem', color: '#0d2137', fontWeight: 600, marginTop: 1 }}>{clientCompany}</div>
+              <div style={{ fontSize: '0.74rem', color: accentHex, fontWeight: 600, marginTop: 1 }}>{clientCompany}</div>
             )}
             {clientAddress && <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: 2 }}>{clientAddress}</div>}
           </div>
           <div>
             <span style={{ color: '#64748b', fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Contact &amp; Tax ID:</span>
-            <span style={{ color: '#0d2137', fontWeight: 600 }}>{[clientEmail, clientPhone].filter(Boolean).join(' · ')}</span>
+            <span style={{ color: accentHex, fontWeight: 600 }}>{[clientEmail, clientPhone].filter(Boolean).join(' · ')}</span>
             {hasClientTax && (
               <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 2 }}>GSTIN: <strong>{clientTaxNumber}</strong></div>
             )}
           </div>
           <div>
             <span style={{ color: '#64748b', fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Payment Terms:</span>
-            <strong style={{ color: '#0d2137' }}>{paymentTerms}</strong>
+            <strong style={{ color: accentHex }}>{paymentTerms}</strong>
           </div>
           {hasPoNumber && (
             <div>
@@ -1030,7 +1030,7 @@ export default function DocumentRenderer({
             <tbody>
               {document.items.map((item) => (
                 <tr key={item.id}>
-                  <td style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 600, color: '#0d2137', fontFamily: 'sans-serif' }}>
+                  <td style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 600, color: accentHex, fontFamily: 'sans-serif' }}>
                     {item.name || item.description || itemPlaceholder}
                   </td>
                   <td className="cell-desc" style={{ textAlign: 'left', padding: '10px 12px', fontFamily: 'sans-serif', color: '#64748b' }}>
@@ -1046,13 +1046,13 @@ export default function DocumentRenderer({
         </div>
 
         {/* Totals & Trust Account Split */}
-        <div style={{ display: 'grid', gridTemplateColumns: (bankRows.length > 0 || document.notes) ? '1.2fr 1fr' : '1fr', gap: '24px', alignItems: 'start', marginTop: 'auto', borderTop: '2px solid #0d2137', paddingTop: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: (bankRows.length > 0 || document.notes) ? '1.2fr 1fr' : '1fr', gap: '24px', alignItems: 'start', marginTop: 'auto', borderTop: `2px solid ${accentHex}`, paddingTop: 16 }}>
           {/* Left: Escrow / Wire Instructions */}
           {(bankRows.length > 0 || document.notes) && (
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '14px 16px', fontSize: '0.78rem', fontFamily: 'sans-serif' }}>
               {bankRows.length > 0 && (
                 <>
-                  <div style={{ fontWeight: 800, color: '#0d2137', marginBottom: 8, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <div style={{ fontWeight: 800, color: accentHex, marginBottom: 8, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     ESCROW &amp; WIRE INSTRUCTIONS
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, color: '#334155' }}>
@@ -1067,7 +1067,7 @@ export default function DocumentRenderer({
               )}
               {document.notes && (
                 <div style={{ marginTop: bankRows.length > 0 ? 10 : 0, paddingTop: bankRows.length > 0 ? 8 : 0, borderTop: bankRows.length > 0 ? '1px solid #e2e8f0' : undefined, fontSize: '0.72rem', color: '#475569' }}>
-                  <strong style={{ color: '#0d2137' }}>Counsel Notes: </strong>{document.notes}
+                  <strong style={{ color: accentHex }}>Counsel Notes: </strong>{document.notes}
                 </div>
               )}
             </div>
@@ -1092,8 +1092,8 @@ export default function DocumentRenderer({
                   <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(taxAmount)}</strong>
                 </div>
               )}
-              <div style={{ borderTop: '1.5px solid #0d2137', margin: '4px 0' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800, color: '#0d2137', fontSize: '1.15rem' }}>
+              <div style={{ borderTop: `1.5px solid ${accentHex}`, margin: '4px 0' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800, color: accentHex, fontSize: '1.15rem' }}>
                 <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Fee Due:</span>
                 <span style={{ fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(totalAmount)}</span>
               </div>
@@ -1920,8 +1920,11 @@ export default function DocumentRenderer({
   if (layout === 'gst-detailed') {
     const taxableValue = subtotal - discountAmount;
     const BORDER = '#000000'; // statutory printed-invoice look: solid black rules throughout, not soft accent-colored ones
-    const tealBar = '#0F9E8E';
-    const navy = '#26206B';
+    // Brand name/tagline bar colors follow the picked accent, like every
+    // other template's header does — only the structural table/line rules
+    // above stay fixed black for the statutory look.
+    const tealBar = userAccentHex || '#0F9E8E';
+    const navy = accentHex;
 
     // Group items by HSN/SAC code for the statutory tax summary table —
     // each distinct code gets one row totalling its taxable value and tax.
@@ -2555,7 +2558,7 @@ export default function DocumentRenderer({
 
               <div
                 style={{
-                  background: '#111827',
+                  background: accentHex,
                   color: '#FFFFFF',
                   padding: '8px 12px',
                   borderRadius: '6px',
@@ -2664,8 +2667,8 @@ export default function DocumentRenderer({
       <div className="a4-classic-address-grid">
         <div className="a4-classic-addr-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
           <div>
-            <div className="a4-addr-label">
-              <Building2 size={15} color="#2563eb" />
+            <div className="a4-addr-label" style={{ color: accentHex }}>
+              <Building2 size={15} color={accentHex} />
               <span>{isInvoice ? 'INVOICE FROM' : 'BILL FROM'}</span>
             </div>
             <div className="a4-addr-name">{senderName || senderPlaceholder}</div>
@@ -2692,13 +2695,13 @@ export default function DocumentRenderer({
         </div>
         <div className="a4-classic-addr-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
           <div>
-            <div className="a4-addr-label">
-              <User size={15} color="#2563eb" />
+            <div className="a4-addr-label" style={{ color: accentHex }}>
+              <User size={15} color={accentHex} />
               <span>{isInvoice ? 'BILLED TO' : 'BILL TO'}</span>
             </div>
             <div className="a4-addr-name">{clientPrimaryName}</div>
             {clientCompany && clientName && clientCompany !== clientName && (
-              <div style={{ fontSize: '0.74rem', color: '#2563eb', fontWeight: 600, marginTop: '2px' }}>{clientCompany}</div>
+              <div style={{ fontSize: '0.74rem', color: accentHex, fontWeight: 600, marginTop: '2px' }}>{clientCompany}</div>
             )}
             <div className="a4-addr-text">{clientAddress}</div>
           </div>
@@ -2720,7 +2723,7 @@ export default function DocumentRenderer({
               </span>
             )}
             {paymentTerms && (
-              <span className="addr-meta-row" style={{ color: '#2563eb', fontWeight: 600 }}>
+              <span className="addr-meta-row" style={{ color: accentHex, fontWeight: 600 }}>
                 <FileText size={13} />
                 <span>Terms: {paymentTerms}</span>
               </span>
@@ -2776,7 +2779,7 @@ export default function DocumentRenderer({
                 {bankRows.length > 0 && (
                   <>
                     <div className="a4-notes-card-header">
-                      <Landmark size={18} color="#1e40af" />
+                      <Landmark size={18} color={accentHex} />
                       <span className="a4-notes-header-text">BANK &amp; PAYMENT INSTRUCTIONS</span>
                     </div>
                     <div className="a4-bank-details-grid">
@@ -2798,7 +2801,7 @@ export default function DocumentRenderer({
                 )}
                 {document.notes && (
                   <div style={{ marginTop: bankRows.length > 0 ? '12px' : 0, paddingTop: bankRows.length > 0 ? '10px' : 0, borderTop: bankRows.length > 0 ? '1px dashed #bfdbfe' : 'none' }}>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', marginBottom: '3px' }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 700, color: accentHex, textTransform: 'uppercase', marginBottom: '3px' }}>
                       Customer Notes
                     </div>
                     <div style={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
@@ -2840,12 +2843,12 @@ export default function DocumentRenderer({
 
               <div
                 className="a4-totals-card-divider"
-                style={{ borderColor: '#93c5fd' }}
+                style={{ borderColor: accentHex }}
               />
 
               <div
                 className="a4-totals-card-due"
-                style={{ color: '#103289' }}
+                style={{ color: accentHex }}
               >
                 <span className="due-label">Total Due:</span>
                 <span className="due-amount">
