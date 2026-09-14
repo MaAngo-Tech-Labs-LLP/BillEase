@@ -12,7 +12,13 @@ export type LayoutType =
 
 export type TemplateId = 'classic' | 'modern' | 'minimal' | 'bold' | LayoutType | string;
 
-export type AccentColor = 'indigo' | 'teal' | 'slate' | 'mono';
+export type AccentColor =
+  | 'indigo' | 'teal' | 'slate' | 'mono'
+  | 'emerald' | 'sky' | 'violet' | 'rose' | 'amber' | 'orange'
+  | 'navy' | 'crimson' | 'pine' | 'gold' | 'plum' | 'coffee'
+  | 'cyan' | 'lime' | 'fuchsia' | 'pink' | 'red' | 'yellow'
+  | 'mint' | 'coral' | 'lavender' | 'brown' | 'steel' | 'charcoal'
+  | 'midnight' | 'forest' | 'maroon' | 'olive';
 
 export type DocumentType = 'bill' | 'invoice';
 
@@ -59,6 +65,10 @@ export interface BillDocument {
   shippingAddress?: string; // Shipping Address
   shippingSameAsBilling?: boolean;
   clientTaxNumber?: string; // GST / Tax Number
+  // Patient Details (Healthcare / Clinical Bill)
+  patientId?: string;
+  patientGender?: string;
+  patientAge?: string;
   // Items
   items: DocumentItem[];
   // Calculations

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Calendar,
   User,
@@ -76,22 +76,45 @@ export default function CreateBillPage({
 }: CreateBillPageProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [showGallery, setShowGallery] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isDraggingLogo, setIsDraggingLogo] = useState(false);
   const [lastDueDate, setLastDueDate] = useState('');
   const [showSampleData, setShowSampleData] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const colorPickerRef = useRef<HTMLDivElement>(null);
 
   const sanitizeBillDoc = (doc: Partial<BillDocument>): BillDocument => {
-    const cleanTitle =
+    const resolvedTemplate = normalizeTemplateId(doc.template || 'apex-corporate-bill', 'bill');
+    const isDocClinical = resolvedTemplate === 'medical-clinical';
+    const defaultTitle = isDocClinical ? 'HOSPITAL BILL' : 'BILL';
+    const defaultBillNum = isDocClinical ? 'HSP-2026-1123' : 'BIL-2026-5479';
+
+    let cleanTitle = doc.title?.trim() || defaultTitle;
+    if (isDocClinical) {
+      if (!doc.title || doc.title.toLowerCase().includes('walk-in') || doc.title.toLowerCase().includes('retail') || doc.title.toLowerCase().includes('enterprise') || doc.title === 'BILL') {
+        cleanTitle = 'HOSPITAL BILL';
+      }
+    } else if (
       doc.title &&
       !doc.title.toLowerCase().includes('enterprise') &&
       !doc.title.toLowerCase().includes('architecture') &&
       !doc.title.toLowerCase().includes('consulting') &&
       doc.title.trim().length <= 40
-        ? doc.title.trim()
-        : (doc.title?.trim() || 'BILL');
+    ) {
+      cleanTitle = doc.title.trim();
+    }
+
+    let cleanBillNum = doc.billNumber?.trim() || defaultBillNum;
+    if (isDocClinical && (!doc.billNumber || doc.billNumber.startsWith('BIL-') || doc.billNumber.startsWith('INV-'))) {
+      cleanBillNum = 'HSP-2026-1123';
+    }
+
+    let cleanClientName = doc.clientName !== undefined ? doc.clientName : (isDocClinical ? 'Walk-in Patient' : '');
+    if (isDocClinical && (!doc.clientName || doc.clientName === 'Walk-in Customer')) {
+      cleanClientName = doc.clientName === '' ? '' : (doc.clientName || 'Walk-in Patient');
+    }
 
     // Clear any previous shopping cart SVG so the light grey image icon displays
     const cleanSenderLogo =
@@ -107,8 +130,17 @@ export default function CreateBillPage({
       ...doc,
       senderLogo: cleanSenderLogo,
       title: cleanTitle,
+      billNumber: cleanBillNum,
+      clientName: cleanClientName,
+      patientId: isDocClinical ? (doc.patientId || '112233') : doc.patientId,
+      patientGender: isDocClinical ? (doc.patientGender || 'Male') : doc.patientGender,
+      patientAge: isDocClinical ? (doc.patientAge || '32 Years') : doc.patientAge,
+      clientCompany: doc.clientCompany || '',
+      shippingAddress: isDocClinical ? '' : doc.shippingAddress,
+      shippingSameAsBilling: isDocClinical ? false : (doc.shippingSameAsBilling ?? true),
+      poNumber: isDocClinical ? '' : doc.poNumber,
       type: 'bill',
-      template: normalizeTemplateId(doc.template || 'apex-corporate-bill', 'bill'),
+      template: resolvedTemplate,
     };
 
     return applyBusinessProfileToDoc(baseDoc);
@@ -167,9 +199,12 @@ export default function CreateBillPage({
     } else {
       const stored = localStorage.getItem('billease_active_template');
       if (stored) {
+        const norm = normalizeTemplateId(stored, 'bill');
         setFormData((prev) => ({
           ...prev,
-          template: normalizeTemplateId(stored, 'bill'),
+          template: norm,
+          title: norm === 'medical-clinical' && (!prev.title || prev.title === 'BILL') ? 'HOSPITAL BILL' : prev.title,
+          billNumber: norm === 'medical-clinical' && (!prev.billNumber || prev.billNumber.startsWith('BIL-')) ? 'HSP-2026-1123' : prev.billNumber,
         }));
       }
     }
@@ -205,8 +240,27 @@ export default function CreateBillPage({
     };
   }, [onNotify]);
 
-  const activeAccentHex = ACCENT_COLOR_MAP[formData.accent] || '#1e3a8a';
+  // Close color picker when clicking outside
+  useEffect(() => {
+    if (!showColorPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node)) {
+        setShowColorPicker(false);
+      }
+    };
+    // Use setTimeout to skip the current click event that opened the picker
+    const tid = window.setTimeout(() => {
+      document.addEventListener('mousedown', handler);
+    }, 0);
+    return () => {
+      window.clearTimeout(tid);
+      document.removeEventListener('mousedown', handler);
+    };
+  }, [showColorPicker]);
+
+  const activeAccentHex = ACCENT_COLOR_MAP[formData.accent] || '#4f46e5';
   const currencySymbol = CURRENCY_SYMBOLS[formData.currency] || '₹';
+  const isClinical = normalizeTemplateId(formData.template, 'bill') === 'medical-clinical';
 
   // Live calculations using standalone calculation engine
   const calc = useMemo(() => {
@@ -228,7 +282,13 @@ export default function CreateBillPage({
     });
 
     // Clear validation error on field change
-    if (validationErrors[field]) {
+    if (validationErrors.clientName && (field === 'clientName' || field === 'clientCompany')) {
+      setValidationErrors((prev) => {
+        const next = { ...prev };
+        delete next.clientName;
+        return next;
+      });
+    } else if (validationErrors[field]) {
       setValidationErrors((prev) => {
         const next = { ...prev };
         delete next[field];
@@ -525,8 +585,12 @@ export default function CreateBillPage({
     }
 
     if (step === 2) {
-      if (!formData.clientName?.trim()) {
-        errors.clientName = 'Customer or Company Name is required.';
+      const hasCustomerIdentifier = Boolean(formData.clientName?.trim() || formData.clientCompany?.trim());
+      if (!hasCustomerIdentifier) {
+        errors.clientName = isClinical ? 'Patient Full Name is required.' : 'Customer or Company Name is required.';
+      }
+      if (!formData.clientAddress?.trim()) {
+        errors.clientAddress = isClinical ? 'Patient Address is required.' : 'Billing Address is required.';
       }
       if (formData.clientEmail?.trim() && !/^\S+@\S+\.\S+$/.test(formData.clientEmail.trim())) {
         errors.clientEmail = 'Please enter a valid email address.';
@@ -535,7 +599,7 @@ export default function CreateBillPage({
 
     if (step === 3) {
       if (!formData.senderName?.trim()) {
-        errors.senderName = 'Business Name is required.';
+        errors.senderName = isClinical ? 'Hospital Name is required.' : 'Business Name is required.';
       }
       if (formData.senderEmail?.trim() && !/^\S+@\S+\.\S+$/.test(formData.senderEmail.trim())) {
         errors.senderEmail = 'Please enter a valid business email address.';
@@ -774,300 +838,569 @@ export default function CreateBillPage({
             <div className="form-step-content">
               <div className="form-step-header">
                 <h2>1. Bill Details</h2>
-                <p>Set the bill number, dates, currency, and choose your bill template.</p>
+                <p>
+                  {isClinical
+                    ? 'Set the hospital bill title, bill number, issue date, and due date.'
+                    : 'Set the bill number, dates, currency, and choose your bill template.'}
+                </p>
               </div>
 
               <div className="form-fields-stack">
-                <div className="form-grid-2">
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="input-bill-num">
-                      Bill Number <span className="req-star">*</span>
-                    </label>
-                    <input
-                      id="input-bill-num"
-                      className={`form-input ${validationErrors.billNumber ? 'input-error' : ''}`}
-                      type="text"
-                      value={formData.billNumber}
-                      onChange={(e) => handleInputChange('billNumber', e.target.value)}
-                      placeholder="e.g. BILL-2026-5479"
-                    />
-                    {validationErrors.billNumber && (
-                      <span className="field-error-text">{validationErrors.billNumber}</span>
-                    )}
-                  </div>
+                {isClinical ? (
+                  <>
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-bill-title">
+                          Bill Title / Type
+                        </label>
+                        <input
+                          id="input-bill-title"
+                          className="form-input"
+                          type="text"
+                          list="clinical-title-options"
+                          value={formData.title || 'HOSPITAL BILL'}
+                          onChange={(e) => handleInputChange('title', e.target.value)}
+                          placeholder="HOSPITAL BILL"
+                        />
+                        <datalist id="clinical-title-options">
+                          <option value="HOSPITAL BILL" />
+                          <option value="CLINICAL BILL" />
+                          <option value="MEDICAL BILL" />
+                          <option value="IN-PATIENT BILL" />
+                          <option value="OUT-PATIENT (OPD) BILL" />
+                          <option value="TAX INVOICE" />
+                          <option value="RECEIPT" />
+                        </datalist>
+                      </div>
 
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="input-bill-title">
-                      Bill Title / Type
-                    </label>
-                    <select
-                      id="input-bill-title"
-                      className="form-input"
-                      value={formData.title || 'BILL'}
-                      onChange={(e) => handleInputChange('title', e.target.value)}
-                    >
-                      <option value="BILL">BILL (Standard)</option>
-                      <option value="TAX BILL">TAX BILL</option>
-                      <option value="CASH MEMO">CASH MEMO</option>
-                      <option value="RETAIL INVOICE">RETAIL INVOICE</option>
-                      <option value="RECEIPT">RECEIPT</option>
-                      <option value="PROFORMA INVOICE">PROFORMA INVOICE</option>
-                      <option value="COMMERCIAL INVOICE">COMMERCIAL INVOICE</option>
-                      {!['BILL', 'TAX BILL', 'CASH MEMO', 'RETAIL INVOICE', 'RECEIPT', 'PROFORMA INVOICE', 'COMMERCIAL INVOICE'].includes(formData.title || 'BILL') && (
-                        <option value={formData.title}>{formData.title}</option>
-                      )}
-                    </select>
-                  </div>
-                </div>
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-bill-num">
+                          Bill Number <span className="req-star">*</span>
+                        </label>
+                        <input
+                          id="input-bill-num"
+                          className={`form-input ${validationErrors.billNumber ? 'input-error' : ''}`}
+                          type="text"
+                          value={formData.billNumber || 'HSP-2026-1123'}
+                          onChange={(e) => handleInputChange('billNumber', e.target.value)}
+                          placeholder="e.g. HSP-2026-1123"
+                        />
+                        {validationErrors.billNumber && (
+                          <span className="field-error-text">{validationErrors.billNumber}</span>
+                        )}
+                      </div>
+                    </div>
 
-                <div className="form-grid-2">
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="input-po-num">
-                      Reference / PO (optional)
-                    </label>
-                    <input
-                      id="input-po-num"
-                      className="form-input"
-                      type="text"
-                      value={formData.poNumber || ''}
-                      onChange={(e) => handleInputChange('poNumber', e.target.value)}
-                      placeholder="PO-12345"
-                    />
-                  </div>
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-issue-date">
+                          Bill Date <span className="req-star">*</span>
+                        </label>
+                        <DateInputWithPicker
+                          id="input-issue-date"
+                          value={formData.issueDate}
+                          onChange={(val) => handleInputChange('issueDate', val)}
+                          placeholder="YYYY-MM-DD"
+                          title="Select Bill Date from calendar"
+                        />
+                        {validationErrors.issueDate && (
+                          <span className="field-error-text">{validationErrors.issueDate}</span>
+                        )}
+                      </div>
 
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="input-currency-sel">
-                      Billing Currency
-                    </label>
-                    <select
-                      id="input-currency-sel"
-                      className="form-input"
-                      value={formData.currency}
-                      onChange={(e) => handleInputChange('currency', e.target.value as CurrencyCode)}
-                    >
-                      <option value="INR">INR (₹ - Indian Rupee)</option>
-                      <option value="USD">USD ($ - US Dollar)</option>
-                      <option value="EUR">EUR (€ - Euro)</option>
-                      <option value="GBP">GBP (£ - British Pound)</option>
-                      <option value="CAD">CAD ($ - Canadian Dollar)</option>
-                    </select>
-                  </div>
-                </div>
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-due-date">
+                          Due Date
+                        </label>
+                        <DateInputWithPicker
+                          id="input-due-date"
+                          value={formData.dueDate}
+                          onChange={(val) => handleInputChange('dueDate', val)}
+                          placeholder="YYYY-MM-DD"
+                          title="Select Due Date from calendar"
+                          disabled={!formData.dueDate}
+                        />
+                        <label htmlFor="bill-no-due-date" className="no-due-date-toggle" title="Check this if the bill has no due date">
+                          <input
+                            id="bill-no-due-date"
+                            type="checkbox"
+                            checked={!formData.dueDate}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setLastDueDate(formData.dueDate);
+                                handleInputChange('dueDate', '');
+                              } else {
+                                handleInputChange('dueDate', lastDueDate || new Date().toISOString().slice(0, 10));
+                              }
+                            }}
+                          />
+                          <span>No due date</span>
+                        </label>
+                      </div>
+                    </div>
 
-                <div className="form-grid-2">
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="input-issue-date">
-                      Bill Date <span className="req-star">*</span>
-                    </label>
-                    <DateInputWithPicker
-                      id="input-issue-date"
-                      value={formData.issueDate}
-                      onChange={(val) => handleInputChange('issueDate', val)}
-                      placeholder="YYYY-MM-DD"
-                      title="Select Bill Date from calendar"
-                    />
-                    {validationErrors.issueDate && (
-                      <span className="field-error-text">{validationErrors.issueDate}</span>
-                    )}
-                  </div>
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-currency-sel">
+                          Billing Currency
+                        </label>
+                        <select
+                          id="input-currency-sel"
+                          className="form-input"
+                          value={formData.currency}
+                          onChange={(e) => handleInputChange('currency', e.target.value as CurrencyCode)}
+                        >
+                          <option value="INR">INR (₹ - Indian Rupee)</option>
+                          <option value="USD">USD ($ - US Dollar)</option>
+                          <option value="EUR">EUR (€ - Euro)</option>
+                          <option value="GBP">GBP (£ - British Pound)</option>
+                          <option value="CAD">CAD ($ - Canadian Dollar)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-bill-num">
+                          Bill Number <span className="req-star">*</span>
+                        </label>
+                        <input
+                          id="input-bill-num"
+                          className={`form-input ${validationErrors.billNumber ? 'input-error' : ''}`}
+                          type="text"
+                          value={formData.billNumber}
+                          onChange={(e) => handleInputChange('billNumber', e.target.value)}
+                          placeholder="e.g. BILL-2026-5479"
+                        />
+                        {validationErrors.billNumber && (
+                          <span className="field-error-text">{validationErrors.billNumber}</span>
+                        )}
+                      </div>
 
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="input-due-date">
-                      Due Date
-                    </label>
-                    <DateInputWithPicker
-                      id="input-due-date"
-                      value={formData.dueDate}
-                      onChange={(val) => handleInputChange('dueDate', val)}
-                      placeholder="YYYY-MM-DD"
-                      title="Select Due Date from calendar"
-                      disabled={!formData.dueDate}
-                    />
-                    <label htmlFor="bill-no-due-date" className="no-due-date-toggle" title="Check this if the bill has no due date (e.g. a one-off receipt or cash sale)">
-                      <input
-                        id="bill-no-due-date"
-                        type="checkbox"
-                        checked={!formData.dueDate}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setLastDueDate(formData.dueDate);
-                            handleInputChange('dueDate', '');
-                          } else {
-                            handleInputChange('dueDate', lastDueDate || new Date().toISOString().slice(0, 10));
-                          }
-                        }}
-                      />
-                      <span>No due date</span>
-                    </label>
-                  </div>
-                </div>
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-bill-title">
+                          Bill Title / Type
+                        </label>
+                        <select
+                          id="input-bill-title"
+                          className="form-input"
+                          value={formData.title || 'BILL'}
+                          onChange={(e) => handleInputChange('title', e.target.value)}
+                        >
+                          <option value="BILL">BILL (Standard)</option>
+                          <option value="TAX BILL">TAX BILL</option>
+                          <option value="CASH MEMO">CASH MEMO</option>
+                          <option value="RETAIL INVOICE">RETAIL INVOICE</option>
+                          <option value="RECEIPT">RECEIPT</option>
+                          <option value="PROFORMA INVOICE">PROFORMA INVOICE</option>
+                          <option value="COMMERCIAL INVOICE">COMMERCIAL INVOICE</option>
+                          {!['BILL', 'TAX BILL', 'CASH MEMO', 'RETAIL INVOICE', 'RECEIPT', 'PROFORMA INVOICE', 'COMMERCIAL INVOICE'].includes(formData.title || 'BILL') && (
+                            <option value={formData.title}>{formData.title}</option>
+                          )}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-po-num">
+                          Reference / PO (optional)
+                        </label>
+                        <input
+                          id="input-po-num"
+                          className="form-input"
+                          type="text"
+                          value={formData.poNumber || ''}
+                          onChange={(e) => handleInputChange('poNumber', e.target.value)}
+                          placeholder="PO-12345"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-currency-sel">
+                          Billing Currency
+                        </label>
+                        <select
+                          id="input-currency-sel"
+                          className="form-input"
+                          value={formData.currency}
+                          onChange={(e) => handleInputChange('currency', e.target.value as CurrencyCode)}
+                        >
+                          <option value="INR">INR (₹ - Indian Rupee)</option>
+                          <option value="USD">USD ($ - US Dollar)</option>
+                          <option value="EUR">EUR (€ - Euro)</option>
+                          <option value="GBP">GBP (£ - British Pound)</option>
+                          <option value="CAD">CAD ($ - Canadian Dollar)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-issue-date">
+                          Bill Date <span className="req-star">*</span>
+                        </label>
+                        <DateInputWithPicker
+                          id="input-issue-date"
+                          value={formData.issueDate}
+                          onChange={(val) => handleInputChange('issueDate', val)}
+                          placeholder="YYYY-MM-DD"
+                          title="Select Bill Date from calendar"
+                        />
+                        {validationErrors.issueDate && (
+                          <span className="field-error-text">{validationErrors.issueDate}</span>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-due-date">
+                          Due Date
+                        </label>
+                        <DateInputWithPicker
+                          id="input-due-date"
+                          value={formData.dueDate}
+                          onChange={(val) => handleInputChange('dueDate', val)}
+                          placeholder="YYYY-MM-DD"
+                          title="Select Due Date from calendar"
+                          disabled={!formData.dueDate}
+                        />
+                        <label htmlFor="bill-no-due-date" className="no-due-date-toggle" title="Check this if the bill has no due date (e.g. a one-off receipt or cash sale)">
+                          <input
+                            id="bill-no-due-date"
+                            type="checkbox"
+                            checked={!formData.dueDate}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setLastDueDate(formData.dueDate);
+                                handleInputChange('dueDate', '');
+                              } else {
+                                handleInputChange('dueDate', lastDueDate || new Date().toISOString().slice(0, 10));
+                              }
+                            }}
+                          />
+                          <span>No due date</span>
+                        </label>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
 
-          {/* STEP 2: Customer */}
+          {/* STEP 2: Customer / Patient */}
           {currentStep === 2 && (
             <div className="form-step-content">
               <div className="form-step-header">
-                <h2>2. Customer Information (BILL TO)</h2>
-                <p>Billing address, shipping address, and contact person for this bill.</p>
+                <h2>{isClinical ? '2. Patient Information (BILL TO)' : '2. Customer Information (BILL TO)'}</h2>
+                <p>
+                  {isClinical
+                    ? 'Patient demographic details, identification, and billing address.'
+                    : 'Billing address, shipping address, and contact person for this bill.'}
+                </p>
               </div>
 
               <div className="form-fields-stack">
-                <div className="form-grid-2">
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="input-client-name">
-                      Customer / Contact Name <span className="req-star">*</span>
-                    </label>
-                    <div className="input-with-icon">
-                      <span className="input-icon-adornment">
-                        <User size={16} />
-                      </span>
-                      <input
-                        id="input-client-name"
-                        className={`form-input ${validationErrors.clientName ? 'input-error' : ''}`}
-                        type="text"
-                        value={formData.clientName}
-                        onChange={(e) => handleInputChange('clientName', e.target.value)}
-                        placeholder="e.g. Stellar Innovations Pvt. Ltd."
-                      />
+                {isClinical ? (
+                  <>
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-client-name">
+                          Patient Full Name <span className="req-star">*</span>
+                        </label>
+                        <div className="input-with-icon">
+                          <span className="input-icon-adornment">
+                            <User size={16} />
+                          </span>
+                          <input
+                            id="input-client-name"
+                            className={`form-input ${validationErrors.clientName ? 'input-error' : ''}`}
+                            type="text"
+                            value={formData.clientName}
+                            onChange={(e) => handleInputChange('clientName', e.target.value)}
+                            placeholder="e.g. Walk-in Patient"
+                          />
+                        </div>
+                        {validationErrors.clientName && (
+                          <span className="field-error-text">{validationErrors.clientName}</span>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-patient-id">
+                          Patient ID
+                        </label>
+                        <div className="input-with-icon">
+                          <span className="input-icon-adornment">
+                            <FileText size={16} />
+                          </span>
+                          <input
+                            id="input-patient-id"
+                            className="form-input"
+                            type="text"
+                            value={formData.patientId || ''}
+                            onChange={(e) => handleInputChange('patientId', e.target.value)}
+                            placeholder="e.g. 112233"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    {validationErrors.clientName && (
-                      <span className="field-error-text">{validationErrors.clientName}</span>
+
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-patient-gender">
+                          Gender
+                        </label>
+                        <select
+                          id="input-patient-gender"
+                          className="form-input"
+                          value={formData.patientGender || 'Male'}
+                          onChange={(e) => handleInputChange('patientGender', e.target.value)}
+                        >
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-patient-age">
+                          Age
+                        </label>
+                        <input
+                          id="input-patient-age"
+                          className="form-input"
+                          type="text"
+                          value={formData.patientAge || ''}
+                          onChange={(e) => handleInputChange('patientAge', e.target.value)}
+                          placeholder="e.g. 32 Years"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="input-client-addr">
+                        Patient Residential / Billing Address <span className="req-star">*</span>
+                      </label>
+                      <textarea
+                        id="input-client-addr"
+                        className={`form-input form-textarea ${validationErrors.clientAddress ? 'input-error' : ''}`}
+                        rows={2}
+                        value={formData.clientAddress}
+                        onChange={(e) => handleInputChange('clientAddress', e.target.value)}
+                        placeholder="Enter street, city, state, postal code"
+                      />
+                      {validationErrors.clientAddress && (
+                        <span className="field-error-text">{validationErrors.clientAddress}</span>
+                      )}
+                    </div>
+
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-client-phone">
+                          Contact Phone
+                        </label>
+                        <div className="input-with-icon">
+                          <span className="input-icon-adornment">
+                            <Phone size={16} />
+                          </span>
+                          <input
+                            id="input-client-phone"
+                            className="form-input"
+                            type="text"
+                            value={formData.clientPhone || ''}
+                            onChange={(e) => handleInputChange('clientPhone', e.target.value)}
+                            placeholder="+91 98111 22334"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-client-email">
+                          Contact Email
+                        </label>
+                        <div className="input-with-icon">
+                          <span className="input-icon-adornment">
+                            <Mail size={16} />
+                          </span>
+                          <input
+                            id="input-client-email"
+                            className={`form-input ${validationErrors.clientEmail ? 'input-error' : ''}`}
+                            type="email"
+                            value={formData.clientEmail}
+                            onChange={(e) => handleInputChange('clientEmail', e.target.value)}
+                            placeholder="patient@gmail.com"
+                          />
+                        </div>
+                        {validationErrors.clientEmail && (
+                          <span className="field-error-text">{validationErrors.clientEmail}</span>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-client-name">
+                          Customer / Contact Name {!formData.clientCompany?.trim() && <span className="req-star">*</span>}
+                        </label>
+                        <div className="input-with-icon">
+                          <span className="input-icon-adornment">
+                            <User size={16} />
+                          </span>
+                          <input
+                            id="input-client-name"
+                            className={`form-input ${validationErrors.clientName ? 'input-error' : ''}`}
+                            type="text"
+                            value={formData.clientName}
+                            onChange={(e) => handleInputChange('clientName', e.target.value)}
+                            placeholder="e.g. Walk-in Customer"
+                          />
+                        </div>
+                        {validationErrors.clientName && (
+                          <span className="field-error-text">{validationErrors.clientName}</span>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-client-company">
+                          Company Name (optional)
+                        </label>
+                        <div className="input-with-icon">
+                          <span className="input-icon-adornment">
+                            <Building2 size={16} />
+                          </span>
+                          <input
+                            id="input-client-company"
+                            className="form-input"
+                            type="text"
+                            value={formData.clientCompany || ''}
+                            onChange={(e) => handleInputChange('clientCompany', e.target.value)}
+                            placeholder="e.g. Stellar Group Ltd."
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-client-email">
+                          Contact Email
+                        </label>
+                        <div className="input-with-icon">
+                          <span className="input-icon-adornment">
+                            <Mail size={16} />
+                          </span>
+                          <input
+                            id="input-client-email"
+                            className={`form-input ${validationErrors.clientEmail ? 'input-error' : ''}`}
+                            type="email"
+                            value={formData.clientEmail}
+                            onChange={(e) => handleInputChange('clientEmail', e.target.value)}
+                            placeholder="accounts@stellarinnovations.com"
+                          />
+                        </div>
+                        {validationErrors.clientEmail && (
+                          <span className="field-error-text">{validationErrors.clientEmail}</span>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="input-client-phone">
+                          Contact Phone
+                        </label>
+                        <div className="input-with-icon">
+                          <span className="input-icon-adornment">
+                            <Phone size={16} />
+                          </span>
+                          <input
+                            id="input-client-phone"
+                            className="form-input"
+                            type="text"
+                            value={formData.clientPhone || ''}
+                            onChange={(e) => handleInputChange('clientPhone', e.target.value)}
+                            placeholder="+91 98111 22334"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="input-client-tax">
+                        Customer GST / Tax Number (optional)
+                      </label>
+                      <div className="input-with-icon">
+                        <span className="input-icon-adornment">
+                          <ShieldCheck size={16} />
+                        </span>
+                        <input
+                          id="input-client-tax"
+                          className="form-input"
+                          type="text"
+                          value={formData.clientTaxNumber || ''}
+                          onChange={(e) => handleInputChange('clientTaxNumber', e.target.value)}
+                          placeholder="e.g. 29AABCS5678G1Z2"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="input-client-addr">
+                        Billing Address <span className="req-star">*</span>
+                      </label>
+                      <textarea
+                        id="input-client-addr"
+                        className={`form-input form-textarea ${validationErrors.clientAddress ? 'input-error' : ''}`}
+                        rows={2}
+                        value={formData.clientAddress}
+                        onChange={(e) => handleInputChange('clientAddress', e.target.value)}
+                        placeholder="Enter street, city, state, postal code, and country"
+                      />
+                      {validationErrors.clientAddress && (
+                        <span className="field-error-text">{validationErrors.clientAddress}</span>
+                      )}
+                    </div>
+
+                    {/* Shipping Address same as billing toggle */}
+                    <div className="form-checkbox-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0' }}>
+                      <input
+                        id="chk-shipping-same"
+                        type="checkbox"
+                        checked={formData.shippingSameAsBilling ?? true}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFormData((prev) => ({
+                            ...prev,
+                            shippingSameAsBilling: checked,
+                            shippingAddress: checked ? prev.clientAddress : prev.shippingAddress || '',
+                          }));
+                        }}
+                        style={{ width: 16, height: 16, cursor: 'pointer' }}
+                      />
+                      <label htmlFor="chk-shipping-same" style={{ fontSize: '0.85rem', fontWeight: 500, cursor: 'pointer', userSelect: 'none' }}>
+                        Shipping address same as billing address
+                      </label>
+                    </div>
+
+                    {!formData.shippingSameAsBilling && (
+                      <div className="form-group" style={{ marginTop: '0.5rem' }}>
+                        <label className="form-label" htmlFor="input-shipping-addr">
+                          Shipping / Delivery Address
+                        </label>
+                        <textarea
+                          id="input-shipping-addr"
+                          className="form-input form-textarea"
+                          rows={2}
+                          value={formData.shippingAddress || ''}
+                          onChange={(e) => handleInputChange('shippingAddress', e.target.value)}
+                          placeholder="Enter warehouse, dispatch dock, or site address"
+                        />
+                      </div>
                     )}
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="input-client-company">
-                      Company Name (optional)
-                    </label>
-                    <div className="input-with-icon">
-                      <span className="input-icon-adornment">
-                        <Building2 size={16} />
-                      </span>
-                      <input
-                        id="input-client-company"
-                        className="form-input"
-                        type="text"
-                        value={formData.clientCompany || ''}
-                        onChange={(e) => handleInputChange('clientCompany', e.target.value)}
-                        placeholder="e.g. Stellar Group Ltd."
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="form-grid-2">
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="input-client-email">
-                      Contact Email
-                    </label>
-                    <div className="input-with-icon">
-                      <span className="input-icon-adornment">
-                        <Mail size={16} />
-                      </span>
-                      <input
-                        id="input-client-email"
-                        className={`form-input ${validationErrors.clientEmail ? 'input-error' : ''}`}
-                        type="email"
-                        value={formData.clientEmail}
-                        onChange={(e) => handleInputChange('clientEmail', e.target.value)}
-                        placeholder="accounts@stellarinnovations.com"
-                      />
-                    </div>
-                    {validationErrors.clientEmail && (
-                      <span className="field-error-text">{validationErrors.clientEmail}</span>
-                    )}
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="input-client-phone">
-                      Contact Phone
-                    </label>
-                    <div className="input-with-icon">
-                      <span className="input-icon-adornment">
-                        <Phone size={16} />
-                      </span>
-                      <input
-                        id="input-client-phone"
-                        className="form-input"
-                        type="text"
-                        value={formData.clientPhone || ''}
-                        onChange={(e) => handleInputChange('clientPhone', e.target.value)}
-                        placeholder="+91 98111 22334"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" htmlFor="input-client-tax">
-                    Customer GST / Tax Number (optional)
-                  </label>
-                  <div className="input-with-icon">
-                    <span className="input-icon-adornment">
-                      <ShieldCheck size={16} />
-                    </span>
-                    <input
-                      id="input-client-tax"
-                      className="form-input"
-                      type="text"
-                      value={formData.clientTaxNumber || ''}
-                      onChange={(e) => handleInputChange('clientTaxNumber', e.target.value)}
-                      placeholder="e.g. 29AABCS5678G1Z2"
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" htmlFor="input-client-addr">
-                    Billing Address
-                  </label>
-                  <textarea
-                    id="input-client-addr"
-                    className="form-input form-textarea"
-                    rows={2}
-                    value={formData.clientAddress}
-                    onChange={(e) => handleInputChange('clientAddress', e.target.value)}
-                    placeholder="Enter street, city, state, postal code, and country"
-                  />
-                </div>
-
-                {/* Shipping Address same as billing toggle */}
-                <div className="form-checkbox-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0' }}>
-                  <input
-                    id="chk-shipping-same"
-                    type="checkbox"
-                    checked={formData.shippingSameAsBilling ?? true}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setFormData((prev) => ({
-                        ...prev,
-                        shippingSameAsBilling: checked,
-                        shippingAddress: checked ? prev.clientAddress : prev.shippingAddress || '',
-                      }));
-                    }}
-                    style={{ width: 16, height: 16, cursor: 'pointer' }}
-                  />
-                  <label htmlFor="chk-shipping-same" style={{ fontSize: '0.85rem', fontWeight: 500, cursor: 'pointer', userSelect: 'none' }}>
-                    Shipping address same as billing address
-                  </label>
-                </div>
-
-                {!formData.shippingSameAsBilling && (
-                  <div className="form-group" style={{ marginTop: '0.5rem' }}>
-                    <label className="form-label" htmlFor="input-shipping-addr">
-                      Shipping / Delivery Address
-                    </label>
-                    <textarea
-                      id="input-shipping-addr"
-                      className="form-input form-textarea"
-                      rows={2}
-                      value={formData.shippingAddress || ''}
-                      onChange={(e) => handleInputChange('shippingAddress', e.target.value)}
-                      placeholder="Enter warehouse, dispatch dock, or site address"
-                    />
-                  </div>
+                  </>
                 )}
               </div>
             </div>
@@ -1209,7 +1542,7 @@ export default function CreateBillPage({
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label className="form-label" htmlFor="input-sender-name">
-                      Business / Company Name <span className="req-star">*</span>
+                      {isClinical ? 'Hospital / Clinic Name' : 'Business / Company Name'} <span className="req-star">*</span>
                     </label>
                     <div className="input-with-icon">
                       <span className="input-icon-adornment">
@@ -1221,7 +1554,7 @@ export default function CreateBillPage({
                         type="text"
                         value={formData.senderName || ''}
                         onChange={(e) => handleInputChange('senderName', e.target.value)}
-                        placeholder="e.g. Apex Corporate"
+                        placeholder={isClinical ? 'e.g. CityCare' : 'e.g. Apex Corporate'}
                       />
                     </div>
                     {validationErrors.senderName && (
@@ -1231,7 +1564,7 @@ export default function CreateBillPage({
 
                   <div className="form-group">
                     <label className="form-label" htmlFor="input-sender-tagline">
-                      Tagline / Business Department
+                      {isClinical ? 'Tagline / Hospital Department' : 'Tagline / Business Department'}
                     </label>
                     <input
                       id="input-sender-tagline"
@@ -1239,7 +1572,7 @@ export default function CreateBillPage({
                       type="text"
                       value={formData.senderTagline || ''}
                       onChange={(e) => handleInputChange('senderTagline', e.target.value)}
-                      placeholder="Corporate Billing Services"
+                      placeholder={isClinical ? 'e.g. Healthcare Department (optional)' : 'Corporate Billing Services'}
                     />
                   </div>
                 </div>
@@ -1424,14 +1757,14 @@ export default function CreateBillPage({
 
                         <div className="form-group" style={{ gap: '6px' }}>
                           <label className="form-label" style={{ fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
-                            Description <span style={{ color: '#94a3b8', fontWeight: 400 }}>(Optional)</span>
+                            Description
                           </label>
                           <input
                             className="form-input"
                             type="text"
                             value={item.description || ''}
                             onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
-                            placeholder="Optional item description"
+                            placeholder="Enter item description..."
                           />
                         </div>
                       </div>
@@ -1543,8 +1876,8 @@ export default function CreateBillPage({
                           </div>
                         </div>
 
-                        <div className="form-group" style={{ textAlign: 'right', gap: '6px' }}>
-                          <label className="form-label" style={{ fontSize: '0.74rem', textAlign: 'right', display: 'block' }}>
+                        <div className="form-group" style={{ textAlign: 'right', alignItems: 'flex-end', gap: '6px' }}>
+                          <label className="form-label" style={{ fontSize: '0.74rem', textAlign: 'right', display: 'block', width: '100%' }}>
                             Line Total
                           </label>
                           <div className="item-line-total-value">
@@ -1738,26 +2071,28 @@ export default function CreateBillPage({
                         className="form-input number-stepper-input"
                         type="number"
                         min="0"
-                        step="1"
-                        value={formData.discount || 0}
-                        onChange={(e) => handleInputChange('discount', parseFloat(e.target.value) || 0)}
+                        step="any"
+                        placeholder="0"
+                        value={formData.discount ? formData.discount : ''}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => handleInputChange('discount', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
                       />
                       <div className="number-stepper-btns">
                         <button
                           type="button"
                           className="number-stepper-btn up"
-                          onClick={() => handleStepDiscount(100)}
-                          title="Increase Discount (+100)"
+                          onClick={() => handleStepDiscount(50)}
+                          title="Increase Discount (+50)"
                         >
-                          <ChevronUp size={12} strokeWidth={2.6} />
+                          <ChevronUp size={11} strokeWidth={2.6} />
                         </button>
                         <button
                           type="button"
                           className="number-stepper-btn down"
-                          onClick={() => handleStepDiscount(-100)}
-                          title="Decrease Discount (-100)"
+                          onClick={() => handleStepDiscount(-50)}
+                          title="Decrease Discount (-50)"
                         >
-                          <ChevronDown size={12} strokeWidth={2.6} />
+                          <ChevronDown size={11} strokeWidth={2.6} />
                         </button>
                       </div>
                     </div>
@@ -1774,9 +2109,11 @@ export default function CreateBillPage({
                         type="number"
                         min="0"
                         max="100"
-                        step="1"
-                        value={formData.taxRate || 0}
-                        onChange={(e) => handleInputChange('taxRate', parseFloat(e.target.value) || 0)}
+                        step="any"
+                        placeholder="0"
+                        value={formData.taxRate ? formData.taxRate : ''}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => handleInputChange('taxRate', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
                       />
                       <div className="number-stepper-btns">
                         <button
@@ -1785,7 +2122,7 @@ export default function CreateBillPage({
                           onClick={() => handleStepTaxRate(1)}
                           title="Increase Tax Rate (+1%)"
                         >
-                          <ChevronUp size={12} strokeWidth={2.6} />
+                          <ChevronUp size={11} strokeWidth={2.6} />
                         </button>
                         <button
                           type="button"
@@ -1793,7 +2130,7 @@ export default function CreateBillPage({
                           onClick={() => handleStepTaxRate(-1)}
                           title="Decrease Tax Rate (-1%)"
                         >
-                          <ChevronDown size={12} strokeWidth={2.6} />
+                          <ChevronDown size={11} strokeWidth={2.6} />
                         </button>
                       </div>
                     </div>
@@ -1811,10 +2148,11 @@ export default function CreateBillPage({
                         className="form-input number-stepper-input"
                         type="number"
                         min="0"
-                        step="1"
-                        value={formData.additionalCharges || 0}
-                        onChange={(e) => handleInputChange('additionalCharges', parseFloat(e.target.value) || 0)}
-                        placeholder="Shipping, handling, etc."
+                        step="any"
+                        placeholder="0"
+                        value={formData.additionalCharges ? formData.additionalCharges : ''}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => handleInputChange('additionalCharges', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
                       />
                       <div className="number-stepper-btns">
                         <button
@@ -1823,7 +2161,7 @@ export default function CreateBillPage({
                           onClick={() => handleStepAdditionalCharges(50)}
                           title="Increase (+50)"
                         >
-                          <ChevronUp size={12} strokeWidth={2.6} />
+                          <ChevronUp size={11} strokeWidth={2.6} />
                         </button>
                         <button
                           type="button"
@@ -1831,7 +2169,7 @@ export default function CreateBillPage({
                           onClick={() => handleStepAdditionalCharges(-50)}
                           title="Decrease (-50)"
                         >
-                          <ChevronDown size={12} strokeWidth={2.6} />
+                          <ChevronDown size={11} strokeWidth={2.6} />
                         </button>
                       </div>
                     </div>
@@ -1847,29 +2185,51 @@ export default function CreateBillPage({
                         className={`form-input number-stepper-input ${validationErrors.amountPaid ? 'input-error' : ''}`}
                         type="number"
                         min="0"
-                        step="0.01"
-                        value={formData.amountPaid || 0}
-                        onChange={(e) => handleInputChange('amountPaid', parseFloat(e.target.value) || 0)}
+                        step="any"
                         placeholder="0.00"
+                        value={formData.amountPaid ? formData.amountPaid : ''}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => handleInputChange('amountPaid', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
                       />
                       <div className="number-stepper-btns">
                         <button
                           type="button"
                           className="number-stepper-btn up"
-                          onClick={() => handleStepAmountPaid(100)}
-                          title="Increase Amount Paid (+100)"
+                          onClick={() => handleStepAmountPaid(50)}
+                          title="Increase Amount Paid (+50)"
                         >
-                          <ChevronUp size={12} strokeWidth={2.6} />
+                          <ChevronUp size={11} strokeWidth={2.6} />
                         </button>
                         <button
                           type="button"
                           className="number-stepper-btn down"
-                          onClick={() => handleStepAmountPaid(-100)}
-                          title="Decrease Amount Paid (-100)"
+                          onClick={() => handleStepAmountPaid(-50)}
+                          title="Decrease Amount Paid (-50)"
                         >
-                          <ChevronDown size={12} strokeWidth={2.6} />
+                          <ChevronDown size={11} strokeWidth={2.6} />
                         </button>
                       </div>
+                    </div>
+                    {/* Live calculated Balance Due indicator */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginTop: 6,
+                        padding: '4px 10px',
+                        background: calc.balanceDue > 0 ? '#FEF3C7' : '#DCFCE7',
+                        border: `1px solid ${calc.balanceDue > 0 ? '#FDE68A' : '#BBF7D0'}`,
+                        borderRadius: 6,
+                        fontSize: '0.76rem',
+                        color: calc.balanceDue > 0 ? '#92400E' : '#166534',
+                        fontWeight: 600,
+                      }}
+                    >
+                      <span>Balance Due:</span>
+                      <strong style={{ fontSize: '0.84rem' }}>
+                        {currencySymbol}{formatAmount(calc.balanceDue)}
+                      </strong>
                     </div>
                     {validationErrors.amountPaid && (
                       <span className="field-error-text">{validationErrors.amountPaid}</span>
@@ -1878,40 +2238,60 @@ export default function CreateBillPage({
                 </div>
 
                 {/* Real-time Calculation Summary Card inside Step 5 */}
-                <div style={{ padding: '14px', background: 'var(--glass-bg-subtle, #f1f5f9)', borderRadius: '10px', marginTop: '6px', border: '1px solid var(--glass-border-subtle, #e2e8f0)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 4 }}>
+                <div style={{ padding: '16px', background: 'var(--glass-bg-subtle, #f8fafc)', borderRadius: '12px', marginTop: '12px', border: '1.5px solid var(--glass-border-subtle, #e2e8f0)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', marginBottom: 6 }}>
                     <span style={{ color: 'var(--text-muted, #64748b)' }}>Subtotal:</span>
                     <span style={{ fontWeight: 600 }}>{currencySymbol}{formatAmount(calc.subtotal)}</span>
                   </div>
                   {calc.discountAmount > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#10b981', marginBottom: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', color: '#10b981', marginBottom: 6 }}>
                       <span>Discount:</span>
                       <span>-{currencySymbol}{formatAmount(calc.discountAmount)}</span>
                     </div>
                   )}
                   {calc.taxAmount > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', marginBottom: 6 }}>
                       <span style={{ color: 'var(--text-muted, #64748b)' }}>Tax / GST:</span>
                       <span style={{ fontWeight: 600 }}>+{currencySymbol}{formatAmount(calc.taxAmount)}</span>
                     </div>
                   )}
                   {calc.additionalCharges > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', marginBottom: 6 }}>
                       <span style={{ color: 'var(--text-muted, #64748b)' }}>Additional Charges:</span>
                       <span style={{ fontWeight: 600 }}>+{currencySymbol}{formatAmount(calc.additionalCharges)}</span>
                     </div>
                   )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem', fontWeight: 700, borderTop: '1px solid var(--glass-border-subtle, #cbd5e1)', paddingTop: 6, marginTop: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.94rem', fontWeight: 700, borderTop: '1px solid var(--glass-border-subtle, #cbd5e1)', paddingTop: 8, marginTop: 4 }}>
                     <span>Grand Total:</span>
                     <span>{currencySymbol}{formatAmount(calc.grandTotal)}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#059669', marginTop: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem', color: '#059669', marginTop: 5 }}>
                     <span>Amount Paid:</span>
                     <span style={{ fontWeight: 700 }}>{currencySymbol}{formatAmount(calc.amountPaid)}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800, color: 'var(--builder-accent, #1e40af)', borderTop: '1px solid var(--glass-border-subtle, #cbd5e1)', paddingTop: 6, marginTop: 6 }}>
-                    <span>BALANCE DUE:</span>
-                    <span>{currencySymbol}{formatAmount(calc.balanceDue)}</span>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: calc.balanceDue > 0 ? '#eff6ff' : '#ecfdf5',
+                      border: `1.5px solid ${calc.balanceDue > 0 ? '#bfdbfe' : '#a7f3d0'}`,
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      marginTop: 10,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.70rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: calc.balanceDue > 0 ? '#1d4ed8' : '#047857' }}>
+                        {calc.balanceDue > 0 ? 'BALANCE TO PAY' : 'SETTLED IN FULL'}
+                      </div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary, #0f172a)' }}>
+                        Balance Amount
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 900, color: calc.balanceDue > 0 ? '#1d4ed8' : '#047857', fontVariantNumeric: 'tabular-nums' }}>
+                      {currencySymbol}{formatAmount(calc.balanceDue)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1983,6 +2363,12 @@ export default function CreateBillPage({
                       gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
                       gap: '12px',
                       marginBottom: '1.5rem',
+                      maxHeight: '300px',
+                      overflowY: 'auto',
+                      paddingRight: '6px',
+                      paddingBottom: '4px',
+                      scrollbarWidth: 'thin',
+                      overscrollBehavior: 'contain',
                     }}
                   >
                     {BILL_TEMPLATES.map((tpl) => {
@@ -2266,12 +2652,29 @@ export default function CreateBillPage({
                   className="template-arch-select"
                   value={normalizeTemplateId(formData.template, 'bill')}
                   onChange={(e) => {
-                    const chosen = e.target.value as TemplateId;
-                    handleInputChange('template', chosen);
+                    const chosen = normalizeTemplateId(e.target.value as TemplateId, 'bill');
+                    if (chosen === 'medical-clinical') {
+                      setFormData((prev) => ({
+                        ...prev,
+                        template: chosen,
+                        title: (!prev.title || prev.title.toLowerCase().includes('walk-in') || prev.title.toLowerCase().includes('retail') || prev.title === 'BILL') ? 'HOSPITAL BILL' : prev.title,
+                        billNumber: (!prev.billNumber || prev.billNumber.startsWith('BIL-') || prev.billNumber.startsWith('INV-')) ? 'HSP-2026-1123' : prev.billNumber,
+                        clientName: (!prev.clientName || prev.clientName === 'Walk-in Customer') ? 'Walk-in Patient' : prev.clientName,
+                        patientId: prev.patientId || '112233',
+                        patientGender: prev.patientGender || 'Male',
+                        patientAge: prev.patientAge || '32 Years',
+                        clientCompany: prev.clientCompany || '',
+                        shippingAddress: '',
+                        shippingSameAsBilling: false,
+                        poNumber: '',
+                      }));
+                    } else {
+                      handleInputChange('template', chosen);
+                    }
                     try {
                       localStorage.setItem('billease_active_template', chosen);
                     } catch (_) {}
-                    onNotify(`Applied ${chosen} layout!`);
+                    onNotify(`Applied layout!`);
                   }}
                   title="Choose Document Template"
                 >
@@ -2285,16 +2688,175 @@ export default function CreateBillPage({
                 </select>
               </div>
 
-              <button
-                type="button"
-                className="btn-gallery-trigger"
-                onClick={() => setShowGallery(true)}
-                title="Browse Templates Gallery"
-                aria-label="Open Template Gallery"
-              >
-                <LayoutGrid size={15} />
-                <span>Gallery</span>
-              </button>
+
+              {/* ── Color Palette Picker ── */}
+              <div ref={colorPickerRef} style={{ position: 'relative' }}>
+
+                {/* Trigger button */}
+                <button
+                  type="button"
+                  className="btn-gallery-trigger"
+                  onClick={(e) => { e.stopPropagation(); setShowColorPicker((v) => !v); }}
+                  title="Change template color"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    borderColor: showColorPicker ? activeAccentHex : undefined,
+                    background:  showColorPicker ? `${activeAccentHex}18` : undefined,
+                  }}
+                >
+                  <span style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, flexShrink: 0 }}>
+                    {([1, 0.65, 0.45, 0.25] as number[]).map((op, i) => (
+                      <span key={i} style={{ width: 6, height: 6, borderRadius: 1.5, background: activeAccentHex, opacity: op, display: 'block' }} />
+                    ))}
+                  </span>
+                  <span>Colors</span>
+                </button>
+
+                {/* Palette popup — fixed so never clipped by overflow */}
+                {showColorPicker && (() => {
+                  const btnRect = colorPickerRef.current?.getBoundingClientRect();
+                  const popTop  = btnRect ? btnRect.bottom + 10 : 70;
+                  const popRight = btnRect ? window.innerWidth - btnRect.right : 20;
+
+                  const GROUPS = [
+                    { label: 'Blues & Teals', colors: [
+                      { key: 'indigo',   hex: '#4f46e5', name: 'Indigo'   },
+                      { key: 'navy',     hex: '#1e3a8a', name: 'Navy'     },
+                      { key: 'midnight', hex: '#1e1b4b', name: 'Midnight' },
+                      { key: 'sky',      hex: '#0284c7', name: 'Sky'      },
+                      { key: 'cyan',     hex: '#0891b2', name: 'Cyan'     },
+                      { key: 'steel',    hex: '#3b6ea5', name: 'Steel'    },
+                      { key: 'teal',     hex: '#0d9488', name: 'Teal'     },
+                    ]},
+                    { label: 'Greens', colors: [
+                      { key: 'emerald',  hex: '#059669', name: 'Emerald'  },
+                      { key: 'mint',     hex: '#10b981', name: 'Mint'     },
+                      { key: 'pine',     hex: '#166534', name: 'Pine'     },
+                      { key: 'forest',   hex: '#14532d', name: 'Forest'   },
+                      { key: 'lime',     hex: '#65a30d', name: 'Lime'     },
+                      { key: 'olive',    hex: '#4d7c0f', name: 'Olive'    },
+                    ]},
+                    { label: 'Purples & Pinks', colors: [
+                      { key: 'violet',   hex: '#7c3aed', name: 'Violet'   },
+                      { key: 'plum',     hex: '#7e22ce', name: 'Plum'     },
+                      { key: 'lavender', hex: '#8b5cf6', name: 'Lavender' },
+                      { key: 'fuchsia',  hex: '#c026d3', name: 'Fuchsia'  },
+                      { key: 'pink',     hex: '#db2777', name: 'Pink'     },
+                    ]},
+                    { label: 'Reds & Oranges', colors: [
+                      { key: 'rose',     hex: '#e11d48', name: 'Rose'     },
+                      { key: 'crimson',  hex: '#be123c', name: 'Crimson'  },
+                      { key: 'maroon',   hex: '#881337', name: 'Maroon'   },
+                      { key: 'red',      hex: '#dc2626', name: 'Red'      },
+                      { key: 'coral',    hex: '#f97316', name: 'Coral'    },
+                      { key: 'orange',   hex: '#ea580c', name: 'Orange'   },
+                    ]},
+                    { label: 'Warm & Earth', colors: [
+                      { key: 'amber',    hex: '#d97706', name: 'Amber'    },
+                      { key: 'gold',     hex: '#b45309', name: 'Gold'     },
+                      { key: 'yellow',   hex: '#ca8a04', name: 'Yellow'   },
+                      { key: 'coffee',   hex: '#78350f', name: 'Coffee'   },
+                      { key: 'brown',    hex: '#92400e', name: 'Brown'    },
+                    ]},
+                    { label: 'Neutrals', colors: [
+                      { key: 'slate',    hex: '#475569', name: 'Slate'    },
+                      { key: 'charcoal', hex: '#374151', name: 'Charcoal' },
+                      { key: 'mono',     hex: '#0f172a', name: 'Black'    },
+                    ]},
+                  ] as { label: string; colors: { key: string; hex: string; name: string }[] }[];
+
+                  const activeKey  = formData.accent || 'indigo';
+                  const activeName = GROUPS.flatMap(g => g.colors).find(c => c.key === activeKey)?.name ?? 'Indigo';
+
+                  return (
+                    <div
+                      onMouseDown={(e) => e.stopPropagation()}
+                      style={{
+                        position: 'fixed', top: popTop, right: popRight,
+                        zIndex: 99999,
+                        background: '#ffffff',
+                        borderRadius: 16,
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 16px 48px rgba(0,0,0,0.20), 0 3px 10px rgba(0,0,0,0.10)',
+                        padding: '16px 18px 14px',
+                        width: 288,
+                        userSelect: 'none',
+                      }}
+                    >
+                      {/* Header row */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                        <span style={{ fontSize: '0.80rem', fontWeight: 700, color: '#1e293b' }}>Template Color</span>
+                        <span style={{
+                          fontSize: '0.70rem', fontWeight: 600,
+                          color: activeAccentHex,
+                          background: `${activeAccentHex}15`,
+                          border: `1px solid ${activeAccentHex}40`,
+                          borderRadius: 6, padding: '2px 9px',
+                        }}>
+                          {activeName}
+                        </span>
+                      </div>
+
+                      {/* Color groups */}
+                      {GROUPS.map((group) => (
+                        <div key={group.label} style={{ marginBottom: 11 }}>
+                          <div style={{ fontSize: '0.63rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
+                            {group.label}
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 5 }}>
+                            {group.colors.map(({ key, hex, name }) => {
+                              const isActive = activeKey === key;
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  title={name}
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    handleInputChange('accent', key as any);
+                                    setShowColorPicker(false);
+                                    onNotify(`🎨 ${name}`);
+                                  }}
+                                  style={{
+                                    width: '100%', aspectRatio: '1 / 1',
+                                    borderRadius: 6,
+                                    background: hex,
+                                    border: 'none',
+                                    outline: isActive ? `2.5px solid ${hex}` : '2px solid transparent',
+                                    outlineOffset: isActive ? 2.5 : 0,
+                                    cursor: 'pointer',
+                                    boxShadow: isActive
+                                      ? `0 0 0 4px ${hex}30, 0 2px 5px rgba(0,0,0,0.20)`
+                                      : '0 1px 3px rgba(0,0,0,0.18)',
+                                    transition: 'transform 0.12s ease, box-shadow 0.12s ease',
+                                    transform: isActive ? 'scale(1.22)' : 'scale(1)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    padding: 0,
+                                  }}
+                                >
+                                  {isActive && (
+                                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                      <path d="M1.5 5l2.5 2.5L8.5 2" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Footer */}
+                      <div style={{ marginTop: 6, paddingTop: 10, borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: activeAccentHex, flexShrink: 0, boxShadow: `0 0 0 2.5px ${activeAccentHex}35` }} />
+                        <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                          Active: <strong style={{ color: activeAccentHex }}>{activeName}</strong>
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           </div>
 
@@ -2495,10 +3057,28 @@ export default function CreateBillPage({
                       background: isSelected ? `${activeAccentHex}0f` : undefined,
                     }}
                     onClick={() => {
-                      handleInputChange('template', tpl.id);
+                      const chosen = normalizeTemplateId(tpl.id, 'bill');
+                      if (chosen === 'medical-clinical') {
+                        setFormData((prev) => ({
+                          ...prev,
+                          template: chosen,
+                          title: (!prev.title || prev.title.toLowerCase().includes('walk-in') || prev.title.toLowerCase().includes('retail') || prev.title === 'BILL') ? 'HOSPITAL BILL' : prev.title,
+                          billNumber: (!prev.billNumber || prev.billNumber.startsWith('BIL-') || prev.billNumber.startsWith('INV-')) ? 'HSP-2026-1123' : prev.billNumber,
+                          clientName: (!prev.clientName || prev.clientName === 'Walk-in Customer') ? 'Walk-in Patient' : prev.clientName,
+                          patientId: prev.patientId || '112233',
+                          patientGender: prev.patientGender || 'Male',
+                          patientAge: prev.patientAge || '32 Years',
+                          clientCompany: prev.clientCompany || '',
+                          shippingAddress: '',
+                          shippingSameAsBilling: false,
+                          poNumber: '',
+                        }));
+                      } else {
+                        handleInputChange('template', chosen);
+                      }
                       try {
-                        localStorage.setItem('billease_active_template', tpl.id);
-                        localStorage.setItem('billease_bill_draft', JSON.stringify({ ...formData, template: tpl.id }));
+                        localStorage.setItem('billease_active_template', chosen);
+                        localStorage.setItem('billease_bill_draft', JSON.stringify({ ...formData, template: chosen }));
                       } catch (_) {}
                       setShowGallery(false);
                       onNotify(`Applied ${tpl.name} layout!`);

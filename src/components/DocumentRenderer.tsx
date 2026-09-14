@@ -117,8 +117,10 @@ export default function DocumentRenderer({
 
   // Client fallback details - clean empty fallbacks so dummy clients are never forced
   const clientName = document.clientName ? document.clientName.trim() : '';
+  const clientCompany = document.clientCompany ? document.clientCompany.trim() : '';
   const clientNamePlaceholder = '[Client / Customer Name]';
   const clientPlaceholder = <span className="preview-placeholder">{clientNamePlaceholder}</span>;
+  const clientPrimaryName = clientName || clientCompany || clientPlaceholder;
   const itemPlaceholder = <span className="preview-placeholder">Item / service description</span>;
   const clientAddress = document.clientAddress || '';
   const clientEmail = document.clientEmail || '';
@@ -399,7 +401,10 @@ export default function DocumentRenderer({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: '0.82rem', padding: '10px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', color: '#1e293b', width: '100%', boxSizing: 'border-box', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#004d40', textTransform: 'uppercase', letterSpacing: '0.05em' }}>BILLED TO:</span>
-            <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#0f172a', marginTop: 2, wordBreak: 'break-word' }}>{clientName || clientPlaceholder}</div>
+            <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#0f172a', marginTop: 2, wordBreak: 'break-word' }}>{clientPrimaryName}</div>
+            {clientCompany && clientName && clientCompany !== clientName && (
+              <div style={{ fontSize: '0.74rem', color: '#004d40', fontWeight: 600, marginTop: 1 }}>{clientCompany}</div>
+            )}
             {clientAddress && <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: 2, whiteSpace: 'pre-line', wordBreak: 'break-word' }}>{clientAddress}</div>}
           </div>
           <div style={{ textAlign: 'right', fontSize: '0.74rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
@@ -606,7 +611,10 @@ export default function DocumentRenderer({
             {/* Client Card */}
             <div style={{ background: '#fffaf5', border: '1px solid #fed7aa', borderRadius: 8, padding: '12px 14px', fontSize: '0.82rem' }}>
               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#e65100', textTransform: 'uppercase' }}>Billed To:</span>
-              <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#0f172a', marginTop: 2 }}>{clientName || clientPlaceholder}</div>
+              <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#0f172a', marginTop: 2 }}>{clientPrimaryName}</div>
+              {clientCompany && clientName && clientCompany !== clientName && (
+                <div style={{ fontSize: '0.74rem', color: '#e65100', fontWeight: 600, marginTop: 1 }}>{clientCompany}</div>
+              )}
               {clientAddress && <div style={{ color: '#475569', whiteSpace: 'pre-line', marginTop: 2 }}>{clientAddress}</div>}
               <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 {clientEmail && <span>{clientEmail}</span>}
@@ -784,7 +792,10 @@ export default function DocumentRenderer({
         <div className="clinical-patient-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#e0f7fa', border: '1px solid #80deea', borderRadius: 10, padding: '14px 18px', fontSize: '0.82rem' }}>
           <div>
             <span style={{ color: '#00696f', fontWeight: 800, fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>PATIENT / CLIENT:</span>
-            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.96rem', marginTop: 2 }}>{clientName || clientPlaceholder}</div>
+            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.96rem', marginTop: 2 }}>{clientPrimaryName}</div>
+            {clientCompany && clientName && clientCompany !== clientName && (
+              <div style={{ fontSize: '0.74rem', color: '#00696f', fontWeight: 600, marginTop: 1 }}>{clientCompany}</div>
+            )}
             {clientAddress && <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2, whiteSpace: 'pre-line' }}>{clientAddress}</div>}
           </div>
           <div>
@@ -970,7 +981,10 @@ export default function DocumentRenderer({
         <div className="editorial-matter-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#f8fafc', borderLeft: '4px solid #0d2137', borderRadius: '0 8px 8px 0', padding: '14px 18px', fontSize: '0.82rem' }}>
           <div>
             <span style={{ color: '#64748b', fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Client:</span>
-            <strong style={{ color: '#0f172a', fontSize: '0.96rem' }}>{clientName || clientPlaceholder}</strong>
+            <strong style={{ color: '#0f172a', fontSize: '0.96rem', display: 'block' }}>{clientPrimaryName}</strong>
+            {clientCompany && clientName && clientCompany !== clientName && (
+              <div style={{ fontSize: '0.74rem', color: '#0d2137', fontWeight: 600, marginTop: 1 }}>{clientCompany}</div>
+            )}
             {clientAddress && <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: 2 }}>{clientAddress}</div>}
           </div>
           <div>
@@ -1159,9 +1173,14 @@ export default function DocumentRenderer({
                   {senderTagline}
                 </div>
               )}
-              {(senderAddress || senderPhone) && (
+              {senderAddress && (
                 <div style={{ fontSize: '0.70rem', color: '#CBD5E1', marginTop: 2, wordBreak: 'break-word' }}>
-                  {[senderAddress, senderPhone].filter(Boolean).join(' · ')}
+                  {senderAddress}
+                </div>
+              )}
+              {senderPhone && (
+                <div style={{ fontSize: '0.70rem', color: '#CBD5E1', marginTop: 2, wordBreak: 'break-word' }}>
+                  Ph: {senderPhone}
                 </div>
               )}
             </div>
@@ -1185,27 +1204,53 @@ export default function DocumentRenderer({
               </div>
               {renderStatusBadge(document.status)}
             </div>
-            <div style={{ fontSize: '0.94rem', fontWeight: 900, letterSpacing: '0.02em', color: '#FFFFFF' }}>
+            <div style={{ fontSize: '1rem', fontWeight: 900, letterSpacing: '0.02em', color: '#FFFFFF', marginTop: 4, whiteSpace: 'nowrap' }}>
               #{document.billNumber || 'REC-2026-089'}
             </div>
-            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>
-              Date: <strong>{formatHeaderDate(document.issueDate)}</strong>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'auto auto',
+                columnGap: 8,
+                rowGap: 2,
+                fontSize: '0.70rem',
+                alignItems: 'baseline',
+                marginTop: 4,
+              }}
+            >
+              <span style={{ color: 'rgba(255,255,255,0.75)', textAlign: 'right', fontWeight: 500 }}>Date:</span>
+              <span style={{ color: '#FFFFFF', fontWeight: 700, textAlign: 'left', whiteSpace: 'nowrap' }}>
+                {formatHeaderDate(document.issueDate) || '-'}
+              </span>
+
+              {document.dueDate && (
+                <>
+                  <span style={{ color: 'rgba(255,255,255,0.75)', textAlign: 'right', fontWeight: 500 }}>Due:</span>
+                  <span style={{ color: '#FCA5A5', fontWeight: 700, textAlign: 'left', whiteSpace: 'nowrap' }}>
+                    {formatHeaderDate(document.dueDate)}
+                  </span>
+                </>
+              )}
+
+              {hasPoNumber && (
+                <>
+                  <span style={{ color: 'rgba(255,255,255,0.75)', textAlign: 'right', fontWeight: 500 }}>PO:</span>
+                  <span style={{ color: '#FCD34D', fontWeight: 700, textAlign: 'left', whiteSpace: 'nowrap' }}>
+                    {poNumberValue}
+                  </span>
+                </>
+              )}
+
+              {hasPaymentTerms && (
+                <>
+                  <span style={{ color: 'rgba(255,255,255,0.75)', textAlign: 'right', fontWeight: 500 }}>Terms:</span>
+                  <span style={{ color: '#FCD34D', fontWeight: 700, textAlign: 'left', whiteSpace: 'nowrap' }}>
+                    {paymentTerms}
+                  </span>
+                </>
+              )}
             </div>
-            {document.dueDate && (
-              <div style={{ fontSize: '0.70rem', color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>
-                Due: <strong>{formatHeaderDate(document.dueDate)}</strong>
-              </div>
-            )}
-            {hasPoNumber && (
-              <div style={{ fontSize: '0.70rem', color: '#FCD34D', marginTop: 2 }}>
-                PO: <strong>{poNumberValue}</strong>
-              </div>
-            )}
-            {hasPaymentTerms && (
-              <div style={{ fontSize: '0.70rem', color: '#FCD34D', marginTop: 2 }}>
-                Terms: <strong>{paymentTerms}</strong>
-              </div>
-            )}
           </div>
         </div>
 
@@ -1263,8 +1308,13 @@ export default function DocumentRenderer({
                 <span>STUDENT &amp; ENROLMENT PARTICULARS</span>
               </div>
               <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.94rem', marginTop: 4 }}>
-                {clientName || clientPlaceholder}
+                {clientPrimaryName}
               </div>
+              {clientCompany && clientName && clientCompany !== clientName && (
+                <div style={{ fontSize: '0.72rem', color: '#283593', fontWeight: 600, marginTop: 1 }}>
+                  {clientCompany}
+                </div>
+              )}
               {clientAddress && (
                 <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2 }}>
                   {clientAddress}
@@ -1408,21 +1458,6 @@ export default function DocumentRenderer({
           </div>
         </div>
 
-        {/* Footnote Motto */}
-        <div
-          style={{
-            paddingTop: 6,
-            textAlign: 'center',
-            borderTop: '1px dashed #CBD5E1',
-            fontSize: '0.64rem',
-            color: '#64748B',
-            fontWeight: 700,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-          }}
-        >
-          VERITAS &nbsp;•&nbsp; VIRTUS &nbsp;•&nbsp; EXCELLENTIA &nbsp;•&nbsp; OFFICIAL ACADEMIC RECORD
-        </div>
       </div>
     );
   }
@@ -1517,7 +1552,10 @@ export default function DocumentRenderer({
           <div className="gst-party-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
             <div>
               <div style={{ fontWeight: 800, color: '#880e4f', marginBottom: 2, fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>DETAILS OF RECIPIENT (BILLED TO):</div>
-              <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#0f172a' }}>{clientName || clientPlaceholder}</div>
+              <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#0f172a' }}>{clientPrimaryName}</div>
+              {clientCompany && clientName && clientCompany !== clientName && (
+                <div style={{ fontSize: '0.74rem', color: '#880e4f', fontWeight: 600, marginTop: 1 }}>{clientCompany}</div>
+              )}
               <div style={{ color: '#475569', fontSize: '0.76rem', whiteSpace: 'pre-line', marginTop: 2 }}>{clientAddress}</div>
               <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2 }}>
                 {[clientEmail, clientPhone].filter(Boolean).join(' · ')}
@@ -1726,8 +1764,13 @@ export default function DocumentRenderer({
               BILLED TO
             </div>
             <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#111827' }}>
-              {clientName || clientPlaceholder}
+              {clientPrimaryName}
             </div>
+            {clientCompany && clientName && clientCompany !== clientName && (
+              <div style={{ fontSize: '0.74rem', color: '#4B5563', fontWeight: 600, marginTop: '1px' }}>
+                {clientCompany}
+              </div>
+            )}
             <div style={{ fontSize: '0.74rem', color: '#4B5563', marginTop: '3px', whiteSpace: 'pre-line', lineHeight: 1.4 }}>
               {clientAddress}
             </div>
@@ -2059,7 +2102,10 @@ export default function DocumentRenderer({
               <User size={15} color="#2563eb" />
               <span>{isInvoice ? 'BILLED TO' : 'BILL TO'}</span>
             </div>
-            <div className="a4-addr-name">{clientName || clientPlaceholder}</div>
+            <div className="a4-addr-name">{clientPrimaryName}</div>
+            {clientCompany && clientName && clientCompany !== clientName && (
+              <div style={{ fontSize: '0.74rem', color: '#2563eb', fontWeight: 600, marginTop: '2px' }}>{clientCompany}</div>
+            )}
             <div className="a4-addr-text">{clientAddress}</div>
           </div>
           <div className="a4-addr-meta" style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px solid #dbeafe' }}>

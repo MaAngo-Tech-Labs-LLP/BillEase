@@ -145,7 +145,7 @@ function TemplateMicroPreview({ tpl }: { tpl: TemplateStyle }) {
             </div>
           </div>
           <div style={{ borderTop: `1px solid ${tpl.borderColor}`, paddingTop: 3, marginTop: 'auto', display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', fontWeight: 800, color: tpl.totalColor }}>
-            <span>{isBill ? 'Balance Due:' : 'Total:'}</span>
+            <span>Total:</span>
             <span>₹42,500</span>
           </div>
         </div>
@@ -227,9 +227,9 @@ function TemplateMicroPreview({ tpl }: { tpl: TemplateStyle }) {
             </div>
           </div>
 
-          {/* Balance Due Green Box */}
+          {/* Total Green Box */}
           <div style={{ background: '#1b4332', color: '#ffffff', borderRadius: 3, padding: '2px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.52rem', fontWeight: 800, marginTop: 'auto' }}>
-            <span>Balance Due</span>
+            <span>Total</span>
             <span>₹89,500</span>
           </div>
         </div>
@@ -301,9 +301,9 @@ function TemplateMicroPreview({ tpl }: { tpl: TemplateStyle }) {
             </div>
           </div>
 
-          {/* Balance Due Apricot Box */}
+          {/* Total Apricot Box */}
           <div style={{ background: '#dfc3ab', color: '#1e293b', borderRadius: 3, padding: '2px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.52rem', fontWeight: 900, marginTop: 'auto' }}>
-            <span>Balance Due</span>
+            <span>Total</span>
             <span>₹89,500</span>
           </div>
         </div>
@@ -371,7 +371,7 @@ function TemplateMicroPreview({ tpl }: { tpl: TemplateStyle }) {
           </div>
           <div style={{ borderTop: `1px solid ${tpl.borderColor}`, marginTop: 'auto', paddingTop: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.5rem', color: '#283593', fontWeight: 700 }}>[SEAL: Registrar]</span>
-            <span style={{ fontSize: '0.64rem', fontWeight: 800, color: tpl.totalColor }}>Total: ₹30,000</span>
+            <span style={{ fontSize: '0.64rem', fontWeight: 800, color: tpl.totalColor }}>Balance Due: ₹30,000</span>
           </div>
         </div>
       </div>
@@ -439,7 +439,7 @@ function TemplateMicroPreview({ tpl }: { tpl: TemplateStyle }) {
               Payment: Bank Transfer
             </span>
             <span style={{ color: tpl.totalColor, fontWeight: 800 }}>
-              Balance Due: ₹
+              Total: ₹
               {tpl.sampleItems
                 .reduce((sum, it) => sum + it.qty * it.rate, 0)
                 .toLocaleString('en-IN')}
