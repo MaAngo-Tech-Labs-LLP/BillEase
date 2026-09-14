@@ -1610,7 +1610,7 @@ export default function CreateBillPage({
 
                 <div className="form-grid-2">
                   <div className="form-group">
-                    <label className="form-label" htmlFor="input-sender-web">
+                    <label className="form-label" htmlFor="input-sender-web" style={{ display: 'block', lineHeight: 1.3, minHeight: '2.25em' }}>
                       Business Website
                     </label>
                     <div className="input-with-icon">
@@ -1629,7 +1629,7 @@ export default function CreateBillPage({
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label" htmlFor="input-sender-tax">
+                    <label className="form-label" htmlFor="input-sender-tax" style={{ display: 'block', lineHeight: 1.3, minHeight: '2.25em' }}>
                       GSTIN / Business Tax Number
                     </label>
                     <div className="input-with-icon">
