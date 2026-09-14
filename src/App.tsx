@@ -285,6 +285,7 @@ export default function App() {
             onNotify={triggerToast}
             onDirtyChange={setIsEditorDirty}
             onRegisterSaveDraft={(fn) => { saveDraftRef.current = fn; }}
+            onFinish={() => { createNewDraft('bill'); }}
           />
         )}
 

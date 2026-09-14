@@ -69,6 +69,11 @@ interface CreateBillPageProps {
    * when switching tabs), so saving goes through the same validated path as
    * clicking the button here. */
   onRegisterSaveDraft?: (fn: () => void) => void;
+  /** Called once a bill is fully finalized via "Create Bill" or "Save &
+   * Download PDF". Lets the app shell reset its shared working draft so
+   * the next time this page is opened it starts blank instead of
+   * reloading the bill that was just finished. */
+  onFinish?: () => void;
 }
 
 export default function CreateBillPage({
@@ -79,6 +84,7 @@ export default function CreateBillPage({
   onNotify,
   onDirtyChange,
   onRegisterSaveDraft,
+  onFinish,
 }: CreateBillPageProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [showGallery, setShowGallery] = useState(false);
@@ -192,6 +198,14 @@ export default function CreateBillPage({
   // Download PDF, used to detect unsaved changes. Starts as the initial load
   // so a freshly opened (unchanged) form is never considered dirty.
   const lastSavedSnapshot = useRef<string>(JSON.stringify(formData));
+
+  // Always-current mirror of formData, readable from delayed callbacks
+  // (e.g. the PDF-generation setTimeout) without nesting a setState call
+  // inside another setState updater just to peek at the latest value.
+  const formDataRef = useRef(formData);
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
 
   // Sync initialDocument and localStorage whenever template changes or user applies from Templates page
   useEffect(() => {
@@ -450,27 +464,57 @@ export default function CreateBillPage({
     ? fillSampleIntoEmpty(formData, SAMPLE_BILL_DATA)
     : formData;
 
-  // Wipes the working draft back to a blank bill — clears formData AND
-  // the persisted draft/template choice in localStorage. Useful for testing
-  // and for anyone who wants to start completely fresh.
-  const handleResetForm = () => {
-    const blank: BillDocument = {
+  // Builds a brand-new blank bill (fresh id/number/dates). Shared by
+  // "Reset Form" and by finishing a save, so both leave the form in
+  // exactly the same clean state — no leftover client/item/payment data
+  // from whatever was just being worked on. Still applies the saved
+  // Business Profile Defaults, matching what a genuinely fresh "Create
+  // Bill" gets via useDocuments.createNewDraft.
+  const buildBlankBill = (): BillDocument =>
+    applyBusinessProfileToDoc({
       ...DEFAULT_BILL,
       id: `bill-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       billNumber: `BIL-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       // DEFAULT_BILL.issueDate/dueDate are frozen at app-load time —
-      // recompute fresh so a reset form always starts on today's date.
+      // recompute fresh so a new bill always starts on today's date.
       issueDate: getTodayIsoDate(),
       dueDate: getFutureIsoDate(30),
       createdAt: new Date().toISOString(),
-    };
+    });
+
+  // Wipes the working draft back to a blank bill — clears formData AND
+  // the persisted draft/template choice in localStorage. Useful for testing
+  // and for anyone who wants to start completely fresh.
+  const handleResetForm = () => {
     setShowSampleData(false);
-    setFormData(blank);
+    setFormData(buildBlankBill());
     try {
       localStorage.removeItem('billease_bill_draft');
       localStorage.removeItem('billease_active_template');
     } catch (_) {}
     onNotify('Form reset — starting with a blank bill');
+  };
+
+  // Once a bill has actually been SAVED — "Create Bill" or "Save &
+  // Download PDF" both count, since each of them adds (or updates) the
+  // bill in My Documents — the working form must not keep showing that
+  // data. Only explicit "Save Draft" is allowed to leave values behind
+  // for the next time this page opens. This clears the persisted draft,
+  // resets the app shell's shared in-memory draft (via onFinish, so a
+  // remount doesn't reload the just-saved bill either), and blanks the
+  // form itself.
+  const clearWorkingDraftAfterSave = () => {
+    try {
+      localStorage.removeItem('billease_bill_draft');
+      localStorage.removeItem('billease_active_template');
+    } catch (_) {}
+    onFinish?.();
+
+    const blankBill = buildBlankBill();
+    setShowSampleData(false);
+    setFormData(blankBill);
+    setCurrentStep(1);
+    lastSavedSnapshot.current = JSON.stringify(blankBill);
   };
 
   const handleAutoFillFromProfile = () => {
@@ -730,13 +774,11 @@ export default function CreateBillPage({
     };
 
     onSave(completedDoc);
-
-    // Clear the active working draft so next creation starts fresh
-    try {
-      localStorage.removeItem('billease_bill_draft');
-    } catch (_) {}
-    lastSavedSnapshot.current = JSON.stringify(completedDoc);
     onDirtyChange?.(false);
+
+    // The bill is now fully saved — clear the working draft so it
+    // doesn't leak into the next bill.
+    clearWorkingDraftAfterSave();
 
     onNotify(`Bill #${completedDoc.billNumber} created successfully! Added to My Documents and Home.`);
     onNavigate(destination);
@@ -750,10 +792,12 @@ export default function CreateBillPage({
     setIsGeneratingPdf(true);
     const completedDoc: BillDocument = {
       ...formData,
+      status: formData.status || 'Paid',
       updatedAt: new Date().toISOString(),
     };
     onSave(completedDoc);
-    lastSavedSnapshot.current = JSON.stringify(completedDoc);
+    const savedSnapshot = JSON.stringify(completedDoc);
+    lastSavedSnapshot.current = savedSnapshot;
     onDirtyChange?.(false);
     const prevTitle = document.title;
     const docNumber = formData.billNumber || 'BILL-2026-5479';
@@ -765,6 +809,16 @@ export default function CreateBillPage({
       setTimeout(() => {
         document.title = prevTitle;
       }, 1500);
+
+      // Now that the real data has been saved and sent to print, clear the
+      // working form the same way "Create Bill" does — but only if the
+      // user hasn't already started editing again during the brief delay
+      // before print. Blanking their in-progress edit out from under them
+      // would be worse than leaving the just-saved data on screen a moment
+      // longer; their next real save/finish will still clear it.
+      if (JSON.stringify(formDataRef.current) === savedSnapshot) {
+        clearWorkingDraftAfterSave();
+      }
     }, 700);
   };
 
