@@ -33,6 +33,26 @@ interface DocumentRendererProps {
   className?: string;
 }
 
+// Lightens (positive percent) or darkens (negative percent) a hex color —
+// used to derive a matching gradient shade from the user's picked accent
+// color, instead of mixing in an unrelated fixed hue.
+function shadeHexColor(color: string, percent: number): string {
+  if (!color || !color.startsWith('#')) return color;
+  let hex = color.replace('#', '');
+  if (hex.length === 3) {
+    hex = hex.split('').map((c) => c + c).join('');
+  }
+  const num = parseInt(hex, 16);
+  if (isNaN(num)) return color;
+  let r = (num >> 16) + Math.round(255 * (percent / 100));
+  let g = ((num >> 8) & 0x00ff) + Math.round(255 * (percent / 100));
+  let b = (num & 0x0000ff) + Math.round(255 * (percent / 100));
+  r = Math.min(255, Math.max(0, r));
+  g = Math.min(255, Math.max(0, g));
+  b = Math.min(255, Math.max(0, b));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
 // Convert numbers to Indian/English words for GST invoices
 function convertNumberToWords(amount: number): string {
   if (!amount || isNaN(amount)) return 'Zero';
@@ -110,6 +130,7 @@ export default function DocumentRenderer({
         : ((ACCENT_COLOR_MAP as any)[document.accent] ?? null))
     : null;
   const accentHex = userAccentHex ?? tplStyle?.accentColor ?? '#1e3a8a';
+  const darkerAccentHex = shadeHexColor(accentHex, -28);
   const isInvoice = document.type === 'invoice';
   const docHeading = document.title || (isInvoice ? 'INVOICE' : 'BILL');
 
@@ -548,7 +569,14 @@ export default function DocumentRenderer({
       >
         <div className="tpl-sidebar-grid">
           {/* Left Vertical Brand Column with 52x52 Logo at Top-Left */}
-          <div className="tpl-sidebar-left" style={{ background: (userAccentHex || tplStyle?.headerBg) ? `linear-gradient(180deg, ${userAccentHex || tplStyle?.headerBg} 0%, #bf360c 100%)` : undefined }}>
+          <div
+            className="tpl-sidebar-left"
+            style={{
+              background: userAccentHex
+                ? `linear-gradient(180deg, ${userAccentHex} 0%, ${darkerAccentHex} 100%)`
+                : (tplStyle?.headerBg ? `linear-gradient(180deg, ${tplStyle.headerBg} 0%, #bf360c 100%)` : undefined),
+            }}
+          >
             <div className="tpl-sidebar-brand">
               <div style={{ marginBottom: 14 }}>
                 {renderBusinessLogo(senderLogo, senderName, true)}
