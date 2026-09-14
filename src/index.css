@@ -2817,41 +2817,6 @@ body[data-theme='dark'] .btn-gallery-trigger:hover {
 }
 
 
-.a4-totals-box {
-  width: 190px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  font-size: 0.78rem;
-}
-
-.a4-total-line {
-  display: flex;
-  justify-content: space-between;
-  color: #64748b;
-}
-
-.a4-total-line .amount {
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.a4-total-line.discount .amount {
-  color: #dc2626;
-}
-
-.a4-final-total-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  border-top: 2px solid #e2e8f0;
-  padding-top: 0.5rem;
-  margin-top: 0.25rem;
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--builder-accent, #1e3a8a);
-}
-
 /* ---------------- Classic Professional Template (Exact Match) ---------------- */
 .a4-tpl-classic-header {
   background: var(--builder-accent, #103289);
@@ -3226,38 +3191,6 @@ body[data-theme='dark'] .btn-gallery-trigger:hover {
   color: #475569;
   font-weight: 500;
   letter-spacing: 0.01em;
-}
-
-.a4-totals-box {
-  width: 220px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  font-size: 0.88rem;
-}
-
-.a4-total-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: #64748b;
-  font-size: 0.88rem;
-}
-
-.a4-total-line .amount {
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.a4-final-total-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  border-top: 1.5px solid #e2e8f0;
-  padding-top: 0.75rem;
-  margin-top: 0.35rem;
-  font-size: 1.25rem;
-  font-weight: 800;
 }
 
 /* Summary Review Card (Step 6) */

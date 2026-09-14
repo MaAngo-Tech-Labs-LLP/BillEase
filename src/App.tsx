@@ -280,7 +280,6 @@ export default function App() {
           <CreateBillPage
             initialDocument={draft.type === 'bill' ? draft : undefined}
             onSave={handleSaveDocument}
-            onPreview={handlePreviewDocument}
             onNavigate={handleSelectTab}
             onNotify={triggerToast}
             onDirtyChange={setIsEditorDirty}

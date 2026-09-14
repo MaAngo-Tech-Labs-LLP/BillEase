@@ -7,7 +7,6 @@ import {
   Calendar,
   Landmark,
   FileText,
-  ShieldCheck,
   Globe,
   Truck,
   CreditCard,
@@ -15,21 +14,9 @@ import {
   Receipt,
   Stethoscope,
   GraduationCap,
-  Award,
-  CheckCircle2,
-  Scissors,
-  Activity,
   Sparkles,
-  Clock,
-  BadgeCheck,
-  Calculator,
   MapPin,
-  Store,
   ShoppingBag,
-  UserCheck,
-  Check,
-  Tag,
-  Info,
 } from 'lucide-react';
 import { BillDocument, DocumentItem } from '../types';
 import {
@@ -40,28 +27,12 @@ import {
 } from '../data/templates';
 import { calculateBillTotals, formatCurrencyAmount } from '../utils/billCalculations';
 import { formatHeaderDate } from '../utils/dates';
+import { shadeHexColor } from '../utils/colors';
 
 interface BillDocumentRendererProps {
   document: BillDocument;
   scale?: number;
   className?: string;
-}
-
-function shadeHexColor(color: string, percent: number): string {
-  if (!color || !color.startsWith('#')) return color;
-  let hex = color.replace('#', '');
-  if (hex.length === 3) {
-    hex = hex.split('').map((c) => c + c).join('');
-  }
-  const num = parseInt(hex, 16);
-  if (isNaN(num)) return color;
-  let r = (num >> 16) + Math.round(255 * (percent / 100));
-  let g = ((num >> 8) & 0x00ff) + Math.round(255 * (percent / 100));
-  let b = (num & 0x0000ff) + Math.round(255 * (percent / 100));
-  r = Math.min(255, Math.max(0, r));
-  g = Math.min(255, Math.max(0, g));
-  b = Math.min(255, Math.max(0, b));
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
 export default function BillDocumentRenderer({
@@ -99,7 +70,6 @@ export default function BillDocumentRenderer({
   const totalColor      = userAccentHex                         ?? (tplStyle?.totalColor      ?? accentHex);
   const borderColor     = userAccentHex ? `${userAccentHex}35`  : (tplStyle?.borderColor      ?? '#C5CAE9');
   const darkerAccentHex = shadeHexColor(accentHex, -28);
-  const lighterAccentHex = shadeHexColor(accentHex, 35);
 
   const billTaxRate = typeof document.taxRate === 'number' ? document.taxRate : Number(document.taxRate) || 0;
 
@@ -182,9 +152,6 @@ export default function BillDocumentRenderer({
 
   const cleanPaymentInstructions = isDuplicateBankInfo ? '' : (document.paymentNotes || '').trim();
 
-  const totalItemsCount = document.items.length;
-  const totalUnitsCount = document.items.reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
-
   const sharedCanvasStyle: React.CSSProperties = {
     transform: scale !== 1 ? `scale(${scale})` : undefined,
     transformOrigin: 'top center',
@@ -263,7 +230,6 @@ export default function BillDocumentRenderer({
     // Totals
     const subtotalVal = calc.subtotal > 0 || hasEnteredItems ? calc.subtotal : 24;
     const grandTotalVal = calc.grandTotal > 0 || hasEnteredItems ? calc.grandTotal : 24;
-    const balanceDueVal = calc.balanceDue > 0 || hasEnteredItems ? calc.balanceDue : 24;
 
     return (
       <div
@@ -946,7 +912,6 @@ export default function BillDocumentRenderer({
         ];
 
     const rawBillNum = document.billNumber?.trim() || '';
-    const cleanBillId = cleanBillNum.replace(/^(BL|BILL|BIL)[-_ ]*/i, '') || '2026-1123';
     const isRetailOrGenericBill = !rawBillNum || rawBillNum.startsWith('BIL-') || rawBillNum.startsWith('BILL-') || rawBillNum.startsWith('INV-');
     const displayBillId = isRetailOrGenericBill
       ? 'HSP-2026-1123'

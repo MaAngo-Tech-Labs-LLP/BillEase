@@ -2,17 +2,13 @@ import React, { useState, useMemo } from 'react';
 import {
   FileSpreadsheet,
   Search,
-  Plus,
   Trash2,
   ExternalLink,
-  Filter,
   FileText,
   Receipt,
-  Calendar,
-  DollarSign,
   Pencil,
 } from 'lucide-react';
-import { BillDocument, DocumentType } from '../types';
+import { BillDocument } from '../types';
 import { CURRENCY_SYMBOLS } from '../data/templates';
 import { calculateBillTotals, formatCurrencyAmount } from '../utils/billCalculations';
 import { formatDisplayDate } from '../utils/dates';

@@ -113,13 +113,6 @@ export interface BillDocument {
   updatedAt?: string;
 }
 
-export interface TemplateDefinition {
-  id: TemplateId;
-  name: string;
-  description: string;
-  tag: string;
-}
-
 export interface BusinessProfile {
   logo?: string;
   companyName: string;

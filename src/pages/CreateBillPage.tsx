@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  Calendar,
   User,
   Mail,
   Plus,
@@ -18,11 +17,8 @@ import {
   Loader2,
   ChevronUp,
   ChevronDown,
-  Upload,
   Image as ImageIcon,
   Globe,
-  Truck,
-  CreditCard,
   Landmark,
   ShieldCheck,
   FileText,
@@ -37,13 +33,12 @@ import {
 } from 'lucide-react';
 import DocumentRenderer from '../components/DocumentRenderer';
 import DateInputWithPicker from '../components/DateInputWithPicker';
-import { BillDocument, TemplateId, CurrencyCode, BusinessProfile, STORAGE_PROFILE_KEY } from '../types';
+import { BillDocument, TemplateId, CurrencyCode } from '../types';
 import {
   DEFAULT_BILL,
   SAMPLE_BILL_DATA,
   CURRENCY_SYMBOLS,
   ACCENT_COLOR_MAP,
-  TEMPLATES,
   BILL_TEMPLATES,
   normalizeTemplateId,
   fillSampleIntoEmpty,
@@ -57,7 +52,6 @@ import { applyBusinessProfileToDoc, getSavedBusinessProfile, PROFILE_UPDATED_EVE
 interface CreateBillPageProps {
   initialDocument?: BillDocument;
   onSave: (doc: BillDocument) => void;
-  onPreview?: (doc: BillDocument) => void;
   onNavigate: (tabId: string) => void;
   onNotify: (msg: string) => void;
   /** Reports whether the form has changes that haven't been committed via
@@ -79,7 +73,6 @@ interface CreateBillPageProps {
 export default function CreateBillPage({
   initialDocument,
   onSave,
-  onPreview,
   onNavigate,
   onNotify,
   onDirtyChange,
@@ -482,6 +475,23 @@ export default function CreateBillPage({
       createdAt: new Date().toISOString(),
     });
 
+  // Every save path needs a real, unique id before saving — but a document
+  // freshly loaded from a template still carries that template's shared
+  // placeholder id (e.g. 'doc-apex-billing'), which must never be reused
+  // as if it were the user's own saved bill. Generates a fresh one in that
+  // case; otherwise keeps the bill's existing id.
+  const resolveDocId = (id: string | undefined): string => {
+    const isTemplateDefaultId =
+      !id ||
+      id === 'doc-apex-billing' ||
+      id === 'inv-studio-pulse' ||
+      id === 'inv-acme-design' ||
+      id.startsWith('default-');
+    return isTemplateDefaultId
+      ? `bill-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+      : id;
+  };
+
   // Wipes the working draft back to a blank bill — clears formData AND
   // the persisted draft/template choice in localStorage. Useful for testing
   // and for anyone who wants to start completely fresh.
@@ -713,15 +723,7 @@ export default function CreateBillPage({
   };
 
   const handleSaveDraft = () => {
-    const isTemplateDefaultId =
-      !formData.id ||
-      formData.id === 'doc-apex-billing' ||
-      formData.id === 'inv-studio-pulse' ||
-      formData.id === 'inv-acme-design' ||
-      formData.id.startsWith('default-');
-    const uniqueId = isTemplateDefaultId
-      ? `bill-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
-      : formData.id;
+    const uniqueId = resolveDocId(formData.id);
 
     const savedDoc: BillDocument = {
       ...formData,
@@ -729,7 +731,7 @@ export default function CreateBillPage({
       status: 'Draft' as const,
       updatedAt: new Date().toISOString(),
     };
-    if (isTemplateDefaultId) {
+    if (uniqueId !== formData.id) {
       setFormData((prev) => ({ ...prev, id: uniqueId }));
     }
     onSave(savedDoc);
@@ -754,15 +756,7 @@ export default function CreateBillPage({
       return;
     }
 
-    const isTemplateDefaultId =
-      !formData.id ||
-      formData.id === 'doc-apex-billing' ||
-      formData.id === 'inv-studio-pulse' ||
-      formData.id === 'inv-acme-design' ||
-      formData.id.startsWith('default-');
-    const uniqueId = isTemplateDefaultId
-      ? `bill-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
-      : formData.id;
+    const uniqueId = resolveDocId(formData.id);
 
     const completedDoc: BillDocument = {
       ...formData,

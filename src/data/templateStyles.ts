@@ -368,7 +368,6 @@ export const TEMPLATE_STORAGE_KEY = 'billease_active_template';
 export function saveTemplateChoice(templateId: string): void {
   localStorage.setItem(TEMPLATE_STORAGE_KEY, templateId);
 }
-export const setTemplateChoice = saveTemplateChoice;
 
 export function getTemplateChoice(): string | null {
   return localStorage.getItem(TEMPLATE_STORAGE_KEY);

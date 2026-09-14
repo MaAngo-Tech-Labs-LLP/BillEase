@@ -61,9 +61,6 @@ export const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {
   CAD: '$',
 };
 
-export const INVOICE_TITLE_OPTIONS = ['INVOICE', 'TAX INVOICE', 'PROFORMA INVOICE', 'COMMERCIAL INVOICE'] as const;
-export const BILL_TITLE_OPTIONS = ['BILL', 'TAX BILL', 'CASH MEMO', 'RETAIL INVOICE'] as const;
-
 export const getTodayIsoDate = () => {
   try {
     const d = new Date();

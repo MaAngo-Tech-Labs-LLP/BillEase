@@ -6,51 +6,26 @@ import {
   Phone,
   Calendar,
   Landmark,
-  Receipt,
   Stethoscope,
   GraduationCap,
   Award,
-  ShieldCheck,
-  Scale,
-  CheckCircle2,
-  FileCheck2,
   FileText,
 } from 'lucide-react';
 import { BillDocument } from '../types';
 import {
   CURRENCY_SYMBOLS,
   ACCENT_COLOR_MAP,
-  DEFAULT_INVOICE_LOGO,
   normalizeTemplateId,
   getTemplateById,
 } from '../data/templates';
 import { formatHeaderDate, formatDisplayDate } from '../utils/dates';
+import { shadeHexColor } from '../utils/colors';
 import BillDocumentRenderer from './BillDocumentRenderer';
 
 interface DocumentRendererProps {
   document: BillDocument;
   scale?: number;
   className?: string;
-}
-
-// Lightens (positive percent) or darkens (negative percent) a hex color —
-// used to derive a matching gradient shade from the user's picked accent
-// color, instead of mixing in an unrelated fixed hue.
-function shadeHexColor(color: string, percent: number): string {
-  if (!color || !color.startsWith('#')) return color;
-  let hex = color.replace('#', '');
-  if (hex.length === 3) {
-    hex = hex.split('').map((c) => c + c).join('');
-  }
-  const num = parseInt(hex, 16);
-  if (isNaN(num)) return color;
-  let r = (num >> 16) + Math.round(255 * (percent / 100));
-  let g = ((num >> 8) & 0x00ff) + Math.round(255 * (percent / 100));
-  let b = (num & 0x0000ff) + Math.round(255 * (percent / 100));
-  r = Math.min(255, Math.max(0, r));
-  g = Math.min(255, Math.max(0, g));
-  b = Math.min(255, Math.max(0, b));
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
 // Convert numbers to Indian/English words for GST invoices
@@ -351,30 +326,6 @@ export default function DocumentRenderer({
         }}
       >
         {label}
-      </span>
-    );
-  };
-
-  // Render item cell supporting both Item Name (bold) and Description (secondary text)
-  const renderItemCell = (item: any, _defaultFallback: string = 'Item', primaryColor: string = '#0f172a') => {
-    if (item.name && item.name.trim()) {
-      return (
-        <div>
-          <div style={{ fontWeight: 600, color: primaryColor }}>{item.name}</div>
-          {item.description && item.description.trim() ? (
-            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', lineHeight: 1.35 }}>
-              {item.description}
-            </div>
-          ) : null}
-        </div>
-      );
-    }
-    if (item.description && item.description.trim()) {
-      return <div>{item.description}</div>;
-    }
-    return (
-      <span className="preview-placeholder">
-        Item / service description
       </span>
     );
   };
@@ -1624,7 +1575,7 @@ export default function DocumentRenderer({
               </tr>
             </thead>
             <tbody>
-              {document.items.map((item, idx) => (
+              {document.items.map((item) => (
                 <tr key={item.id}>
                   <td style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 600, color: '#0f172a' }}>
                     {item.name || item.description || itemPlaceholder}

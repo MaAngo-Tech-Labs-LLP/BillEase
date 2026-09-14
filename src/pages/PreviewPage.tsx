@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, ArrowLeft, Printer, Share2, Check, Loader2, Sparkles, FileText } from 'lucide-react';
+import { Download, ArrowLeft, Printer, Share2, Check, Loader2, FileText } from 'lucide-react';
 import DocumentRenderer from '../components/DocumentRenderer';
 import { BillDocument } from '../types';
 

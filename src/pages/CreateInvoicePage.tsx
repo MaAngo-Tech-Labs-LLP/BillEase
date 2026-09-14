@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import DocumentRenderer from '../components/DocumentRenderer';
 import DateInputWithPicker from '../components/DateInputWithPicker';
-import { BillDocument, CurrencyCode, TemplateId, DocStatus, BusinessProfile, STORAGE_PROFILE_KEY } from '../types';
+import { BillDocument, CurrencyCode, TemplateId, DocStatus } from '../types';
 import {
   DEFAULT_INVOICE,
   SAMPLE_INVOICE_DATA,
@@ -503,6 +503,24 @@ export default function CreateInvoicePage({
       createdAt: new Date().toISOString(),
     });
 
+  // Every save path (Save Draft / Save & Preview / Create Invoice / Save &
+  // Download PDF) needs a real, unique id before saving — but a document
+  // freshly loaded from a template still carries that template's shared
+  // placeholder id (e.g. 'inv-studio-pulse'), which must never be reused
+  // as if it were the user's own saved invoice. Generates a fresh one in
+  // that case; otherwise keeps the invoice's existing id.
+  const resolveDocId = (id: string | undefined): string => {
+    const isTemplateDefaultId =
+      !id ||
+      id === 'inv-studio-pulse' ||
+      id === 'inv-acme-design' ||
+      id === 'doc-apex-billing' ||
+      id.startsWith('default-');
+    return isTemplateDefaultId
+      ? `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+      : id;
+  };
+
   // Wipes the working draft back to a blank invoice — clears formData AND
   // the persisted draft/template choice in localStorage. Useful for testing
   // and for anyone who wants to start completely fresh.
@@ -548,15 +566,7 @@ export default function CreateInvoicePage({
   };
 
   const handleSaveDraft = () => {
-    const isTemplateDefaultId =
-      !formData.id ||
-      formData.id === 'inv-studio-pulse' ||
-      formData.id === 'inv-acme-design' ||
-      formData.id === 'doc-apex-billing' ||
-      formData.id.startsWith('default-');
-    const uniqueId = isTemplateDefaultId
-      ? `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
-      : formData.id;
+    const uniqueId = resolveDocId(formData.id);
 
     const draftDoc: BillDocument = {
       ...formData,
@@ -595,15 +605,7 @@ export default function CreateInvoicePage({
       return;
     }
 
-    const isTemplateDefaultId =
-      !formData.id ||
-      formData.id === 'inv-studio-pulse' ||
-      formData.id === 'inv-acme-design' ||
-      formData.id === 'doc-apex-billing' ||
-      formData.id.startsWith('default-');
-    const uniqueId = isTemplateDefaultId
-      ? `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
-      : formData.id;
+    const uniqueId = resolveDocId(formData.id);
 
     const invoiceToPreview: BillDocument = {
       ...formData,
@@ -646,15 +648,7 @@ export default function CreateInvoicePage({
       return;
     }
 
-    const isTemplateDefaultId =
-      !formData.id ||
-      formData.id === 'inv-studio-pulse' ||
-      formData.id === 'inv-acme-design' ||
-      formData.id === 'doc-apex-billing' ||
-      formData.id.startsWith('default-');
-    const uniqueId = isTemplateDefaultId
-      ? `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
-      : formData.id;
+    const uniqueId = resolveDocId(formData.id);
 
     const finalizedInvoice: BillDocument = {
       ...formData,
@@ -696,15 +690,7 @@ export default function CreateInvoicePage({
       return;
     }
 
-    const isTemplateDefaultId =
-      !formData.id ||
-      formData.id === 'inv-studio-pulse' ||
-      formData.id === 'inv-acme-design' ||
-      formData.id === 'doc-apex-billing' ||
-      formData.id.startsWith('default-');
-    const uniqueId = isTemplateDefaultId
-      ? `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
-      : formData.id;
+    const uniqueId = resolveDocId(formData.id);
 
     setIsGeneratingPdf(true);
     const invoiceToSave: BillDocument = {

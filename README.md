@@ -19,7 +19,7 @@
   2. **Customer (BILL TO)**: Client contact details, billing address, and optional shipping address with "same as billing" toggle.
   3. **My Business Info (BILL FROM)**: Company logo upload (auto-scaled to 52×52px slot), business tagline, GSTIN/Tax ID, address, and contact info.
   4. **Line Items**: Add item/service names, descriptions, dynamic quantities, unit rates, item-level taxes, and reordering.
-  5. **Payment & Charges**: Bank details, UPI IDs, payment terms, discounts, shipping fees, and amount paid.
+  5. **Payment & Charges**: Bank details, UPI IDs, discounts, shipping fees, and amount paid.
   6. **Template Picker**: Real-time layout switcher with custom accent palettes.
 - **Create Invoice (Single-Page Rapid Editor)**:
   - Fast-form workflow tailored for service retainers, software licensing, and immediate billing.
@@ -50,6 +50,8 @@ Templates are strictly scoped to their document type — the Bill editor only ev
 | **EU Business Invoice** | Dense Nordic/European metadata block, Unit Price/Qty/VAT% table, BIC/SWIFT + IBAN bank footer | International billing, EU/Nordic clients |
 | **GST Tax Invoice — Detailed** | Full statutory Indian GST invoice: PAN + GSTIN, Challan/E-Way Bill/Transport block, per-line HSN/SAC codes, HSN-grouped IGST summary table, amount in words, UPI QR code, signature stamp | Indian GST-registered businesses shipping goods |
 
+**Colors**: every template's accent color can be swapped from a curated palette (Blues & Teals, Greens, Purples & Pinks, Reds & Oranges, Warm & Earth, Neutrals) right next to the template picker — your choice always overrides the template's own default color on the live preview and the final PDF, on both Bill and Invoice editors.
+
 ---
 
 ### 3. 🏢 Business Profile & Automatic Sync
@@ -65,7 +67,9 @@ Templates are strictly scoped to their document type — the Bill editor only ev
 - **Seamless Dark Mode**: Toggle between light and dark mode with persistent `localStorage` preference and system scheme fallback.
 - **Crafted Dark Palette**: Deep charcoal canvas (`#0e1012`), frosted glass cards (`#181b21`), and balanced contrast tokens to eliminate eye strain.
 - **Liquid Glassmorphism**: Ambient floating background orbs and backdrop blur refractions.
-- **Dynamic Hero Typing Effect**: Smooth animated typewriter cycling between *"What will you create bills?"* and *"What will you create invoices?"*.
+- **Dynamic Hero Typing Effect**: Smooth animated typewriter cycling the headline between *"Create stunning bills"* and *"Create stunning invoices"*.
+- **Floating Glassmorphism Navbar**: a translucent, blurred pill-shaped navigation bar that floats above the page content.
+- **Footer & Help**: a lightweight footer (copyright, Privacy, Terms, Contact) plus a quick Help & FAQ modal covering the core workflows.
 
 ---
 
@@ -81,6 +85,8 @@ Templates are strictly scoped to their document type — the Bill editor only ev
 ### 6. 🛡️ Draft Safety & Unsaved-Changes Protection
 - **Never lose work switching documents**: each editor tracks whether the form has changes that haven't been committed via Save Draft / Create / Download PDF. Switching between Create Bill, Create Invoice, or any other tab while dirty prompts a confirmation — mirroring the "unsaved changes" warning in Word/Office.
 - **Browser close/refresh protection**: closing the tab or refreshing with unsaved changes triggers the browser's native "leave site?" prompt.
+- **Save Draft keeps your in-progress values**: reopening the editor after only a Save Draft shows exactly what you left off with.
+- **Finishing a document starts the next one fresh**: once a bill or invoice is actually saved — Create Bill/Invoice, Save & Preview, or Save & Download PDF — the editor clears back to a blank form (still auto-filled from your Business Profile Defaults), so the document you just finished never bleeds into the next one.
 - **Reset Form**: instantly wipes the current draft back to blank, with a confirmation step.
 - **Sample Data (preview-only)**: fills the live preview with example content to show what a finished document looks like — never written to your real form data or saved anywhere, and clearly banner-marked while active. Toggle it off and your actual entries are exactly as you left them.
 - **"No due date" toggle**: mark a bill or invoice as not having a due date (e.g. a walk-in receipt) instead of leaving the field ambiguously blank.
@@ -115,6 +121,8 @@ BillEase/
 │   │   ├── ConfirmDeleteModal.tsx   # Delete confirmation popup dialog
 │   │   ├── DateInputWithPicker.tsx  # Date input with calendar picker + ISO normalization
 │   │   ├── DocumentRenderer.tsx     # A4 live canvas renderer for Invoice templates
+│   │   ├── Footer.tsx               # App footer (copyright + Help/Privacy/Terms/Contact)
+│   │   ├── HelpModal.tsx            # Help & FAQ modal
 │   │   ├── Navbar.tsx               # Top navigation bar
 │   │   └── UnsavedChangesModal.tsx  # "Unsaved changes" confirmation dialog
 │   ├── data/
@@ -133,6 +141,7 @@ BillEase/
 │   │   └── index.ts            # TypeScript interfaces & types
 │   ├── utils/
 │   │   ├── billCalculations.ts # Financial calculation engine
+│   │   ├── colors.ts           # Shared hex color shading helper for document renderers
 │   │   ├── dates.ts            # Canonical date parsing/formatting (ISO source of truth)
 │   │   └── profileSync.ts      # Profile event broadcasting & document auto-fill
 │   ├── App.tsx                 # Root application container & tab router
@@ -141,7 +150,7 @@ BillEase/
 ├── package.json                # Source of truth for dependencies
 ├── requirements.txt            # Plain-text dependency reference (see below)
 ├── tsconfig.json
-└── vite.config.ts
+└── vite.config.js
 ```
 
 ---
@@ -186,11 +195,6 @@ BillEase/
    npm run preview
    ```
 
----
-
-## 📄 License
-
-This project is licensed under the MIT License — see the repository for details.
 
 ---
 

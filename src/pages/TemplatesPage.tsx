@@ -6,62 +6,21 @@ import {
   X,
   Building2,
   Receipt,
-  GraduationCap,
-  Stethoscope,
-  Briefcase,
   Layers,
   CheckCircle2,
   Search,
 } from 'lucide-react';
 import {
-  LayoutType,
   TemplateStyle,
   TEMPLATES,
-  BILL_TEMPLATES,
-  INVOICE_TEMPLATES,
-  TEMPLATE_STORAGE_KEY,
   saveTemplateChoice,
-  setTemplateChoice,
   getTemplateChoice,
-  getTemplateById,
   ALL_CATEGORIES,
 } from '../data/templateStyles';
-
-// Re-export all requested types, data, and helper functions directly from TemplatesPage
-export type { LayoutType, TemplateStyle };
-export {
-  TEMPLATES,
-  BILL_TEMPLATES,
-  INVOICE_TEMPLATES,
-  TEMPLATE_STORAGE_KEY,
-  saveTemplateChoice,
-  setTemplateChoice,
-  getTemplateChoice,
-  getTemplateById,
-  ALL_CATEGORIES,
-};
 
 interface TemplatesPageProps {
   onSelectTemplate: (templateId: string, docType?: 'bill' | 'invoice') => void;
   activeDocType?: 'bill' | 'invoice';
-}
-
-// Category icon mapper for rich visuals
-function getCategoryIcon(category: string) {
-  switch (category) {
-    case 'Professional Services':
-      return <Briefcase size={14} />;
-    case 'Technology & SaaS':
-      return <Layers size={14} />;
-    case 'E-Commerce & Retail':
-      return <Receipt size={14} />;
-    case 'Healthcare & Wellness':
-      return <Stethoscope size={14} />;
-    case 'Education & Training':
-      return <GraduationCap size={14} />;
-    default:
-      return <Building2 size={14} />;
-  }
 }
 
 // Badge color classifier
