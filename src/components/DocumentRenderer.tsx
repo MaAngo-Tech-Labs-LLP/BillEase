@@ -7,7 +7,6 @@ import {
   Calendar,
   Landmark,
   Receipt,
-  QrCode,
   Stethoscope,
   GraduationCap,
   Award,
@@ -585,10 +584,17 @@ export default function DocumentRenderer({
               </div>
             )}
 
-            {/* Instant Pay QR Badge */}
-            {(bankRows.length > 0 || document.upiId) && (
+            {/* Instant Pay QR Badge — only shown once a real, scannable QR
+                code has been uploaded (Payment QR Code, Section 4). A
+                generic QR-shaped icon here would look scannable but do
+                nothing, which is misleading on a real invoice. */}
+            {document.paymentQrCode && (
               <div style={{ background: 'rgba(255,255,255,0.18)', border: '1px dashed rgba(255,255,255,0.4)', borderRadius: 10, padding: '12px', textAlign: 'center' }}>
-                <QrCode size={36} style={{ margin: '0 auto 4px' }} />
+                <img
+                  src={document.paymentQrCode}
+                  alt="Payment QR code"
+                  style={{ width: 64, height: 64, objectFit: 'contain', margin: '0 auto 4px', display: 'block', background: '#ffffff', borderRadius: 6, padding: 4 }}
+                />
                 <div style={{ fontSize: '0.7rem', fontWeight: 700 }}>Scan to Settle Online</div>
                 <div style={{ fontSize: '0.62rem', opacity: 0.85 }}>Instant UPI &amp; Direct Bank</div>
               </div>
