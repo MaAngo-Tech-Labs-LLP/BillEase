@@ -101,7 +101,16 @@ export default function DocumentRenderer({
   const tplStyle = getTemplateById(normTemplateId);
   const layout = tplStyle?.layoutType || 'classic';
 
-  const accentHex = tplStyle?.accentColor || ACCENT_COLOR_MAP[document.accent] || '#1e3a8a';
+  // User-chosen accent (from the Colors picker) ALWAYS overrides the
+  // template's built-in color, matching BillDocumentRenderer's behavior —
+  // previously tplStyle?.accentColor was checked first, so picking a color
+  // in the Colors picker never actually changed anything on invoices.
+  const userAccentHex: string | null = document.accent
+    ? (document.accent.startsWith('#')
+        ? document.accent
+        : ((ACCENT_COLOR_MAP as any)[document.accent] ?? null))
+    : null;
+  const accentHex = userAccentHex ?? tplStyle?.accentColor ?? '#1e3a8a';
   const isInvoice = document.type === 'invoice';
   const docHeading = document.title || (isInvoice ? 'INVOICE' : 'BILL');
 
@@ -365,7 +374,7 @@ export default function DocumentRenderer({
         } as React.CSSProperties}
       >
         {/* Left-aligned Store Header with 52x52 Logo on Left */}
-        <div className="receipt-header-box" style={{ background: tplStyle?.headerBg || '#00695C', display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 20px', textAlign: 'left', width: '100%', boxSizing: 'border-box' }}>
+        <div className="receipt-header-box" style={{ background: userAccentHex || tplStyle?.headerBg || '#00695C', display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 20px', textAlign: 'left', width: '100%', boxSizing: 'border-box' }}>
           <div style={{ marginTop: '2px', flexShrink: 0 }}>
             {renderBusinessLogo(senderLogo, senderName, true)}
           </div>
@@ -495,7 +504,7 @@ export default function DocumentRenderer({
                 </div>
               )}
               <div style={{ borderTop: '1.5px dashed #00695c', margin: '4px 0' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800, color: tplStyle?.totalColor || '#004d40', fontSize: '1.1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800, color: userAccentHex || tplStyle?.totalColor || '#004d40', fontSize: '1.1rem' }}>
                 <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Net Payable:</span>
                 <span style={{ fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(totalAmount)}</span>
               </div>
@@ -540,7 +549,7 @@ export default function DocumentRenderer({
       >
         <div className="tpl-sidebar-grid">
           {/* Left Vertical Brand Column with 52x52 Logo at Top-Left */}
-          <div className="tpl-sidebar-left" style={{ background: tplStyle?.headerBg ? `linear-gradient(180deg, ${tplStyle.headerBg} 0%, #bf360c 100%)` : undefined }}>
+          <div className="tpl-sidebar-left" style={{ background: (userAccentHex || tplStyle?.headerBg) ? `linear-gradient(180deg, ${userAccentHex || tplStyle?.headerBg} 0%, #bf360c 100%)` : undefined }}>
             <div className="tpl-sidebar-brand">
               <div style={{ marginBottom: 14 }}>
                 {renderBusinessLogo(senderLogo, senderName, true)}
@@ -696,7 +705,7 @@ export default function DocumentRenderer({
                       </div>
                     )}
                     <div style={{ borderTop: '1.5px solid #fed7aa', margin: '4px 0' }} />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800, color: tplStyle?.totalColor || '#e65100', fontSize: '1.1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800, color: userAccentHex || tplStyle?.totalColor || '#e65100', fontSize: '1.1rem' }}>
                       <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Due:</span>
                       <span style={{ fontVariantNumeric: 'tabular-nums' }}>{currencySymbol}{formatAmount(totalAmount)}</span>
                     </div>
