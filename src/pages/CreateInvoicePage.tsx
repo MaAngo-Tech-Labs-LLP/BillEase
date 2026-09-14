@@ -7,9 +7,6 @@ import {
   Eye,
   Save,
   Sparkles,
-  LayoutGrid,
-  ArrowRight,
-  X,
   ChevronUp,
   ChevronDown,
   CheckCircle2,
@@ -25,6 +22,7 @@ import {
   SAMPLE_INVOICE_DATA,
   CURRENCY_SYMBOLS,
   INVOICE_TEMPLATES,
+  ACCENT_COLOR_MAP,
   normalizeTemplateId,
   getTemplateById,
   fillSampleIntoEmpty,
@@ -67,12 +65,13 @@ export default function CreateInvoicePage({
   onRegisterSaveDraft,
   onFinish,
 }: CreateInvoicePageProps) {
-  const [showGallery, setShowGallery] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isDraggingLogo, setIsDraggingLogo] = useState(false);
   const [lastDueDate, setLastDueDate] = useState('');
   const [showSampleData, setShowSampleData] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const colorPickerRef = useRef<HTMLDivElement>(null);
 
   const sanitizeInvoiceDoc = (doc: Partial<BillDocument>): BillDocument => {
     const rawItems = doc.items && doc.items.length ? doc.items : DEFAULT_INVOICE.items;
@@ -212,6 +211,26 @@ export default function CreateInvoicePage({
       window.removeEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdate as EventListener);
     };
   }, [onNotify]);
+
+  // Close color picker when clicking outside
+  useEffect(() => {
+    if (!showColorPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node)) {
+        setShowColorPicker(false);
+      }
+    };
+    // Use setTimeout to skip the current click event that opened the picker
+    const tid = window.setTimeout(() => {
+      document.addEventListener('mousedown', handler);
+    }, 0);
+    return () => {
+      window.clearTimeout(tid);
+      document.removeEventListener('mousedown', handler);
+    };
+  }, [showColorPicker]);
+
+  const activeAccentHex = ACCENT_COLOR_MAP[formData.accent] || '#6E5CB6';
 
   const currencySymbol = CURRENCY_SYMBOLS[formData.currency] || '₹';
 
@@ -1661,16 +1680,172 @@ export default function CreateInvoicePage({
                 </select>
               </div>
 
-              <button
-                type="button"
-                className="btn-gallery-trigger"
-                onClick={() => setShowGallery(true)}
-                title="Browse Full Templates Gallery"
-                aria-label="Open Template Gallery"
-              >
-                <LayoutGrid size={15} />
-                <span>Gallery</span>
-              </button>
+              {/* ── Color Palette Picker ── */}
+              <div ref={colorPickerRef} style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  className="btn-gallery-trigger"
+                  onClick={(e) => { e.stopPropagation(); setShowColorPicker((v) => !v); }}
+                  title="Change template color"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    borderColor: showColorPicker ? activeAccentHex : undefined,
+                    background: showColorPicker ? `${activeAccentHex}18` : undefined,
+                  }}
+                >
+                  <span style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, flexShrink: 0 }}>
+                    {([1, 0.65, 0.45, 0.25] as number[]).map((op, i) => (
+                      <span key={i} style={{ width: 6, height: 6, borderRadius: 1.5, background: activeAccentHex, opacity: op, display: 'block' }} />
+                    ))}
+                  </span>
+                  <span>Colors</span>
+                </button>
+
+                {/* Palette popup — fixed so never clipped by overflow */}
+                {showColorPicker && (() => {
+                  const btnRect = colorPickerRef.current?.getBoundingClientRect();
+                  const popTop = btnRect ? btnRect.bottom + 10 : 70;
+                  const popRight = btnRect ? window.innerWidth - btnRect.right : 20;
+
+                  const GROUPS = [
+                    { label: 'Blues & Teals', colors: [
+                      { key: 'indigo', hex: '#4f46e5', name: 'Indigo' },
+                      { key: 'navy', hex: '#1e3a8a', name: 'Navy' },
+                      { key: 'midnight', hex: '#1e1b4b', name: 'Midnight' },
+                      { key: 'sky', hex: '#0284c7', name: 'Sky' },
+                      { key: 'cyan', hex: '#0891b2', name: 'Cyan' },
+                      { key: 'steel', hex: '#3b6ea5', name: 'Steel' },
+                      { key: 'teal', hex: '#0d9488', name: 'Teal' },
+                    ]},
+                    { label: 'Greens', colors: [
+                      { key: 'emerald', hex: '#059669', name: 'Emerald' },
+                      { key: 'mint', hex: '#10b981', name: 'Mint' },
+                      { key: 'pine', hex: '#166534', name: 'Pine' },
+                      { key: 'forest', hex: '#14532d', name: 'Forest' },
+                      { key: 'lime', hex: '#65a30d', name: 'Lime' },
+                      { key: 'olive', hex: '#4d7c0f', name: 'Olive' },
+                    ]},
+                    { label: 'Purples & Pinks', colors: [
+                      { key: 'violet', hex: '#7c3aed', name: 'Violet' },
+                      { key: 'plum', hex: '#7e22ce', name: 'Plum' },
+                      { key: 'lavender', hex: '#8b5cf6', name: 'Lavender' },
+                      { key: 'fuchsia', hex: '#c026d3', name: 'Fuchsia' },
+                      { key: 'pink', hex: '#db2777', name: 'Pink' },
+                    ]},
+                    { label: 'Reds & Oranges', colors: [
+                      { key: 'rose', hex: '#e11d48', name: 'Rose' },
+                      { key: 'crimson', hex: '#be123c', name: 'Crimson' },
+                      { key: 'maroon', hex: '#881337', name: 'Maroon' },
+                      { key: 'red', hex: '#dc2626', name: 'Red' },
+                      { key: 'coral', hex: '#f97316', name: 'Coral' },
+                      { key: 'orange', hex: '#ea580c', name: 'Orange' },
+                    ]},
+                    { label: 'Warm & Earth', colors: [
+                      { key: 'amber', hex: '#d97706', name: 'Amber' },
+                      { key: 'gold', hex: '#b45309', name: 'Gold' },
+                      { key: 'yellow', hex: '#ca8a04', name: 'Yellow' },
+                      { key: 'coffee', hex: '#78350f', name: 'Coffee' },
+                      { key: 'brown', hex: '#92400e', name: 'Brown' },
+                    ]},
+                    { label: 'Neutrals', colors: [
+                      { key: 'slate', hex: '#475569', name: 'Slate' },
+                      { key: 'charcoal', hex: '#374151', name: 'Charcoal' },
+                      { key: 'mono', hex: '#0f172a', name: 'Black' },
+                    ]},
+                  ] as { label: string; colors: { key: string; hex: string; name: string }[] }[];
+
+                  const activeKey = formData.accent || 'indigo';
+                  const activeName = GROUPS.flatMap(g => g.colors).find(c => c.key === activeKey)?.name ?? 'Indigo';
+
+                  return (
+                    <div
+                      onMouseDown={(e) => e.stopPropagation()}
+                      style={{
+                        position: 'fixed', top: popTop, right: popRight,
+                        zIndex: 99999,
+                        background: '#ffffff',
+                        borderRadius: 16,
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 16px 48px rgba(0,0,0,0.20), 0 3px 10px rgba(0,0,0,0.10)',
+                        padding: '16px 18px 14px',
+                        width: 288,
+                        userSelect: 'none',
+                      }}
+                    >
+                      {/* Header row */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                        <span style={{ fontSize: '0.80rem', fontWeight: 700, color: '#1e293b' }}>Template Color</span>
+                        <span style={{
+                          fontSize: '0.70rem', fontWeight: 600,
+                          color: activeAccentHex,
+                          background: `${activeAccentHex}15`,
+                          border: `1px solid ${activeAccentHex}40`,
+                          borderRadius: 6, padding: '2px 9px',
+                        }}>
+                          {activeName}
+                        </span>
+                      </div>
+
+                      {/* Color groups */}
+                      {GROUPS.map((group) => (
+                        <div key={group.label} style={{ marginBottom: 11 }}>
+                          <div style={{ fontSize: '0.63rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
+                            {group.label}
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 5 }}>
+                            {group.colors.map(({ key, hex, name }) => {
+                              const isActive = activeKey === key;
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  title={name}
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    handleInputChange('accent', key as any);
+                                    setShowColorPicker(false);
+                                    onNotify(`🎨 ${name}`);
+                                  }}
+                                  style={{
+                                    width: '100%', aspectRatio: '1 / 1',
+                                    borderRadius: 6,
+                                    background: hex,
+                                    border: 'none',
+                                    outline: isActive ? `2.5px solid ${hex}` : '2px solid transparent',
+                                    outlineOffset: isActive ? 2.5 : 0,
+                                    cursor: 'pointer',
+                                    boxShadow: isActive
+                                      ? `0 0 0 4px ${hex}30, 0 2px 5px rgba(0,0,0,0.20)`
+                                      : '0 1px 3px rgba(0,0,0,0.18)',
+                                    transition: 'transform 0.12s ease, box-shadow 0.12s ease',
+                                    transform: isActive ? 'scale(1.22)' : 'scale(1)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    padding: 0,
+                                  }}
+                                >
+                                  {isActive && (
+                                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                      <path d="M1.5 5l2.5 2.5L8.5 2" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Footer */}
+                      <div style={{ marginTop: 6, paddingTop: 10, borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: activeAccentHex, flexShrink: 0, boxShadow: `0 0 0 2.5px ${activeAccentHex}35` }} />
+                        <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                          Active: <strong style={{ color: activeAccentHex }}>{activeName}</strong>
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           </div>
 
@@ -1807,96 +1982,6 @@ export default function CreateInvoicePage({
         </aside>
       </div>
 
-      {/* Gallery Modal */}
-      {showGallery && (
-        <div
-          className="gallery-modal-overlay"
-          style={{ '--builder-accent': '#6E5CB6' } as React.CSSProperties}
-          onClick={() => setShowGallery(false)}
-        >
-          <div className="gallery-modal-dialog" onClick={(e) => e.stopPropagation()}>
-            <div className="gallery-modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <LayoutGrid size={18} style={{ color: '#6E5CB6' }} />
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Choose Invoice Template</h3>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowGallery(false);
-                    onNavigate('templates');
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    color: '#6E5CB6',
-                    background: 'rgba(110, 92, 182, 0.1)',
-                    border: '1px solid rgba(110, 92, 182, 0.3)',
-                    padding: '6px 12px',
-                    borderRadius: 8,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <span>Open Full Templates Page</span>
-                  <ArrowRight size={14} />
-                </button>
-                <button
-                  type="button"
-                  className="gallery-close-btn"
-                  onClick={() => setShowGallery(false)}
-                  aria-label="Close modal"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-
-            <div className="gallery-templates-grid">
-              {INVOICE_TEMPLATES.map((tpl) => {
-                const isSelected = normalizeTemplateId(formData.template, 'invoice') === tpl.id;
-                return (
-                  <div
-                    key={tpl.id}
-                    className={`gallery-card-item ${isSelected ? 'active' : ''}`}
-                    style={{
-                      borderColor: isSelected ? '#6E5CB6' : undefined,
-                      background: isSelected ? 'rgba(110, 92, 182, 0.06)' : undefined,
-                    }}
-                    onClick={() => {
-                      handleInputChange('template', tpl.id);
-                      try {
-                        localStorage.setItem('billease_active_template', tpl.id);
-                        localStorage.setItem('billease_invoice_draft', JSON.stringify({ ...formData, template: tpl.id }));
-                      } catch (_) {}
-                      setShowGallery(false);
-                      onNotify(`Applied ${tpl.name} layout!`);
-                    }}
-                  >
-                    <div className="gallery-card-meta">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#6E5CB6', textTransform: 'uppercase' }}>
-                          {tpl.categoryTag}
-                        </span>
-                        {isSelected && (
-                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#6E5CB6', background: 'rgba(110,92,182,0.12)', padding: '1px 6px', borderRadius: 4 }}>
-                            Active
-                          </span>
-                        )}
-                      </div>
-                      <div className="gallery-card-title">{tpl.name}</div>
-                      <div className="gallery-card-desc">{tpl.description}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
