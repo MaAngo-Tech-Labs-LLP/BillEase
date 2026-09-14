@@ -2012,43 +2012,6 @@ export default function CreateBillPage({
                   </div>
                 </div>
 
-                {/* Payment Terms */}
-                <div className="form-grid-2">
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="sel-pay-terms">
-                      Payment Terms
-                    </label>
-                    <select
-                      id="sel-pay-terms"
-                      className="form-input"
-                      value={formData.paymentTerms || '30 days'}
-                      onChange={(e) => handleInputChange('paymentTerms', e.target.value)}
-                    >
-                      <option value="Due on receipt">Due on receipt</option>
-                      <option value="7 days">7 days</option>
-                      <option value="15 days">15 days</option>
-                      <option value="30 days">30 days</option>
-                      <option value="Custom">Custom</option>
-                    </select>
-                  </div>
-
-                  {formData.paymentTerms === 'Custom' && (
-                    <div className="form-group">
-                      <label className="form-label" htmlFor="input-custom-terms">
-                        Custom Terms Specification
-                      </label>
-                      <input
-                        id="input-custom-terms"
-                        className="form-input"
-                        type="text"
-                        value={formData.customPaymentTerms || ''}
-                        onChange={(e) => handleInputChange('customPaymentTerms', e.target.value)}
-                        placeholder="e.g. 50% advance, balance on delivery"
-                      />
-                    </div>
-                  )}
-                </div>
-
                 {/* Adjustments: Discount, Overall Tax, Additional Charges */}
                 <div className="form-grid-2">
                   <div className="form-group">
