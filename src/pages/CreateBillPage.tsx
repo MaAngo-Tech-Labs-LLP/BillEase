@@ -993,31 +993,6 @@ export default function CreateBillPage({
                       </div>
 
                       <div className="form-group">
-                        <label className="form-label" htmlFor="input-bill-title">
-                          Bill Title / Type
-                        </label>
-                        <select
-                          id="input-bill-title"
-                          className="form-input"
-                          value={formData.title || 'BILL'}
-                          onChange={(e) => handleInputChange('title', e.target.value)}
-                        >
-                          <option value="BILL">BILL (Standard)</option>
-                          <option value="TAX BILL">TAX BILL</option>
-                          <option value="CASH MEMO">CASH MEMO</option>
-                          <option value="RETAIL INVOICE">RETAIL INVOICE</option>
-                          <option value="RECEIPT">RECEIPT</option>
-                          <option value="PROFORMA INVOICE">PROFORMA INVOICE</option>
-                          <option value="COMMERCIAL INVOICE">COMMERCIAL INVOICE</option>
-                          {!['BILL', 'TAX BILL', 'CASH MEMO', 'RETAIL INVOICE', 'RECEIPT', 'PROFORMA INVOICE', 'COMMERCIAL INVOICE'].includes(formData.title || 'BILL') && (
-                            <option value={formData.title}>{formData.title}</option>
-                          )}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="form-grid-2">
-                      <div className="form-group">
                         <label className="form-label" htmlFor="input-po-num">
                           Reference / PO (optional)
                         </label>
@@ -1030,7 +1005,9 @@ export default function CreateBillPage({
                           placeholder="PO-12345"
                         />
                       </div>
+                    </div>
 
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
                       <div className="form-group">
                         <label className="form-label" htmlFor="input-currency-sel">
                           Billing Currency
@@ -1048,9 +1025,7 @@ export default function CreateBillPage({
                           <option value="CAD">CAD ($ - Canadian Dollar)</option>
                         </select>
                       </div>
-                    </div>
 
-                    <div className="form-grid-2">
                       <div className="form-group">
                         <label className="form-label" htmlFor="input-issue-date">
                           Bill Date <span className="req-star">*</span>
