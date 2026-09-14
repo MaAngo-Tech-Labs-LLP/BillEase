@@ -2576,7 +2576,7 @@ export default function BillDocumentRenderer({
             {hasPoNumber && (
               <div
                 style={{
-                  fontSize: '0.68rem',
+                  fontSize: '0.70rem',
                   color: '#FFFFFF',
                   background: 'rgba(255,255,255,0.12)',
                   border: '1px solid rgba(255,255,255,0.20)',
@@ -2587,12 +2587,12 @@ export default function BillDocumentRenderer({
                   gap: 3,
                 }}
               >
-                <div style={{ fontWeight: 800, fontSize: '0.64rem', color: userAccentHex ? 'rgba(255,255,255,0.88)' : '#FED7AA', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.66rem', color: userAccentHex ? 'rgba(255,255,255,0.88)' : '#FED7AA', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                   ENGAGEMENT SCOPE
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                  <span style={{ fontSize: '0.67rem', color: 'rgba(255,255,255,0.85)', whiteSpace: 'nowrap' }}>PO / Ref:</span>
-                  <strong style={{ fontSize: '0.75rem', color: '#FFFFFF', fontWeight: 800, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{poNumberValue}</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.70rem' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.85)', whiteSpace: 'nowrap' }}>PO / Ref:</span>
+                  <strong style={{ color: '#FFFFFF', fontWeight: 800, whiteSpace: 'nowrap' }}>{poNumberValue}</strong>
                 </div>
               </div>
             )}
