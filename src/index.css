@@ -1737,12 +1737,80 @@ body[data-theme='dark'] .step-pill-number {
   border-radius: 24px;
   padding: 30px 28px;
   box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.04);
-  position: relative;
+  position: sticky;
+  top: 5rem;
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 1023px) {
+  .builder-form-card {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
 }
 
 body[data-theme='dark'] .builder-form-card {
   background: #181b1f;
   border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Scrollable containers and custom sleek scrollbars */
+.bill-template-cards-grid {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 6px;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+
+.bill-template-cards-grid::-webkit-scrollbar,
+.builder-form-card::-webkit-scrollbar,
+.live-layout-architecture-card::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bill-template-cards-grid::-webkit-scrollbar-track,
+.builder-form-card::-webkit-scrollbar-track,
+.live-layout-architecture-card::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 9999px;
+}
+
+.bill-template-cards-grid::-webkit-scrollbar-thumb,
+.builder-form-card::-webkit-scrollbar-thumb,
+.live-layout-architecture-card::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+.bill-template-cards-grid::-webkit-scrollbar-thumb:hover,
+.builder-form-card::-webkit-scrollbar-thumb:hover,
+.live-layout-architecture-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.75);
+}
+
+body[data-theme='dark'] .bill-template-cards-grid::-webkit-scrollbar-track,
+body[data-theme='dark'] .builder-form-card::-webkit-scrollbar-track,
+body[data-theme='dark'] .live-layout-architecture-card::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body[data-theme='dark'] .bill-template-cards-grid::-webkit-scrollbar-thumb,
+body[data-theme='dark'] .builder-form-card::-webkit-scrollbar-thumb,
+body[data-theme='dark'] .live-layout-architecture-card::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+body[data-theme='dark'] .bill-template-cards-grid::-webkit-scrollbar-thumb:hover,
+body[data-theme='dark'] .builder-form-card::-webkit-scrollbar-thumb:hover,
+body[data-theme='dark'] .live-layout-architecture-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
 }
 
 .form-step-header {
@@ -2039,28 +2107,30 @@ body[data-theme='dark'] .date-picker-icon-box:hover .date-picker-icon-btn {
   box-sizing: border-box;
 }
 
-/* Hide native webkit spin-buttons everywhere so unstyled native arrows never appear */
-input[type='number']::-webkit-inner-spin-button,
-input[type='number']::-webkit-outer-spin-button {
+/* Hide native webkit spin-buttons ONLY for custom number-stepper inputs */
+.number-stepper-input::-webkit-inner-spin-button,
+.number-stepper-input::-webkit-outer-spin-button {
   -webkit-appearance: none !important;
   margin: 0 !important;
 }
 
-input[type='number'] {
+.number-stepper-input {
   -moz-appearance: textfield !important;
+  padding-right: 2.2rem !important;
 }
 
 .number-stepper-btns {
   position: absolute;
-  right: 4px;
+  right: 7px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   gap: 2px;
-  height: 28px;
-  width: 22px;
+  height: 26px;
+  width: 20px;
   z-index: 2;
+  box-sizing: border-box;
 }
 
 .number-stepper-btn {
@@ -2068,37 +2138,85 @@ input[type='number'] {
   align-items: center;
   justify-content: center;
   flex: 1;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  border-radius: 3px;
-  color: #1e293b;
+  background: linear-gradient(180deg, #eef2ff 0%, #e0e7ff 100%);
+  border: 1px solid #c7d2fe;
+  border-radius: 4px;
+  color: #4338ca;
   padding: 0;
   cursor: pointer;
-  transition: all 120ms ease;
+  transition: all 130ms ease;
   line-height: 1;
+  box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.08);
 }
 
-.number-stepper-btn:hover {
-  background: #e2e8f0;
-  color: #0f172a;
-  border-color: #94a3b8;
+/* Upper arrow button (Increment) - crisp azure/blue shade */
+.number-stepper-btn.up {
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.10);
 }
 
-.number-stepper-btn:active {
-  background: #cbd5e1;
+.number-stepper-btn.up:hover {
+  background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1e40af;
+  border-color: #60a5fa;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.20);
+}
+
+.number-stepper-btn.up:active {
+  background: #bfdbfe;
+  color: #172554;
   transform: scale(0.92);
 }
 
-body[data-theme='dark'] .number-stepper-btn {
-  background: #262c36;
-  border-color: rgba(255, 255, 255, 0.16);
-  color: #e2e8f0;
+/* Lower arrow button (Decrement) - royal violet/purple shade */
+.number-stepper-btn.down {
+  background: linear-gradient(180deg, #f5f3ff 0%, #ede9fe 100%);
+  border-color: #c4b5fd;
+  color: #6d28d9;
+  box-shadow: 0 1px 2px rgba(109, 40, 217, 0.10);
 }
 
-body[data-theme='dark'] .number-stepper-btn:hover {
-  background: #333a46;
+.number-stepper-btn.down:hover {
+  background: linear-gradient(180deg, #ede9fe 0%, #ddd6fe 100%);
+  color: #5b21b6;
+  border-color: #a78bfa;
+  box-shadow: 0 2px 4px rgba(109, 40, 217, 0.20);
+}
+
+.number-stepper-btn.down:active {
+  background: #ddd6fe;
+  color: #3b0764;
+  transform: scale(0.92);
+}
+
+/* Dark mode color shades */
+body[data-theme='dark'] .number-stepper-btn.up {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.28) 0%, rgba(37, 99, 235, 0.16) 100%);
+  border-color: rgba(147, 197, 253, 0.35);
+  color: #93c5fd;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+body[data-theme='dark'] .number-stepper-btn.up:hover {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.42) 0%, rgba(37, 99, 235, 0.28) 100%);
   color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.28);
+  border-color: rgba(147, 197, 253, 0.6);
+}
+
+body[data-theme='dark'] .number-stepper-btn.down {
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.28) 0%, rgba(124, 58, 237, 0.16) 100%);
+  border-color: rgba(196, 181, 253, 0.35);
+  color: #c4b5fd;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+body[data-theme='dark'] .number-stepper-btn.down:hover {
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.42) 0%, rgba(124, 58, 237, 0.28) 100%);
+  color: #ffffff;
+  border-color: rgba(196, 181, 253, 0.6);
 }
 
 /* ---------------- Line Items Section ---------------- */
@@ -2152,15 +2270,19 @@ body[data-theme='dark'] .item-row-card {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  text-align: right;
   box-sizing: border-box;
   width: 100%;
-  /* Match .form-input's box model exactly (same vertical padding + border)
-     so "Line Total" sits on the same baseline as the Qty/Rate/Tax number
-     inputs beside it, instead of looking vertically offset. */
-  padding: 0.75rem 1rem;
-  border: 1px solid transparent;
+  /* Match .form-input's vertical height/baseline without horizontal padding
+     so the amount aligns flush with the "Line Total" label above it. */
+  padding: 0.75rem 0;
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+  border-left: none;
+  border-right: none;
   font-size: 1.05rem;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary, #0f172a);
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -5171,10 +5293,9 @@ body[data-theme='dark'] .tpl-modal-footer {
   margin-top: 10px;
 }
 
-/* 2. Receipt Layout (Retail POS) */
 .tpl-receipt {
-  border: 1.5px dashed #00695c !important;
-  background: #fdfefe !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
 }
 .tpl-receipt .receipt-header-box {
   background: #00695c;
@@ -5727,11 +5848,12 @@ body[data-theme='dark'] .tpl-modal-footer {
     border-right: none !important;
   }
 
-  .bill-document-sheet .bill-bottom-row-1 {
+  .bill-document-sheet .bill-bottom-row-1,
+  .bill-document-sheet .bill-bottom-row-top {
     display: grid !important;
     grid-template-columns: 1.15fr 1fr !important;
     gap: 13px !important;
-    align-items: stretch !important;
+    align-items: start !important;
     width: 100% !important;
     margin: 0 !important;
   }
@@ -5740,7 +5862,7 @@ body[data-theme='dark'] .tpl-modal-footer {
     border: none !important;
     background: transparent !important;
     padding: 0 !important;
-    height: 100% !important;
+    height: auto !important;
   }
 
   .bill-document-sheet .bill-payment-card {
@@ -5750,13 +5872,22 @@ body[data-theme='dark'] .tpl-modal-footer {
     border-radius: 8px !important;
     box-shadow: none !important;
     overflow: hidden !important;
-    height: 100% !important;
+    height: auto !important;
   }
 
+  .bill-document-sheet .bill-payment-card .a4-party-card-header,
   .bill-document-sheet .bill-payment-card .a4-notes-card-header {
     background: #E8EAF6 !important;
     border-bottom: 1px solid #C5CAE9 !important;
     padding: 8px 12px !important;
+  }
+
+  .bill-document-sheet .bill-payment-card .a4-party-card-body,
+  .bill-document-sheet .bill-payment-card .bill-bank-grid {
+    padding: 8px 12px !important;
+    gap: 3.5px !important;
+    flex: none !important;
+    justify-content: flex-start !important;
   }
 
   .bill-document-sheet .bill-totals-box {
@@ -5922,8 +6053,9 @@ body[data-theme='dark'] .invoice-form-select option {
 
 .bill-document-sheet.tpl-clinical {
   max-width: 800px;
-  gap: 15px !important;
-  padding: 30px 36px 20px 36px !important;
+  min-height: 1080px !important;
+  gap: 16px !important;
+  padding: 28px 30px 24px 30px !important;
 }
 
 .bill-document-sheet .bill-classic-header {
@@ -6037,13 +6169,13 @@ body[data-theme='dark'] .invoice-form-select option {
   display: grid !important;
   grid-template-columns: 1.15fr 1fr !important;
   gap: 16px !important;
-  align-items: stretch !important;
+  align-items: start !important;
   width: 100% !important;
   margin: 0 !important;
 }
 
 .bill-document-sheet .bill-payment-box {
-  height: 100% !important;
+  height: auto !important;
   display: flex !important;
   flex-direction: column !important;
   border: none !important;
@@ -6052,7 +6184,7 @@ body[data-theme='dark'] .invoice-form-select option {
 }
 
 .bill-document-sheet .bill-payment-card {
-  height: 100% !important;
+  height: auto !important;
   box-sizing: border-box !important;
   display: flex !important;
   flex-direction: column !important;
@@ -6061,6 +6193,33 @@ body[data-theme='dark'] .invoice-form-select option {
   background: #ffffff !important;
   overflow: hidden !important;
   padding: 0 !important;
+}
+
+.bill-document-sheet .bill-payment-card .a4-party-card-header,
+.bill-document-sheet .bill-payment-card .a4-notes-card-header {
+  padding: 9px 14px !important;
+  background: #E8EAF6 !important;
+  border-bottom: 1px solid #C5CAE9 !important;
+  color: #1A237E !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+}
+
+.bill-document-sheet .bill-payment-card .a4-party-card-body,
+.bill-document-sheet .bill-payment-card .bill-bank-grid {
+  padding: 12px 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  font-size: 0.76rem !important;
+  color: #334155 !important;
+  flex: none !important;
+  justify-content: flex-start !important;
 }
 
 .bill-document-sheet .bill-totals-box {
@@ -6397,10 +6556,11 @@ body[data-theme='dark'] .invoice-form-select option {
 }
 
 .bill-document-sheet.tpl-clinical {
-  padding: 30px 36px 20px 36px !important;
+  padding: 28px 30px 24px 30px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 15px !important;
+  gap: 16px !important;
+  min-height: 1080px !important;
   background: #ffffff !important;
   position: relative !important;
   overflow: hidden !important;
@@ -6433,62 +6593,79 @@ body[data-theme='dark'] .invoice-form-select option {
   padding: 24px 26px !important;
   min-height: 1080px !important;
   max-width: 800px !important;
+  width: 100% !important;
   margin: 0 auto !important;
   box-sizing: border-box !important;
   background: #ffffff !important;
   position: relative !important;
   overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .bill-document-sheet.tpl-sidebar .tpl-sidebar-grid {
   display: grid !important;
-  grid-template-columns: 240px 1fr !important;
-  gap: 20px !important;
-  height: 100% !important;
+  grid-template-columns: 195px 1fr !important;
+  gap: 16px !important;
   min-height: 100% !important;
+  flex: 1 !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .bill-document-sheet.tpl-sidebar .tpl-sidebar-left {
-  background: linear-gradient(180deg, #E65100 0%, #BF360C 100%) !important;
-  padding: 22px 16px !important;
+  padding: 16px 13px !important;
   border-radius: 10px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 12px !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
   color: #FFFFFF !important;
   box-shadow: 0 4px 16px rgba(230,81,0,0.22) !important;
   box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 100% !important;
 }
 
 .bill-document-sheet.tpl-sidebar .tpl-sidebar-right {
   display: flex !important;
   flex-direction: column !important;
-  gap: 15px !important;
+  gap: 14px !important;
   height: 100% !important;
+  min-height: 100% !important;
+  flex: 1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
   box-sizing: border-box !important;
 }
 
 .bill-document-sheet.tpl-sidebar .agency-table-wrapper {
   margin: 0 !important;
   border-radius: 8px !important;
-  border: 1.5px solid #FFEDD5 !important;
   overflow: hidden !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .bill-document-sheet.tpl-sidebar .agency-items-table {
   width: 100% !important;
   border-collapse: collapse !important;
+  table-layout: auto !important;
 }
 
 .bill-document-sheet.tpl-sidebar .agency-items-table thead tr th {
-  background: #FFEDD5 !important;
-  color: #9A3412 !important;
-  border-right: 1px solid #FED7AA !important;
-  border-bottom: 1.5px solid #FDBA74 !important;
-  padding: 12px 14px !important;
-  font-size: 0.74rem !important;
+  padding: 10px 8px !important;
+  font-size: 0.73rem !important;
   font-weight: 800 !important;
-  letter-spacing: 0.04em !important;
+  letter-spacing: 0.03em !important;
+  box-sizing: border-box !important;
+}
+
+.bill-document-sheet.tpl-sidebar .agency-items-table thead tr th.th-nowrap,
+.bill-document-sheet.tpl-sidebar .agency-items-table tbody tr td.td-nowrap {
+  white-space: nowrap !important;
 }
 
 .bill-document-sheet.tpl-sidebar .agency-items-table thead tr th:last-child {
@@ -6496,10 +6673,9 @@ body[data-theme='dark'] .invoice-form-select option {
 }
 
 .bill-document-sheet.tpl-sidebar .agency-items-table tbody tr td {
-  padding: 13px 14px !important;
+  padding: 10px 8px !important;
   font-size: 0.76rem !important;
-  border-bottom: 1px solid #FFEDD5 !important;
-  border-right: 1px solid #FFEDD5 !important;
+  box-sizing: border-box !important;
 }
 
 .bill-document-sheet.tpl-sidebar .agency-items-table tbody tr td:last-child {
@@ -6512,11 +6688,12 @@ body[data-theme='dark'] .invoice-form-select option {
 
 .bill-document-sheet.tpl-sidebar .agency-bottom-row-1 {
   display: grid !important;
-  grid-template-columns: 1fr 1.15fr !important;
-  gap: 14px !important;
-  align-items: stretch !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) !important;
+  gap: 12px !important;
+  align-items: start !important;
   width: 100% !important;
   margin: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .bill-document-sheet.tpl-sidebar .agency-bottom-row-2 {
@@ -6525,7 +6702,8 @@ body[data-theme='dark'] .invoice-form-select option {
   align-items: flex-end !important;
   width: 100% !important;
   margin-top: auto !important;
-  padding-top: 14px !important;
+  padding-top: 10px !important;
+  box-sizing: border-box !important;
 }
 
 .bill-document-sheet.tpl-sidebar .agency-signature-block {

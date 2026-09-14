@@ -13,10 +13,44 @@ export type { TemplateStyle };
 export const TEMPLATES = STYLE_TEMPLATES;
 
 export const ACCENT_COLOR_MAP: Record<AccentColor, string> = {
-  indigo: '#349b73',
-  slate: '#1e293b',
-  mono: '#0f172a',
-  teal: '#349b73',
+  // Blues & Teals
+  indigo:    '#4f46e5',
+  navy:      '#1e3a8a',
+  sky:       '#0284c7',
+  teal:      '#0d9488',
+  cyan:      '#0891b2',
+  steel:     '#3b6ea5',
+  midnight:  '#1e1b4b',
+  // Greens
+  emerald:   '#059669',
+  pine:      '#166534',
+  forest:    '#14532d',
+  lime:      '#65a30d',
+  mint:      '#10b981',
+  olive:     '#4d7c0f',
+  // Purples & Pinks
+  violet:    '#7c3aed',
+  plum:      '#7e22ce',
+  lavender:  '#8b5cf6',
+  fuchsia:   '#c026d3',
+  pink:      '#db2777',
+  // Reds & Oranges
+  rose:      '#e11d48',
+  crimson:   '#be123c',
+  maroon:    '#881337',
+  red:       '#dc2626',
+  coral:     '#f97316',
+  orange:    '#ea580c',
+  // Yellows & Browns
+  amber:     '#d97706',
+  gold:      '#b45309',
+  yellow:    '#ca8a04',
+  coffee:    '#78350f',
+  brown:     '#92400e',
+  // Neutrals
+  slate:     '#475569',
+  charcoal:  '#374151',
+  mono:      '#0f172a',
 };
 
 export const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {
@@ -114,6 +148,9 @@ export const DEFAULT_BILL: BillDocument = {
   shippingAddress: '',
   shippingSameAsBilling: true,
   clientTaxNumber: '',
+  patientId: '',
+  patientGender: '',
+  patientAge: '',
   items: [
     {
       id: 'item-1',
