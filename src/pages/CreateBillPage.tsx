@@ -1729,8 +1729,8 @@ export default function CreateBillPage({
                         </div>
                       </div>
 
-                      <div className="form-grid-2" style={{ gap: '12px', width: '100%' }}>
-                        <div className="form-group" style={{ gap: '6px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+                        <div className="form-group" style={{ gap: '6px', width: '100%' }}>
                           <label className="form-label" style={{ fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
                             Item / Service Name
                           </label>
@@ -1740,10 +1740,11 @@ export default function CreateBillPage({
                             value={item.name || ''}
                             onChange={(e) => handleItemChange(item.id, 'name', e.target.value)}
                             placeholder="e.g. Architecture Consulting"
+                            style={{ width: '100%' }}
                           />
                         </div>
 
-                        <div className="form-group" style={{ gap: '6px' }}>
+                        <div className="form-group" style={{ gap: '6px', width: '100%' }}>
                           <label className="form-label" style={{ fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
                             Description
                           </label>
@@ -1753,6 +1754,7 @@ export default function CreateBillPage({
                             value={item.description || ''}
                             onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
                             placeholder="Enter item description..."
+                            style={{ width: '100%' }}
                           />
                         </div>
                       </div>
